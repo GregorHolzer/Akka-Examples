@@ -5,7 +5,7 @@
     <version>1.0</version>
 
     <properties>
-        <akka.version>2.10.5</akka.version>
+        <akka.version>2.10.9</akka.version>
         <akka.management.version>1.6.3</akka.management.version>
         <scala.binary.version>2.13</scala.binary.version>
     </properties>
@@ -57,6 +57,11 @@
         <dependency>
             <groupId>com.lightbend.akka.management</groupId>
             <artifactId>akka-management-cluster-bootstrap_${scala.binary.version}</artifactId>
+            <version>${akka.management.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka.management</groupId>
+            <artifactId>akka-management-cluster-http_${scala.binary.version}</artifactId>
             <version>${akka.management.version}</version>
         </dependency>
         <dependency>
