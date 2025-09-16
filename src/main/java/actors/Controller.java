@@ -35,9 +35,12 @@ public class Controller extends AbstractBehavior<Controller.SensorMessage> imple
 
     private final ActorRef<ControllerMessage> lightMachine;
 
+    public static Behavior<Controller.SensorMessage> create() {
+        return Behaviors.setup(Controller::new);
+    }
+
     @Override
     public Receive<SensorMessage> createReceive() {
-        logStateToConsole(ControllerState.AWAY, getContext());
         return newReceiveBuilder()
                 .onMessage(TrainNotSeen.class, msg -> away())
                 .onMessage(TrainSeen.class, msg -> approach())
