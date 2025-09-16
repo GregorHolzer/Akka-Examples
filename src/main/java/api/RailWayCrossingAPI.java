@@ -1,13 +1,15 @@
 package api;
 
 
-import actors.Controller;
+
+import actors.messages.SensorMessage;
+import actors.messages.TrainNotSeen;
+import actors.messages.TrainSeen;
 import akka.actor.typed.ActorRef;
 import akka.cluster.sharding.typed.ShardingEnvelope;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.server.Route;
-import java.time.Duration;
 import static akka.http.javadsl.server.PathMatchers.segment;
 
 
@@ -15,9 +17,9 @@ import static akka.http.javadsl.server.PathMatchers.segment;
 /// and to receive current state of the RailWayCrossing-Cluster
 public class RailWayCrossingAPI extends AllDirectives {
 
-    private final ActorRef<ShardingEnvelope<Controller.SensorMessage>> controller;
+    private final ActorRef<ShardingEnvelope<SensorMessage>> controller;
 
-    public RailWayCrossingAPI(ActorRef<ShardingEnvelope<Controller.SensorMessage>> controller) {
+    public RailWayCrossingAPI(ActorRef<ShardingEnvelope<SensorMessage>> controller) {
         this.controller = controller;
     }
 
@@ -31,12 +33,12 @@ public class RailWayCrossingAPI extends AllDirectives {
     }
 
     private Route trainSeen(String name){
-        controller.tell(new ShardingEnvelope<>(name, new Controller.TrainSeen()));
+        controller.tell(new ShardingEnvelope<>(name, new TrainSeen()));
         return complete(StatusCodes.OK);
     }
 
     private Route trainNotSeen(String name){
-        controller.tell(new ShardingEnvelope<>(name, new Controller.TrainNotSeen()));
+        controller.tell(new ShardingEnvelope<>(name, new TrainNotSeen()));
         return complete(StatusCodes.OK);
     }
 }

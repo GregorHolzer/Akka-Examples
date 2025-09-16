@@ -1,8 +1,6 @@
 package actors;
 
-import actors.messages.Approaching;
-import actors.messages.ControllerMessage;
-import actors.messages.Leaving;
+import actors.messages.*;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -10,17 +8,14 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
-/// Represents the Controller of a Railway-Crossing
-/// Creates two Child-Actors:
-///         - one {@link Gate} Actor
-///         - one {@link LightMachine} Actor
-public class Controller extends AbstractBehavior<Controller.SensorMessage> implements StateMachine<Controller.ControllerState>{
 
-    public interface SensorMessage {}
 
-    public static final class TrainSeen implements SensorMessage {}
 
-    public static final class TrainNotSeen implements SensorMessage {}
+/** Represents the Controller of a Railway-Crossing
+ * Creates two Child-Actors:
+ *      - one {@link Gate} Actor
+ *      - one {@link LightMachine} Actor **/
+public class Controller extends AbstractBehavior<SensorMessage> implements StateMachine<Controller.ControllerState>{
 
     enum ControllerState {
         AWAY,
@@ -35,7 +30,7 @@ public class Controller extends AbstractBehavior<Controller.SensorMessage> imple
 
     private final ActorRef<ControllerMessage> lightMachine;
 
-    public static Behavior<Controller.SensorMessage> create() {
+    public static Behavior<SensorMessage> create() {
         return Behaviors.setup(Controller::new);
     }
 

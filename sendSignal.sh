@@ -6,7 +6,7 @@ while getopts "n:p:?" opt; do
         CONTROLLER=${OPTARG}
         ;;
     p)
-        PORT=$(OPTARG)
+        PORT=${OPTARG}
         ;;
     *)
         echo "Usage: ./sendSignal -p <port> -n <controllerName> <signal>"

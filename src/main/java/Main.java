@@ -1,4 +1,5 @@
 import actors.Controller;
+import actors.messages.SensorMessage;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.ActorSystem;
 import akka.cluster.Cluster;
@@ -12,8 +13,8 @@ import api.RailWayCrossingAPI;
 
 public class Main {
 
-    private static ActorSystem<Controller.SensorMessage> system;
-    private static ActorRef<ShardingEnvelope<Controller.SensorMessage>> controller;
+    private static ActorSystem<SensorMessage> system;
+    private static ActorRef<ShardingEnvelope<SensorMessage>> controller;
 
     public static void main(String[] args) {
         system = ActorSystem.create(Controller.create(), "RailWayCrossing");
@@ -21,7 +22,7 @@ public class Main {
         AkkaManagement.get(system).start();
         ClusterSharding sharding = ClusterSharding.get(system);
 
-        EntityTypeKey<Controller.SensorMessage> controllerKey = EntityTypeKey.create(Controller.SensorMessage.class, "Controller");
+        EntityTypeKey<SensorMessage> controllerKey = EntityTypeKey.create(SensorMessage.class, "Controller");
         controller = sharding.init(Entity
                 .of(controllerKey, context -> Controller.create()));
 
