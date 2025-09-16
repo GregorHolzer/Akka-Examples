@@ -5,18 +5,14 @@ DEFAULT_LISTEN_PORT=8000
 DEFAULT_MANAGE_PORT=8558
 NODE_NUM=0
 
-while [ -n "$1" ]; do
-  case "$1" in
-    -n)
-      if [ -z "$2" ]; then
-        echo "Usage: ./runNode.sh -n <number_of_instance>"
-        exit 1
-      fi
-      NODE_NUM=$2
-      shift 2
+while getopts "n:?" opt; do
+  case $opt in
+    n)
+      NODE_NUM=${OPTARG}
       ;;
     *)
-      shift
+      echo "Usage: ./runNode -n <number_of_node>"
+      exit 
       ;;
   esac
 done
