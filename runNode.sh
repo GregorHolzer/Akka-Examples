@@ -12,7 +12,7 @@ while getopts "n:?" opt; do
       ;;
     *)
       echo "Usage: ./runNode -n <number_of_node>"
-      exit 
+      exit
       ;;
   esac
 done
