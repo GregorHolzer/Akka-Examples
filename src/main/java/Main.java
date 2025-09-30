@@ -11,6 +11,7 @@ import akka.http.javadsl.Http;
 import akka.management.javadsl.AkkaManagement;
 import api.RailWayCrossingAPI;
 
+
 public class Main {
 
     private static ActorSystem<SensorMessage> system;
@@ -20,6 +21,9 @@ public class Main {
         system = ActorSystem.create(Controller.create(), "RailWayCrossing");
         Cluster cluster = Cluster.get(system);
         AkkaManagement.get(system).start();
+
+            
+
         ClusterSharding sharding = ClusterSharding.get(system);
 
         EntityTypeKey<SensorMessage> controllerKey = EntityTypeKey.create(SensorMessage.class, "Controller");
