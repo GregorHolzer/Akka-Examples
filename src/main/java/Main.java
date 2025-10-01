@@ -8,6 +8,7 @@ import akka.cluster.sharding.typed.javadsl.ClusterSharding;
 import akka.cluster.sharding.typed.javadsl.Entity;
 import akka.cluster.sharding.typed.javadsl.EntityTypeKey;
 import akka.http.javadsl.Http;
+import akka.management.cluster.bootstrap.ClusterBootstrap;
 import akka.management.javadsl.AkkaManagement;
 import api.RailWayCrossingAPI;
 
@@ -21,6 +22,8 @@ public class Main {
         system = ActorSystem.create(Controller.create(), "RailWayCrossing");
         Cluster cluster = Cluster.get(system);
         AkkaManagement.get(system).start();
+
+        ClusterBootstrap.get(system).start();
 
         ClusterSharding sharding = ClusterSharding.get(system);
 

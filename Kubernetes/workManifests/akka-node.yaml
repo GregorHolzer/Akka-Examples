@@ -1,40 +1,40 @@
-apiVersion: work.open-cluster-management.io/v1
-kind: ManifestWork
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  namespace: cloud
   name: akka-test
+  namespace: default
 spec:
-  workload:
-    manifests:
-      - apiVersion: apps/v1
-        kind: Deployment
-        metadata:
-          name: akka-test
-          namespace: default
-        spec:
-          selector:
-            matchLabels:
-              app: akka-test
-          template:
-            metadata:
-              labels:
-                app: akka-test
-            spec:
-              containers:
-                - name: akka-test
-                  image: akka-test
-                  readinessProbe:
-                    httpGet:
-                      path: /ready
-                      port: management
-                  livenessProbe:
-                    httpGet:
-                      path: /alive
-                      port: management
-                  ports:
-                    - name: management
-                      containerPort: 8558
-                      protocol: TCP
-                    - name: http
-                      containerPort: 8080
-                      protocol: TCP
+  replicas: 3
+  selector:
+    matchLabels:
+      app: railwaycrossing
+  template:
+    metadata:
+      labels:
+        app: railwaycrossing
+    spec:
+      serviceAccountName: akka-test
+      containers:
+        - name: akka-test
+          image: akka-test:v5
+          imagePullPolicy: Never
+          command: ["bash"]
+          args: ["runNode.sh"]
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: management
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: management
+          ports:
+            - name: remoting
+              containerPort: 2551
+              protocol: TCP
+            - name: management
+              containerPort: 8558
+              protocol: TCP
+            - name: http
+              containerPort: 8080
+              protocol: TCP
