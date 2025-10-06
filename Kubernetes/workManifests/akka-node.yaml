@@ -20,6 +20,11 @@ spec:
           imagePullPolicy: Never
           command: ["bash"]
           args: ["runNode.sh"]
+          env:
+            - name: AKKA_REMOTING_BIND_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
           readinessProbe:
             httpGet:
               path: /ready

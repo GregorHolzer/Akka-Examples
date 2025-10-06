@@ -24,4 +24,5 @@ MANAGE_PORT=$((DEFAULT_MANAGE_PORT + NODE_NUM))
 
 echo "Running node $NODE_NUM on port $PORT_NUM, manage via $MANAGE_PORT, listen on port $LISTEN_PORT"
 
-mvn exec:java -Dexec.mainClass=Main -Dakka.remote.artery.canonical.port=$PORT_NUM -Dakka.management.http.port=$MANAGE_PORT -Dakka.http.server.default-http-port=$LISTEN_PORT
+#mvn exec:java -Dexec.mainClass=Main -Dakka.remote.artery.canonical.port=$PORT_NUM -Dakka.management.http.port=$MANAGE_PORT -Dakka.http.server.default-http-port=$LISTEN_PORT
+mvn exec:java -Dexec.mainClass=Main -Dakka.remote.artery.canonical.port=$AKKA_REMOTING_BIND_HOST -Dakka.remote.artery.canonical.port=2551 -Dakka.management.http.port=8558
