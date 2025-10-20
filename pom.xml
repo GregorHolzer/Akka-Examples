@@ -1,15 +1,18 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.codehaus.mojo</groupId>
-    <artifactId>railway-crossing</artifactId>
-    <version>1.0</version>
-
+    <groupId>railway-crossing</groupId>
+    <artifactId>railway-crossing-gRPC</artifactId>
+    <version>0.1.0</version>
 
     <properties>
-        <akka.version>2.6.20</akka.version>
-        <akka.http.version>10.2.10</akka.http.version>
-        <akka.management.version>1.1.4</akka.management.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <akka.version>2.10.9</akka.version>
+        <akka.grpc.version>2.1.6</akka.grpc.version>
         <scala.binary.version>2.13</scala.binary.version>
+        <protobuf.version>3.19.6</protobuf.version>
+        <grpc.version>1.48.1</grpc.version>
     </properties>
 
     <repositories>
@@ -17,6 +20,11 @@
             <id>akka-secure</id>
             <name>Akka Secure</name>
             <url>https://repo.akka.io/qMy1OqGJHcfl2mO_do8zZPM4A2dcatihjH2TcD5f9Eq3zYqc/secure</url>
+        </repository>
+        <repository>
+            <id>akka-repository</id>
+            <name>Akka library repository</name>
+            <url>https://repo.akka.io/maven</url>
         </repository>
     </repositories>
 
@@ -29,23 +37,10 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <dependency>
-                <groupId>com.typesafe.akka</groupId>
-                <artifactId>akka-http-bom_${scala.binary.version}</artifactId>
-                <version>${akka.http.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <dependencies>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.9.1</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor-typed_${scala.binary.version}</artifactId>
@@ -57,80 +52,99 @@
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-cluster-typed_${scala.binary.version}</artifactId>
+            <artifactId>akka-persistence-typed_${scala.binary.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-cluster-sharding-typed_${scala.binary.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.lightbend.akka.management</groupId>
-            <artifactId>akka-management_${scala.binary.version}</artifactId>
-            <version>${akka.management.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.lightbend.akka.management</groupId>
-            <artifactId>akka-management-cluster-http_${scala.binary.version}</artifactId>
-            <version>${akka.management.version}</version>
+            <artifactId>akka-persistence-testkit_${scala.binary.version}</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-serialization-jackson_${scala.binary.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>2.11.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.11.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>2.11.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-stream_${scala.binary.version}</artifactId>
-            <version>${akka.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-http_${scala.binary.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-discovery_${scala.binary.version}</artifactId>
-            <version>${akka.version}</version>
-        </dependency>
-        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.5.18</version>
+            <version>1.4.11</version>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>2.0.9</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.lightbend.akka.management</groupId>
-            <artifactId>akka-management-cluster-bootstrap_${scala.binary.version}</artifactId>
-            <version>${akka.management.version}</version>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-cluster_${scala.binary.version}</artifactId>
+            <version>${akka.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.lightbend.akka.discovery</groupId>
-            <artifactId>akka-discovery-kubernetes-api_${scala.binary.version}</artifactId>
-            <version>${akka.management.version}</version>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-cluster-tools_${scala.binary.version}</artifactId>
+            <version>${akka.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-distributed-data_${scala.binary.version}</artifactId>
+            <version>${akka.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka</groupId>
+            <artifactId>akka-projection-grpc_${scala.binary.version}</artifactId>
+            <version>1.6.14</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+            <version>${grpc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-protobuf</artifactId>
+            <version>${grpc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka</groupId>
+            <artifactId>akka-persistence-r2dbc_${scala.binary.version}</artifactId>
+            <version>1.3.7</version>
+        </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka</groupId>
+            <artifactId>akka-projection-r2dbc_${scala.binary.version}</artifactId>
+            <version>1.5.0-M4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka.grpc</groupId>
+            <artifactId>akka-grpc-runtime_${scala.binary.version}</artifactId>
+            <version>${akka.grpc.version}</version>
         </dependency>
     </dependencies>
 
-
     <build>
         <plugins>
+            <plugin>
+                <groupId>com.lightbend.akka.grpc</groupId>
+                <artifactId>akka-grpc-maven-plugin</artifactId>
+                <version>${akka.grpc.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <language>Java</language>
+                    <generateClient>true</generateClient>
+                    <generateServer>true</generateServer>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -138,20 +152,7 @@
                 <configuration>
                     <source>21</source>
                     <target>21</target>
-                    <release>21</release>
                 </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
             </plugin>
         </plugins>
     </build>
