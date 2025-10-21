@@ -1,7 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0">
     <modelVersion>4.0.0</modelVersion>
     <groupId>railway-crossing</groupId>
-    <artifactId>railway-crossing-gRPC</artifactId>
+    <artifactId>railway-crossing-local</artifactId>
     <version>0.1.0</version>
 
     <properties>
