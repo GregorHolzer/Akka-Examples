@@ -1,6 +1,5 @@
 package actors.gate;
 
-
 import actors.State;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
