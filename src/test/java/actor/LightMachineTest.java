@@ -29,23 +29,23 @@ public class LightMachineTest {
     public void fullLightMachineTest(){
         assertEquals(LightMachineState.State.OFF,  eventSourcedBehaviorTestKit.getState().getState());
 
-        CommandResult<LightMachine.LightMachineCommand, LightMachine.LightMachineEvent, LightMachineState> result = eventSourcedBehaviorTestKit.runCommand(new LightMachine.TurnOn());
+        CommandResult<LightMachine.LightMachineCommand, LightMachine.LightMachineEvent, LightMachineState> result = eventSourcedBehaviorTestKit.runCommand(new LightMachine.CommandTurnOn());
         assertEquals(2, result.events().size());
-        assertTrue(result.events().get(0) instanceof LightMachine.AdvanceState);
-        assertTrue(result.events().get(1) instanceof LightMachine.TurnedOn);
+        assertTrue(result.events().get(0) instanceof LightMachine.EventAdvanceState);
+        assertTrue(result.events().get(1) instanceof LightMachine.EventTurnedOn);
         assertEquals(LightMachineState.State.ON, eventSourcedBehaviorTestKit.getState().getState());
 
-        result = eventSourcedBehaviorTestKit.runCommand(new LightMachine.TurnOff());
+        result = eventSourcedBehaviorTestKit.runCommand(new LightMachine.CommandTurnOff());
         assertEquals(2, result.events().size());
-        assertTrue(result.events().get(0) instanceof LightMachine.AdvanceState);
-        assertTrue(result.events().get(1) instanceof LightMachine.TurnedOff);
+        assertTrue(result.events().get(0) instanceof LightMachine.EventAdvanceState);
+        assertTrue(result.events().get(1) instanceof LightMachine.EventTurnedOff);
         assertEquals(LightMachineState.State.OFF, eventSourcedBehaviorTestKit.getState().getState());
     }
 
     @Test
     public void duplicateCommands(){
         assertEquals(LightMachineState.State.OFF,  eventSourcedBehaviorTestKit.getState().getState());
-        CommandResult<LightMachine.LightMachineCommand, LightMachine.LightMachineEvent, LightMachineState> result = eventSourcedBehaviorTestKit.runCommand(new LightMachine.TurnOff());
+        CommandResult<LightMachine.LightMachineCommand, LightMachine.LightMachineEvent, LightMachineState> result = eventSourcedBehaviorTestKit.runCommand(new LightMachine.CommandTurnOff());
         assertTrue(result.events().isEmpty());
         assertEquals(LightMachineState.State.OFF, eventSourcedBehaviorTestKit.getState().getState());
     }

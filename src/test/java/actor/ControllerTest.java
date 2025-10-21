@@ -29,39 +29,39 @@ public class ControllerTest {
     public void initialState(){
         assertEquals(ControllerState.State.AWAY, eventSourcedBehaviorTestKit.getState().getState());
 
-        CommandResult<Controller.ControllerCommand, Controller.ControllerEvent, ControllerState> result = eventSourcedBehaviorTestKit.runCommand(new Controller.TrainSeen());
+        CommandResult<Controller.ControllerCommand, Controller.ControllerEvent, ControllerState> result = eventSourcedBehaviorTestKit.runCommand(new Controller.CommandTrainSeen());
         assertEquals(2, result.events().size());
-        assertTrue(result.events().get(0) instanceof Controller.AdvanceState);
-        assertTrue(result.events().get(1) instanceof Controller.RaiseApproaching);
+        assertTrue(result.events().get(0) instanceof Controller.EventAdvanceState);
+        assertTrue(result.events().get(1) instanceof Controller.EventRaiseApproaching);
         assertEquals(ControllerState.State.APPROACHING, eventSourcedBehaviorTestKit.getState().getState());
 
-        result = eventSourcedBehaviorTestKit.runCommand(new Controller.TrainNotSeen());
-        assertTrue(result.event() instanceof Controller.AdvanceState);
+        result = eventSourcedBehaviorTestKit.runCommand(new Controller.CommandTrainNotSeen());
+        assertTrue(result.event() instanceof Controller.EventAdvanceState);
         assertEquals(ControllerState.State.CLOSE, eventSourcedBehaviorTestKit.getState().getState());
 
-        result = eventSourcedBehaviorTestKit.runCommand(new Controller.TrainSeen());
-        assertTrue(result.event() instanceof Controller.AdvanceState);
+        result = eventSourcedBehaviorTestKit.runCommand(new Controller.CommandTrainSeen());
+        assertTrue(result.event() instanceof Controller.EventAdvanceState);
         assertEquals(ControllerState.State.PRESENT, eventSourcedBehaviorTestKit.getState().getState());
 
-        result = eventSourcedBehaviorTestKit.runCommand(new Controller.TrainNotSeen());
+        result = eventSourcedBehaviorTestKit.runCommand(new Controller.CommandTrainNotSeen());
         assertEquals(2, result.events().size());
-        assertTrue(result.events().get(0) instanceof Controller.AdvanceState);
-        assertTrue(result.events().get(1) instanceof Controller.RaiseLeaving);
+        assertTrue(result.events().get(0) instanceof Controller.EventAdvanceState);
+        assertTrue(result.events().get(1) instanceof Controller.EventRaiseLeaving);
         assertEquals(ControllerState.State.LEAVING, eventSourcedBehaviorTestKit.getState().getState());
 
-        result = eventSourcedBehaviorTestKit.runCommand(new Controller.TrainSeen());
-        assertTrue(result.event() instanceof Controller.AdvanceState);
+        result = eventSourcedBehaviorTestKit.runCommand(new Controller.CommandTrainSeen());
+        assertTrue(result.event() instanceof Controller.EventAdvanceState);
         assertEquals(ControllerState.State.LEFT, eventSourcedBehaviorTestKit.getState().getState());
 
-        result = eventSourcedBehaviorTestKit.runCommand(new Controller.TrainNotSeen());
-        assertTrue(result.event() instanceof Controller.AdvanceState);
+        result = eventSourcedBehaviorTestKit.runCommand(new Controller.CommandTrainNotSeen());
+        assertTrue(result.event() instanceof Controller.EventAdvanceState);
         assertEquals(ControllerState.State.AWAY, eventSourcedBehaviorTestKit.getState().getState());
     }
 
     @Test
     public void duplicateCommands(){
         assertEquals(ControllerState.State.AWAY, eventSourcedBehaviorTestKit.getState().getState());
-        CommandResult<Controller.ControllerCommand, Controller.ControllerEvent, ControllerState> result = eventSourcedBehaviorTestKit.runCommand(new Controller.TrainNotSeen());
+        CommandResult<Controller.ControllerCommand, Controller.ControllerEvent, ControllerState> result = eventSourcedBehaviorTestKit.runCommand(new Controller.CommandTrainNotSeen());
         assertTrue(result.events().isEmpty());
         assertEquals(ControllerState.State.AWAY, eventSourcedBehaviorTestKit.getState().getState());
     }

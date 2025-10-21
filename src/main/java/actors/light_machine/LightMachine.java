@@ -15,17 +15,17 @@ public class LightMachine extends EventSourcedBehavior<LightMachine.LightMachine
 
     public interface LightMachineCommand extends Command {}
 
-    public static class TurnOn implements LightMachineCommand {}
+    public static class CommandTurnOn implements LightMachineCommand {}
 
-    public static class TurnOff implements LightMachineCommand {}
+    public static class CommandTurnOff implements LightMachineCommand {}
 
     public interface LightMachineEvent extends Command {}
 
-    public static class TurnedOn implements LightMachineEvent {}
+    public static class EventAdvanceState implements LightMachineEvent {}
 
-    public static class TurnedOff implements LightMachineEvent {}
+    public static class EventTurnedOn implements LightMachineEvent {}
 
-    public static class AdvanceState implements LightMachineEvent {}
+    public static class EventTurnedOff implements LightMachineEvent {}
 
     private final ActorContext<LightMachineCommand> context;
 
@@ -48,13 +48,13 @@ public class LightMachine extends EventSourcedBehavior<LightMachine.LightMachine
         CommandHandlerBuilder<LightMachineCommand, LightMachineEvent, LightMachineState> builder = newCommandHandlerBuilder();
 
         builder.forState(state -> state.getState() ==  LightMachineState.State.OFF)
-                .onCommand(TurnOn.class, cmd ->  Effect().persist(
-                        List.of(new AdvanceState(), new TurnedOn())
+                .onCommand(CommandTurnOn.class, cmd ->  Effect().persist(
+                        List.of(new EventAdvanceState(), new EventTurnedOn())
                 ));
 
         builder.forState(state -> state.getState() ==  LightMachineState.State.ON)
-                .onCommand(TurnOff.class, cmd ->  Effect().persist(
-                        List.of(new AdvanceState(), new  TurnedOff())
+                .onCommand(CommandTurnOff.class, cmd ->  Effect().persist(
+                        List.of(new EventAdvanceState(), new EventTurnedOff())
                 ));
 
         builder.forAnyState().onAnyCommand(cmd -> Effect().none());
@@ -66,7 +66,7 @@ public class LightMachine extends EventSourcedBehavior<LightMachine.LightMachine
     public EventHandler<LightMachineState, LightMachineEvent> eventHandler() {
         return newEventHandlerBuilder()
                 .forAnyState()
-                .onEvent(AdvanceState.class, (state, event)
+                .onEvent(EventAdvanceState.class, (state, event)
                         -> {
                     context.getLog().info("Advanced State to {}", state.advanceState().getState());
                     return (LightMachineState) state.advanceState();

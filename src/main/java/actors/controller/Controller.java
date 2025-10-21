@@ -17,17 +17,17 @@ public class Controller extends EventSourcedBehavior<Controller.ControllerComman
 
     public interface ControllerCommand extends Command {}
 
-    public static class TrainSeen implements ControllerCommand {}
+    public static class CommandTrainSeen implements ControllerCommand {}
 
-    public static class TrainNotSeen implements ControllerCommand {}
+    public static class CommandTrainNotSeen implements ControllerCommand {}
 
     public interface ControllerEvent extends Event{}
 
-    public static class AdvanceState implements ControllerEvent {}
+    public static class EventAdvanceState implements ControllerEvent {}
 
-    public static class RaiseApproaching implements ControllerEvent {}
+    public static class EventRaiseApproaching implements ControllerEvent {}
 
-    public static class RaiseLeaving implements ControllerEvent {}
+    public static class EventRaiseLeaving implements ControllerEvent {}
 
     private final ActorContext<ControllerCommand> context;
 
@@ -70,23 +70,23 @@ public class Controller extends EventSourcedBehavior<Controller.ControllerComman
 
         //Handle Away State
         builder.forState(state -> state.getState() == ControllerState.State.AWAY)
-                .onCommand(TrainSeen.class, cmd ->
-                        Effect().persist(List.of(new AdvanceState(), new RaiseApproaching())));
+                .onCommand(CommandTrainSeen.class, cmd ->
+                        Effect().persist(List.of(new EventAdvanceState(), new EventRaiseApproaching())));
 
         //Handle Present State
         builder.forState(state -> state.getState() == ControllerState.State.PRESENT)
-                .onCommand(TrainNotSeen.class, cmd ->
-                        Effect().persist(List.of(new AdvanceState(), new RaiseLeaving())));
+                .onCommand(CommandTrainNotSeen.class, cmd ->
+                        Effect().persist(List.of(new EventAdvanceState(), new EventRaiseLeaving())));
 
         //Handle even States (Close, Leaving)
         builder.forState(state -> state.getState().ordinal() % 2 == 0)
-                .onCommand(TrainSeen.class, cmd ->
-                        Effect().persist(new AdvanceState()));
+                .onCommand(CommandTrainSeen.class, cmd ->
+                        Effect().persist(new EventAdvanceState()));
 
         //Handle odd States (Approaching, Left)
         builder.forState(state -> state.getState().ordinal() % 2 != 0)
-                .onCommand(TrainNotSeen.class, cmd ->
-                        Effect().persist(new AdvanceState()));
+                .onCommand(CommandTrainNotSeen.class, cmd ->
+                        Effect().persist(new EventAdvanceState()));
 
         builder.forAnyState()
                 .onAnyCommand(cmd -> Effect().none());
@@ -98,16 +98,16 @@ public class Controller extends EventSourcedBehavior<Controller.ControllerComman
     public EventHandler<ControllerState, ControllerEvent> eventHandler() {
         return newEventHandlerBuilder()
                 .forAnyState()
-                .onEvent(AdvanceState.class, (state,event)
+                .onEvent(EventAdvanceState.class, (state, event)
                         -> (ControllerState) state.advanceState())
-                .onEvent(RaiseApproaching.class, (state,event) -> {
-                    lightMachine.tell(new LightMachine.TurnOn());
+                .onEvent(EventRaiseApproaching.class, (state, event) -> {
+                    lightMachine.tell(new LightMachine.CommandTurnOn());
                     gate.tell(new Gate.GateCommandClose());
                     context.getLog().info("Sent Approaching Command");
                     return new ControllerState(state.getState());
                 })
-                .onEvent(RaiseLeaving.class, (state,event) -> {
-                    lightMachine.tell(new LightMachine.TurnOff());
+                .onEvent(EventRaiseLeaving.class, (state, event) -> {
+                    lightMachine.tell(new LightMachine.CommandTurnOff());
                     gate.tell(new Gate.GateCommandOpen());
                     context.getLog().info("Sent Leaving Command");
                     return new ControllerState(state.getState());
