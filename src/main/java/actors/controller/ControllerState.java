@@ -4,7 +4,6 @@ import actors.State;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-
 public class ControllerState implements State<ControllerState.State> {
 
     public enum State{

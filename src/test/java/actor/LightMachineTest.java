@@ -2,13 +2,6 @@ package actor;
 
 import actors.light_machine.LightMachine;
 import actors.light_machine.LightMachineState;
-import actors.light_machine.commands.LightMachineCommand;
-import actors.light_machine.commands.LightMachineCommandTurnOff;
-import actors.light_machine.commands.LightMachineCommandTurnOn;
-import actors.light_machine.events.LightMachineEvent;
-import actors.light_machine.events.LightMachineEventAdvanceState;
-import actors.light_machine.events.LightMachineEventTurnOff;
-import actors.light_machine.events.LightMachineEventTurnOn;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.persistence.testkit.javadsl.EventSourcedBehaviorTestKit;
 import akka.persistence.testkit.javadsl.EventSourcedBehaviorTestKit.CommandResult;
@@ -20,11 +13,12 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class LightMachineTest {
+
     @ClassRule
     public static final TestKitJunitResource testKit = new TestKitJunitResource(EventSourcedBehaviorTestKit.config());
 
-    private final EventSourcedBehaviorTestKit<LightMachineCommand, LightMachineEvent, LightMachineState> eventSourcedBehaviorTestKit =
-            EventSourcedBehaviorTestKit.create(testKit.system(), LightMachine.create(PersistenceId.of("LightMachine", "1")));
+    private final EventSourcedBehaviorTestKit<LightMachine.LightMachineCommand, LightMachine.LightMachineEvent, LightMachineState> eventSourcedBehaviorTestKit =
+            EventSourcedBehaviorTestKit.create(testKit.system(), LightMachine.create(PersistenceId.ofUniqueId("light_machine")));
 
     @Before
     public void beforeEach() {
@@ -35,25 +29,24 @@ public class LightMachineTest {
     public void fullLightMachineTest(){
         assertEquals(LightMachineState.State.OFF,  eventSourcedBehaviorTestKit.getState().getState());
 
-        CommandResult<LightMachineCommand, LightMachineEvent, LightMachineState> result = eventSourcedBehaviorTestKit.runCommand(new LightMachineCommandTurnOn());
+        CommandResult<LightMachine.LightMachineCommand, LightMachine.LightMachineEvent, LightMachineState> result = eventSourcedBehaviorTestKit.runCommand(new LightMachine.TurnOn());
         assertEquals(2, result.events().size());
-        assertTrue(result.events().get(0) instanceof LightMachineEventAdvanceState);
-        assertTrue(result.events().get(1) instanceof LightMachineEventTurnOn);
+        assertTrue(result.events().get(0) instanceof LightMachine.AdvanceState);
+        assertTrue(result.events().get(1) instanceof LightMachine.TurnedOn);
         assertEquals(LightMachineState.State.ON, eventSourcedBehaviorTestKit.getState().getState());
 
-        result = eventSourcedBehaviorTestKit.runCommand(new LightMachineCommandTurnOff());
+        result = eventSourcedBehaviorTestKit.runCommand(new LightMachine.TurnOff());
         assertEquals(2, result.events().size());
-        assertTrue(result.events().get(0) instanceof LightMachineEventAdvanceState);
-        assertTrue(result.events().get(1) instanceof LightMachineEventTurnOff);
+        assertTrue(result.events().get(0) instanceof LightMachine.AdvanceState);
+        assertTrue(result.events().get(1) instanceof LightMachine.TurnedOff);
         assertEquals(LightMachineState.State.OFF, eventSourcedBehaviorTestKit.getState().getState());
     }
 
     @Test
     public void duplicateCommands(){
         assertEquals(LightMachineState.State.OFF,  eventSourcedBehaviorTestKit.getState().getState());
-        CommandResult<LightMachineCommand, LightMachineEvent, LightMachineState> result = eventSourcedBehaviorTestKit.runCommand(new LightMachineCommandTurnOff());
+        CommandResult<LightMachine.LightMachineCommand, LightMachine.LightMachineEvent, LightMachineState> result = eventSourcedBehaviorTestKit.runCommand(new LightMachine.TurnOff());
         assertTrue(result.events().isEmpty());
         assertEquals(LightMachineState.State.OFF, eventSourcedBehaviorTestKit.getState().getState());
-
     }
 }

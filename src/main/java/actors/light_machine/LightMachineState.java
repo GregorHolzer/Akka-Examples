@@ -1,7 +1,6 @@
 package actors.light_machine;
 
 import actors.State;
-import actors.controller.ControllerState;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
