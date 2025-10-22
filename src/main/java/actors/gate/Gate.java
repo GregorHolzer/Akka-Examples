@@ -2,6 +2,8 @@ package actors.gate;
 
 import actors.Command;
 import actors.Event;
+import actors.bell.Bell;
+import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
@@ -30,13 +32,21 @@ public class Gate extends EventSourcedBehavior<Gate.GateCommand, Gate.GateEvent,
 
     private final ActorContext<GateCommand> context;
 
+    private final ActorRef<Bell.BellCommand> bell;
+
     public static Behavior<GateCommand> create(PersistenceId persistenceId) {
-        return Behaviors.setup(context -> new Gate(persistenceId, context));
+        return Behaviors.setup(context -> {
+            String bellName = String.format("bell_%s", context.getSelf().path().name());
+            ActorRef<Bell.BellCommand> bell = context.spawn(Bell.create(PersistenceId.ofUniqueId(bellName)), bellName);
+            return new Gate(persistenceId, context, bell);
+        });
     }
 
-    private Gate(PersistenceId persistenceId, ActorContext<GateCommand> context) {
+    private Gate(PersistenceId persistenceId, ActorContext<GateCommand> context,
+                 ActorRef<Bell.BellCommand> bell) {
         super(persistenceId);
         this.context = context;
+        this.bell = bell;
     }
 
     @Override
@@ -67,11 +77,21 @@ public class Gate extends EventSourcedBehavior<Gate.GateCommand, Gate.GateEvent,
     public EventHandler<GateState, GateEvent> eventHandler() {
         return newEventHandlerBuilder()
                 .forAnyState()
+                .onEvent(GateEventClosed.class, (state, event) -> {
+                    bell.tell(new Bell.CommandBellOn());
+                    context.getLog().info("Sent BellOn Command");
+                    return new GateState(state.getState());
+                })
+                .onEvent(GateEventOpened.class, (state, event) -> {
+                    bell.tell(new Bell.CommandBellOff());
+                    context.getLog().info("Sent BellOff Command");
+                    return new GateState(state.getState());
+                })
                 .onEvent(GateEventAdvanceState.class, (state,event) -> {
                     context.getLog().info("Gate Advance State to {}", state.advanceState().getState());
                     return (GateState) state.advanceState();
                 })
-                .onEvent(GateEvent.class, (state, gate) -> state.createWithState(state.getState()))
+                .onEvent(GateEvent.class, (state, gate) -> new GateState(state.getState()))
                 .build();
     }
 }

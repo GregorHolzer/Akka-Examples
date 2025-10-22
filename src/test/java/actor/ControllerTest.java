@@ -6,6 +6,7 @@ import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.persistence.testkit.javadsl.EventSourcedBehaviorTestKit;
 import akka.persistence.typed.PersistenceId;
 import akka.persistence.testkit.javadsl.EventSourcedBehaviorTestKit.CommandResult;
+import com.typesafe.config.ConfigFactory;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
