@@ -13,6 +13,7 @@ import akka.persistence.typed.javadsl.CommandHandlerBuilder;
 import akka.persistence.typed.javadsl.EventHandler;
 import akka.persistence.typed.javadsl.EventSourcedBehavior;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Surveillance extends EventSourcedBehavior<Surveillance.SurveillanceCommand, Surveillance.SurveillanceEvent, SurveillanceState> {
 
@@ -25,7 +26,7 @@ public class Surveillance extends EventSourcedBehavior<Surveillance.Surveillance
         private final Boolean hasThread;
 
         @JsonCreator
-        public CommandAnalyzed(Boolean hasThread) {
+        public CommandAnalyzed(@JsonProperty("hasThread") Boolean hasThread) {
             this.hasThread = hasThread;
         }
 
@@ -47,7 +48,7 @@ public class Surveillance extends EventSourcedBehavior<Surveillance.Surveillance
         private final Boolean hasThread;
 
         @JsonCreator
-        public EventAnalyzed(Boolean hasThread) {
+        public EventAnalyzed(@JsonProperty("hasThread")Boolean hasThread) {
             this.hasThread = hasThread;
         }
 

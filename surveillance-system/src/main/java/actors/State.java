@@ -10,5 +10,5 @@ public interface State<S extends Enum<S>> extends CborSerializable {
         context.getLog().info("{} is in State: {}", actorName, state);
     }
 
-    public S getState();
+    S getState();
 }

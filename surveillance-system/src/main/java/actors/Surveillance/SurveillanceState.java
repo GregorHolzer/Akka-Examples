@@ -1,6 +1,8 @@
 package actors.Surveillance;
 
 import actors.State;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class SurveillanceState implements State<SurveillanceState.State> {
 
@@ -11,7 +13,8 @@ public class SurveillanceState implements State<SurveillanceState.State> {
 
     private final State state;
 
-    public SurveillanceState(State state) {
+    @JsonCreator
+    public SurveillanceState(@JsonProperty("state") State state) {
         this.state = state;
     }
 

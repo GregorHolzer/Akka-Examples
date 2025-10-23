@@ -1,6 +1,9 @@
 package actors.Detector;
 
 import actors.State;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 
 public class DetectorState implements State<DetectorState.State> {
     public enum State {
@@ -11,7 +14,8 @@ public class DetectorState implements State<DetectorState.State> {
 
     private final State state;
 
-    public DetectorState(State state) {
+    @JsonCreator
+    public DetectorState(@JsonProperty("state") State state) {
         this.state = state;
         invokeService(state);
     }
