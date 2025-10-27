@@ -13,16 +13,21 @@ import akka.persistence.typed.PersistenceId;
 
 public class BellSetup extends AbstractBehavior<Receptionist.Listing> {
 
+    public final static String serviceSuffix = "_Bell";
+
+    private final String serviceName;
+
     private final ServiceKey<Bell.BellCommand> bellServiceKey;
 
     private ActorRef<Bell.BellCommand> bell;
 
-    public static Behavior<Receptionist.Listing> create(String serviceName) {
-        return Behaviors.setup(context -> new BellSetup(context, serviceName));
+    public static Behavior<Receptionist.Listing> create(String serviceId) {
+        return Behaviors.setup(context -> new BellSetup(context, serviceId));
     }
 
-    private BellSetup(ActorContext<Receptionist.Listing> context, String serviceName) {
+    private BellSetup(ActorContext<Receptionist.Listing> context, String serviceId) {
         super(context);
+        this.serviceName = serviceId + serviceSuffix;
         bellServiceKey = ServiceKey.create(Bell.BellCommand.class, serviceName);
         bell = getContext().spawn(Bell.create(PersistenceId.ofUniqueId(bellServiceKey.toString())), String.format("Bell_of_service_%s", serviceName));
         getContext().getSystem().receptionist().tell(Receptionist.register(bellServiceKey, bell));

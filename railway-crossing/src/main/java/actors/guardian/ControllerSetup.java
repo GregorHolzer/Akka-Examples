@@ -3,7 +3,6 @@ package actors.guardian;
 import actors.controller.Controller;
 import actors.gate.Gate;
 import actors.light_machine.LightMachine;
-import akka.actor.Actor;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -18,6 +17,8 @@ import java.util.List;
 
 public class ControllerSetup extends AbstractBehavior<Receptionist.Listing> implements ComponentSetup {
 
+    public final static String serviceSuffix = "_Controller";
+
     private ActorRef<LightMachine.LightMachineCommand> lightMachine;
 
     private ActorRef<Gate.GateCommand> gate;
@@ -30,14 +31,17 @@ public class ControllerSetup extends AbstractBehavior<Receptionist.Listing> impl
 
     private final ServiceKey<Controller.ControllerCommand> controllerServiceKey;
 
-    public static Behavior<Receptionist.Listing> create(String serviceName) {
-        return Behaviors.setup(context -> new ControllerSetup(context, serviceName));
+    private final String serviceName;
+
+    public static Behavior<Receptionist.Listing> create(String serviceId) {
+        return Behaviors.setup(context -> new ControllerSetup(context, serviceId));
     }
 
-    private ControllerSetup(ActorContext<Receptionist.Listing> context, String serviceName) {
+    private ControllerSetup(ActorContext<Receptionist.Listing> context, String serviceId) {
         super(context);
-        gateServiceKey = ServiceKey.create(Gate.GateCommand.class, serviceName);
-        lightMachineServiceKey = ServiceKey.create(LightMachine.LightMachineCommand.class, serviceName);
+        this.serviceName = serviceId +  serviceSuffix;
+        gateServiceKey = ServiceKey.create(Gate.GateCommand.class, serviceId + GateSetup.serviceSuffix);
+        lightMachineServiceKey = ServiceKey.create(LightMachine.LightMachineCommand.class, serviceId + LightMachineSetup.serviceSuffix);
         controllerServiceKey = ServiceKey.create(Controller.ControllerCommand.class, serviceName);
         getContext().getSystem().receptionist().tell(Receptionist.subscribe(gateServiceKey, getContext().getSelf()));
         getContext().getSystem().receptionist().tell(Receptionist.subscribe(lightMachineServiceKey, getContext().getSelf()));
@@ -52,12 +56,17 @@ public class ControllerSetup extends AbstractBehavior<Receptionist.Listing> impl
     }
 
         private Behavior<Receptionist.Listing> onListing(Receptionist.Listing listing) {
-        List<ActorRef<Gate.GateCommand>> availableGates = listing.getServiceInstances(gateServiceKey).stream().toList();
-        gate = checkInstances(getContext(), availableGates, Gate.GateCommand.class);
-        List<ActorRef<LightMachine.LightMachineCommand>> availableLightMachines = listing.getServiceInstances(lightMachineServiceKey).stream().toList();
-        lightMachine = checkInstances(getContext(), availableLightMachines, LightMachine.LightMachineCommand.class);
+
+        if(listing.isForKey(gateServiceKey)){
+            List<ActorRef<Gate.GateCommand>> availableGates = listing.getServiceInstances(gateServiceKey).stream().toList();
+            gate = checkInstances(getContext(), availableGates, Gate.GateCommand.class);
+        }
+        if(listing.isForKey(lightMachineServiceKey)){
+            List<ActorRef<LightMachine.LightMachineCommand>> availableLightMachines = listing.getServiceInstances(lightMachineServiceKey).stream().toList();
+            lightMachine = checkInstances(getContext(), availableLightMachines, LightMachine.LightMachineCommand.class);
+        }
         if(gate != null && lightMachine != null && controller == null) {
-            controller = getContext().spawn(Controller.create(PersistenceId.ofUniqueId(controllerServiceKey.toString()), gate, lightMachine), String.format("Controller_with_key_%s", controllerServiceKey));
+            controller = getContext().spawn(Controller.create(PersistenceId.ofUniqueId(controllerServiceKey.toString()), gate, lightMachine), String.format("Controller_of_service_%s", serviceName));
             getContext().getSystem().receptionist().tell(Receptionist.register(controllerServiceKey, controller));
             getContext().getLog().info("Controller registered with ServiceKey: {}",  controllerServiceKey);
         }

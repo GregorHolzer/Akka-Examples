@@ -16,6 +16,8 @@ import java.util.List;
 
 public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements ComponentSetup{
 
+    public final static String serviceSuffix = "_Gate";
+
     private ActorRef<Bell.BellCommand> bell;
 
     private ActorRef<Gate.GateCommand> gate;
@@ -26,14 +28,14 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
 
     private final String serviceName;
 
-    public static Behavior<Receptionist.Listing> create(String serviceName) {
-        return Behaviors.setup(context -> new GateSetup(context,serviceName));
+    public static Behavior<Receptionist.Listing> create(String serviceId) {
+        return Behaviors.setup(context -> new GateSetup(context, serviceId));
     }
 
-    private GateSetup(ActorContext<Receptionist.Listing> context, String serviceName) {
+    private GateSetup(ActorContext<Receptionist.Listing> context, String serviceId) {
         super(context);
-        this.serviceName = serviceName;
-        bellServiceKey = ServiceKey.create(Bell.BellCommand.class, serviceName);
+        this.serviceName = serviceId + serviceSuffix;
+        bellServiceKey = ServiceKey.create(Bell.BellCommand.class, serviceId + BellSetup.serviceSuffix);
         gateServiceKey = ServiceKey.create(Gate.GateCommand.class, serviceName);
         getContext().getSystem().receptionist().tell(Receptionist.subscribe(bellServiceKey, context.getSelf()));
         context.getLog().info("Gate subscribed to ServiceKeys: {}",  bellServiceKey);
@@ -56,6 +58,4 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
         }
         return Behaviors.same();
     }
-
-
 }

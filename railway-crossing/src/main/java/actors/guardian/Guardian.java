@@ -1,19 +1,12 @@
 package actors.guardian;
 
-
 import actors.Command;
 import actors.ComponentType;
-import actors.bell.Bell;
-import actors.gate.Gate;
-import actors.light_machine.LightMachine;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
-import akka.actor.typed.receptionist.Receptionist;
-import akka.actor.typed.receptionist.ServiceKey;
-import akka.persistence.typed.PersistenceId;
 
 public class Guardian extends AbstractBehavior<Command> {
 
@@ -32,7 +25,7 @@ public class Guardian extends AbstractBehavior<Command> {
     }
 
     private void setupComponent(){
-        String serviceName = System.getenv("SERVICE_NAME");
+        String serviceName = System.getenv("SERVICE_ID");
         String component_env =  System.getenv("COMPONENT_TYPE");
         if(serviceName==null){
             getContext().getLog().error("Service is not defined");
@@ -50,6 +43,8 @@ public class Guardian extends AbstractBehavior<Command> {
                     getContext().getLog().info("ControllerSetup has been started successfully");
                 }
                 case LightMachine -> {
+                    getContext().spawn(LightMachineSetup.create(serviceName), "LightMachineSetup");
+                    getContext().getLog().info("LightMachineSetup has been started successfully");
                 }
                 case Gate -> {
                     getContext().spawn(GateSetup.create(serviceName), "GateSetup");
