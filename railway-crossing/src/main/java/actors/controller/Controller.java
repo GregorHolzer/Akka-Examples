@@ -9,6 +9,8 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.receptionist.Receptionist;
+import akka.actor.typed.receptionist.ServiceKey;
 import akka.persistence.typed.PersistenceId;
 import akka.persistence.typed.javadsl.*;
 import java.util.List;
@@ -35,16 +37,8 @@ public class Controller extends EventSourcedBehavior<Controller.ControllerComman
 
     private final ActorRef<Gate.GateCommand> gate;
 
-    public static Behavior<ControllerCommand> create(PersistenceId persistenceId) {
+    public static Behavior<ControllerCommand> create(PersistenceId persistenceId, ActorRef<Gate.GateCommand> gate, ActorRef<LightMachine.LightMachineCommand> lightMachine) {
         return Behaviors.setup(context -> {
-            String lightMachineName = String.format("lightMachine_%s", context.getSelf().path().name());
-            String gateName = String.format("gateName_%s", context.getSelf().path().name());
-
-
-            ActorRef<LightMachine.LightMachineCommand> lightMachine = context.spawn(LightMachine.create(
-                    PersistenceId.ofUniqueId(lightMachineName)), lightMachineName);
-
-            ActorRef<Gate.GateCommand> gate = context.spawn(Gate.create(PersistenceId.ofUniqueId(gateName)), gateName);
             return new Controller(persistenceId, context, lightMachine, gate);
         });
     }

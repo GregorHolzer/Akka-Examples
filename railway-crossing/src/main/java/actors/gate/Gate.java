@@ -7,6 +7,7 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.receptionist.Receptionist;
 import akka.persistence.typed.PersistenceId;
 import akka.persistence.typed.javadsl.CommandHandler;
 import akka.persistence.typed.javadsl.CommandHandlerBuilder;
@@ -34,10 +35,8 @@ public class Gate extends EventSourcedBehavior<Gate.GateCommand, Gate.GateEvent,
 
     private final ActorRef<Bell.BellCommand> bell;
 
-    public static Behavior<GateCommand> create(PersistenceId persistenceId) {
+    public static Behavior<GateCommand> create(PersistenceId persistenceId, ActorRef<Bell.BellCommand> bell) {
         return Behaviors.setup(context -> {
-            String bellName = String.format("bell_%s", context.getSelf().path().name());
-            ActorRef<Bell.BellCommand> bell = context.spawn(Bell.create(PersistenceId.ofUniqueId(bellName)), bellName);
             return new Gate(persistenceId, context, bell);
         });
     }
