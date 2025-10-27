@@ -24,12 +24,15 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
 
     private final ServiceKey<Gate.GateCommand> gateServiceKey;
 
+    private final String serviceName;
+
     public static Behavior<Receptionist.Listing> create(String serviceName) {
         return Behaviors.setup(context -> new GateSetup(context,serviceName));
     }
 
     private GateSetup(ActorContext<Receptionist.Listing> context, String serviceName) {
         super(context);
+        this.serviceName = serviceName;
         bellServiceKey = ServiceKey.create(Bell.BellCommand.class, serviceName);
         gateServiceKey = ServiceKey.create(Gate.GateCommand.class, serviceName);
         getContext().getSystem().receptionist().tell(Receptionist.subscribe(bellServiceKey, context.getSelf()));
@@ -47,9 +50,9 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
         List<ActorRef<Bell.BellCommand>> availableBells = listing.getServiceInstances(bellServiceKey).stream().toList();
         bell = checkInstances(getContext(), availableBells, Bell.BellCommand.class);
         if(bell != null && gate == null){
-            gate = getContext().spawn(Gate.create(PersistenceId.ofUniqueId(gateServiceKey.toString()), bell), String.format("Gate_with_key_%s", gateServiceKey));
+            gate = getContext().spawn(Gate.create(PersistenceId.ofUniqueId(gateServiceKey.toString()), bell), String.format("Gate_of_service_%s", serviceName));
             getContext().getSystem().receptionist().tell(Receptionist.register(gateServiceKey, gate));
-            getContext().getLog().info("Controller registered with ServiceKey: {}",  gateServiceKey);
+            getContext().getLog().info("Gate registered with ServiceKey: {}",  gateServiceKey);
         }
         return Behaviors.same();
     }

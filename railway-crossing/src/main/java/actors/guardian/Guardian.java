@@ -17,44 +17,52 @@ import akka.persistence.typed.PersistenceId;
 
 public class Guardian extends AbstractBehavior<Command> {
 
-    private final String serviceName = System.getenv("SERVICE_NAME");
-
-    private final String component_env =  System.getenv("COMPONENT_TYPE");
-
     public static Behavior<Command> create() {
         return Behaviors.setup(Guardian::new);
     }
 
     public Guardian(ActorContext<Command> context) {
         super(context);
-
+        setupComponent();
     }
 
     @Override
     public Receive<Command> createReceive() {
-        setupComponent();
         return newReceiveBuilder().build();
     }
 
     private void setupComponent(){
+        String serviceName = System.getenv("SERVICE_NAME");
+        String component_env =  System.getenv("COMPONENT_TYPE");
+        if(serviceName==null){
+            getContext().getLog().error("Service is not defined");
+            return;
+        }
+        if (component_env==null){
+            getContext().getLog().error("Component is not defined");
+            return;
+        }
         try{
-            ComponentType componentType = ComponentType.valueOf(System.getenv(component_env));
+            ComponentType componentType = ComponentType.valueOf(component_env);
             switch (componentType){
                 case Controller -> {
                     getContext().spawn(ControllerSetup.create(serviceName), "ControllerSetup");
+                    getContext().getLog().info("ControllerSetup has been started successfully");
                 }
                 case LightMachine -> {
                 }
                 case Gate -> {
-
+                    getContext().spawn(GateSetup.create(serviceName), "GateSetup");
+                    getContext().getLog().info("GateSetup has been started successfully");
                 }
                 case Bell -> {
                     getContext().spawn(BellSetup.create(serviceName), "BellSetup");
+                    getContext().getLog().info("BellSetup has been started successfully");
                 }
                 default -> getContext().getLog().info("No Rule defined for Component_Type {}",  componentType);
             }
         }
-        catch (IllegalArgumentException e){
+        catch (Exception e){
             getContext().getLog().error("Error parsing EnvVariable: {}", e.getMessage());
             getContext().getSystem().terminate();
         }

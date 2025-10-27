@@ -1,8 +1,11 @@
 package actor;
 
+import actors.bell.Bell;
 import actors.gate.Gate;
 import actors.gate.GateState;
+import actors.light_machine.LightMachine;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
+import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.persistence.testkit.javadsl.EventSourcedBehaviorTestKit;
 import akka.persistence.testkit.javadsl.EventSourcedBehaviorTestKit.CommandResult;
 import akka.persistence.typed.PersistenceId;
@@ -16,8 +19,11 @@ public class GateTest {
     @ClassRule
     public static final TestKitJunitResource testKit = new TestKitJunitResource(EventSourcedBehaviorTestKit.config());
 
+    private final TestProbe<Bell.BellCommand> bell = testKit.createTestProbe(Bell.BellCommand.class);
+
+
     private final EventSourcedBehaviorTestKit<Gate.GateCommand, Gate.GateEvent, GateState> eventSourcedBehaviorTestKit =
-            EventSourcedBehaviorTestKit.create(testKit.system(), Gate.create(PersistenceId.ofUniqueId("gate")));
+            EventSourcedBehaviorTestKit.create(testKit.system(), Gate.create(PersistenceId.ofUniqueId("gate"), bell.getRef()));
 
     @Before
     public void beforeEach() {

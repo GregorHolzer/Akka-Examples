@@ -24,13 +24,13 @@ public class BellSetup extends AbstractBehavior<Receptionist.Listing> {
     private BellSetup(ActorContext<Receptionist.Listing> context, String serviceName) {
         super(context);
         bellServiceKey = ServiceKey.create(Bell.BellCommand.class, serviceName);
+        bell = getContext().spawn(Bell.create(PersistenceId.ofUniqueId(bellServiceKey.toString())), String.format("Bell_of_service_%s", serviceName));
+        getContext().getSystem().receptionist().tell(Receptionist.register(bellServiceKey, bell));
+        getContext().getLog().info("Bell registered with ServiceKey: {}",  bellServiceKey);
     }
 
     @Override
     public Receive<Receptionist.Listing> createReceive() {
-        bell = getContext().spawn(Bell.create(PersistenceId.ofUniqueId(bellServiceKey.toString())), String.format("Bell_with_key_%s", bellServiceKey));
-        getContext().getSystem().receptionist().tell(Receptionist.register(bellServiceKey, bell));
-        getContext().getLog().info("Bell registered with ServiceKey: {}",  bellServiceKey);
         return newReceiveBuilder().build();
     }
 }
