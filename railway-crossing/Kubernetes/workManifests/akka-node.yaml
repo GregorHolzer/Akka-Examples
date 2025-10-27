@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: akka-test
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: railwaycrossing
+  template:
+    metadata:
+      labels:
+        app: railwaycrossing
+    spec:
+      serviceAccountName: akka-test
+      containers:
+        - name: akka-test
+          image: akka-test:v5
+          imagePullPolicy: Never
+          command: ["bash"]
+          args: ["runNode.sh"]
+          env:
+            - name: AKKA_REMOTING_BIND_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: management
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: management
+          ports:
+            - name: remoting
+              containerPort: 2551
+              protocol: TCP
+            - name: management
+              containerPort: 8558
+              protocol: TCP
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: railwaycrossing
+  name: akka-test-service
+  namespace: default
+spec:
+  clusterIP: None
+  ports:
+    - name: remoting
+      port: 2551
+      protocol: TCP
+      targetPort: 2551
+    - name: management
+      port: 8558
+      protocol: TCP
+      targetPort: 8558
+  selector:
+    app: railwaycrossing
