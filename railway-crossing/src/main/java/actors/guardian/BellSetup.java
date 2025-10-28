@@ -13,23 +13,23 @@ import akka.persistence.typed.PersistenceId;
 
 public class BellSetup extends AbstractBehavior<Receptionist.Listing> {
 
-    public final static String serviceSuffix = "_Bell";
+    public final static String componentSuffix = "_Bell";
 
-    private final String serviceName;
+    private final String componentName;
 
     private final ServiceKey<Bell.BellCommand> bellServiceKey;
 
     private ActorRef<Bell.BellCommand> bell;
 
-    public static Behavior<Receptionist.Listing> create(String serviceId) {
-        return Behaviors.setup(context -> new BellSetup(context, serviceId));
+    public static Behavior<Receptionist.Listing> create(String crossingId) {
+        return Behaviors.setup(context -> new BellSetup(context, crossingId));
     }
 
-    private BellSetup(ActorContext<Receptionist.Listing> context, String serviceId) {
+    private BellSetup(ActorContext<Receptionist.Listing> context, String crossingId) {
         super(context);
-        this.serviceName = serviceId + serviceSuffix;
-        bellServiceKey = ServiceKey.create(Bell.BellCommand.class, serviceName);
-        bell = getContext().spawn(Bell.create(PersistenceId.ofUniqueId(bellServiceKey.toString())), String.format("Bell_of_service_%s", serviceName));
+        this.componentName = crossingId + componentSuffix;
+        bellServiceKey = ServiceKey.create(Bell.BellCommand.class, componentName);
+        bell = getContext().spawn(Bell.create(PersistenceId.ofUniqueId(bellServiceKey.toString())), String.format("Bell_of_service_%s", componentName));
         getContext().getSystem().receptionist().tell(Receptionist.register(bellServiceKey, bell));
         getContext().getLog().info("Bell registered with ServiceKey: {}",  bellServiceKey);
     }

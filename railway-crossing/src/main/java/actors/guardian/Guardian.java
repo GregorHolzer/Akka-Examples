@@ -25,9 +25,9 @@ public class Guardian extends AbstractBehavior<Command> {
     }
 
     private void setupComponent(){
-        String serviceName = System.getenv("SERVICE_ID");
+        String crossingId = System.getenv("CROSSING_ID");
         String component_env =  System.getenv("COMPONENT_TYPE");
-        if(serviceName==null){
+        if(crossingId==null){
             getContext().getLog().error("Service is not defined");
             return;
         }
@@ -39,19 +39,19 @@ public class Guardian extends AbstractBehavior<Command> {
             ComponentType componentType = ComponentType.valueOf(component_env);
             switch (componentType){
                 case Controller -> {
-                    getContext().spawn(ControllerSetup.create(serviceName), "ControllerSetup");
+                    getContext().spawn(ControllerSetup.create(crossingId), "ControllerSetup");
                     getContext().getLog().info("ControllerSetup has been started successfully");
                 }
                 case LightMachine -> {
-                    getContext().spawn(LightMachineSetup.create(serviceName), "LightMachineSetup");
+                    getContext().spawn(LightMachineSetup.create(crossingId), "LightMachineSetup");
                     getContext().getLog().info("LightMachineSetup has been started successfully");
                 }
                 case Gate -> {
-                    getContext().spawn(GateSetup.create(serviceName), "GateSetup");
+                    getContext().spawn(GateSetup.create(crossingId), "GateSetup");
                     getContext().getLog().info("GateSetup has been started successfully");
                 }
                 case Bell -> {
-                    getContext().spawn(BellSetup.create(serviceName), "BellSetup");
+                    getContext().spawn(BellSetup.create(crossingId), "BellSetup");
                     getContext().getLog().info("BellSetup has been started successfully");
                 }
                 default -> getContext().getLog().info("No Rule defined for Component_Type {}",  componentType);

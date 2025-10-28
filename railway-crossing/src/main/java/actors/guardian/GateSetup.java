@@ -16,7 +16,7 @@ import java.util.List;
 
 public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements ComponentSetup{
 
-    public final static String serviceSuffix = "_Gate";
+    public final static String componentSuffix = "_Gate";
 
     private ActorRef<Bell.BellCommand> bell;
 
@@ -26,17 +26,17 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
 
     private final ServiceKey<Gate.GateCommand> gateServiceKey;
 
-    private final String serviceName;
+    private final String componentName;
 
-    public static Behavior<Receptionist.Listing> create(String serviceId) {
-        return Behaviors.setup(context -> new GateSetup(context, serviceId));
+    public static Behavior<Receptionist.Listing> create(String crossingId) {
+        return Behaviors.setup(context -> new GateSetup(context, crossingId));
     }
 
-    private GateSetup(ActorContext<Receptionist.Listing> context, String serviceId) {
+    private GateSetup(ActorContext<Receptionist.Listing> context, String crossingId) {
         super(context);
-        this.serviceName = serviceId + serviceSuffix;
-        bellServiceKey = ServiceKey.create(Bell.BellCommand.class, serviceId + BellSetup.serviceSuffix);
-        gateServiceKey = ServiceKey.create(Gate.GateCommand.class, serviceName);
+        this.componentName = crossingId + componentSuffix;
+        bellServiceKey = ServiceKey.create(Bell.BellCommand.class, crossingId + BellSetup.componentSuffix);
+        gateServiceKey = ServiceKey.create(Gate.GateCommand.class, componentName);
         getContext().getSystem().receptionist().tell(Receptionist.subscribe(bellServiceKey, context.getSelf()));
         context.getLog().info("Gate subscribed to ServiceKeys: {}",  bellServiceKey);
     }
@@ -52,7 +52,7 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
         List<ActorRef<Bell.BellCommand>> availableBells = listing.getServiceInstances(bellServiceKey).stream().toList();
         bell = checkInstances(getContext(), availableBells, Bell.BellCommand.class);
         if(bell != null && gate == null){
-            gate = getContext().spawn(Gate.create(PersistenceId.ofUniqueId(gateServiceKey.toString()), bell), String.format("Gate_of_service_%s", serviceName));
+            gate = getContext().spawn(Gate.create(PersistenceId.ofUniqueId(gateServiceKey.toString()), bell), String.format("Gate_of_service_%s", componentName));
             getContext().getSystem().receptionist().tell(Receptionist.register(gateServiceKey, gate));
             getContext().getLog().info("Gate registered with ServiceKey: {}",  gateServiceKey);
         }

@@ -93,7 +93,10 @@ public class Controller extends EventSourcedBehavior<Controller.ControllerComman
         return newEventHandlerBuilder()
                 .forAnyState()
                 .onEvent(EventAdvanceState.class, (state, event)
-                        -> (ControllerState) state.advanceState())
+                        -> {
+                    context.getLog().info("Advance state to {}", state.advanceState().getState());
+                    return (ControllerState) state.advanceState();
+                })
                 .onEvent(EventRaiseApproaching.class, (state, event) -> {
                     lightMachine.tell(new LightMachine.CommandTurnOn());
                     gate.tell(new Gate.GateCommandClose());

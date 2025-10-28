@@ -19,11 +19,11 @@ import java.util.List;
 
 public class ControllerSetup extends AbstractBehavior<Receptionist.Listing> implements ComponentSetup {
 
-    public final static String serviceSuffix = "_Controller";
+    public final static String componentSuffix = "_Controller";
 
-    public final String serviceId;
+    public final String crossingId;
 
-    private final String serviceName;
+    private final String crossinName;
 
     private ActorRef<LightMachine.LightMachineCommand> lightMachine;
 
@@ -37,17 +37,17 @@ public class ControllerSetup extends AbstractBehavior<Receptionist.Listing> impl
 
     private final ServiceKey<Controller.ControllerCommand> controllerServiceKey;
 
-    public static Behavior<Receptionist.Listing> create(String serviceId) {
-        return Behaviors.setup(context -> new ControllerSetup(context, serviceId));
+    public static Behavior<Receptionist.Listing> create(String crossingId) {
+        return Behaviors.setup(context -> new ControllerSetup(context, crossingId));
     }
 
-    private ControllerSetup(ActorContext<Receptionist.Listing> context, String serviceId) {
+    private ControllerSetup(ActorContext<Receptionist.Listing> context, String crossingId) {
         super(context);
-        this.serviceId = serviceId;
-        this.serviceName = serviceId +  serviceSuffix;
-        gateServiceKey = ServiceKey.create(Gate.GateCommand.class, serviceId + GateSetup.serviceSuffix);
-        lightMachineServiceKey = ServiceKey.create(LightMachine.LightMachineCommand.class, serviceId + LightMachineSetup.serviceSuffix);
-        controllerServiceKey = ServiceKey.create(Controller.ControllerCommand.class, serviceName);
+        this.crossingId = crossingId;
+        this.crossinName = crossingId + componentSuffix;
+        gateServiceKey = ServiceKey.create(Gate.GateCommand.class, crossingId + GateSetup.componentSuffix);
+        lightMachineServiceKey = ServiceKey.create(LightMachine.LightMachineCommand.class, crossingId + LightMachineSetup.componentSuffix);
+        controllerServiceKey = ServiceKey.create(Controller.ControllerCommand.class, crossinName);
         getContext().getSystem().receptionist().tell(Receptionist.subscribe(gateServiceKey, getContext().getSelf()));
         getContext().getSystem().receptionist().tell(Receptionist.subscribe(lightMachineServiceKey, getContext().getSelf()));
         context.getLog().info("Controller subscribed to ServiceKeys: {}, {}",  gateServiceKey, lightMachineServiceKey);
@@ -71,7 +71,7 @@ public class ControllerSetup extends AbstractBehavior<Receptionist.Listing> impl
             lightMachine = checkInstances(getContext(), availableLightMachines, LightMachine.LightMachineCommand.class);
         }
         if(gate != null && lightMachine != null && controller == null) {
-            controller = getContext().spawn(Controller.create(PersistenceId.ofUniqueId(controllerServiceKey.toString()), gate, lightMachine), String.format("Controller_of_service_%s", serviceName));
+            controller = getContext().spawn(Controller.create(PersistenceId.ofUniqueId(controllerServiceKey.toString()), gate, lightMachine), String.format("Controller_of_service_%s", crossinName));
             getContext().getSystem().receptionist().tell(Receptionist.register(controllerServiceKey, controller));
             getContext().getLog().info("Controller registered with ServiceKey: {}",  controllerServiceKey);
             setupAPI();
@@ -88,6 +88,6 @@ public class ControllerSetup extends AbstractBehavior<Receptionist.Listing> impl
         Http.get(getContext().getSystem())
                 .newServerAt("localhost", httpPort)
                 .bind(api.createRoutes());
-        getContext().getLog().info("Controller of Service {} API bound to {}:{}",serviceId, getContext().getSystem().address(), httpPort);
+        getContext().getLog().info("Controller of Service {} API bound to {}:{}",crossingId, getContext().getSystem().address(), httpPort);
     }
 }
