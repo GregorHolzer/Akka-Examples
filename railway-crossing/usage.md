@@ -14,6 +14,12 @@ To create a component for a crossing the following variables have to be set:
 
 A component will only be created if all subcomponents are ready (e.g. a Gate will only be created if the Bell is ready).
 
+## Build Docker-Image
+
+```bash
+ mvn -Ddocker.useConfigFile=true -Ddocker.config.path=/home/gregor/.docker/config.json package  docker:push
+```
+
 ## Running in Kubernetes
 
 To form an Akka-Cluster within Kubernetes the following Permissions need to be granted:
@@ -28,3 +34,5 @@ rules:
     resources: ["pods"]
     verbs: ["get", "watch", "list"]
 ```
+
+
