@@ -7,6 +7,10 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import akka.discovery.ServiceDiscovery;
+
+import java.time.Duration;
+import java.util.concurrent.CompletionStage;
 
 public class Guardian extends AbstractBehavior<Command> {
 
