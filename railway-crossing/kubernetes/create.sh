@@ -11,7 +11,7 @@ kind delete clusters --all
 echo "🤖 Creating clusters"
 kind create cluster --config ./cluster_config.yaml
 
-echo "🤖 Apply deployment to Cluster"
-kubectl apply -f ./permissions.yaml --context kind-akka
-kubectl apply -f ./railway_crossing_node.yaml --context kind-akka
-kubectl apply -f ./railway_crossing_service.yaml --context kind-akka
+#echo "🤖 Apply deployment to Cluster"
+#kubectl apply -f ./permissions.yaml --context kind-akka
+#kubectl apply -f ./railway_crossing_node.yaml --context kind-akka
+#kubectl apply -f ./railway_crossing_service.yaml --context kind-akka
