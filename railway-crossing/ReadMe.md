@@ -1,4 +1,4 @@
-# Akka Railway-Crossing within a single Akka Cluster
+# Akka Railway-Crossing within a single Kubernetes-Cluster
 
 ## Usage
 
@@ -19,7 +19,7 @@ A component will only be created if all subcomponents are ready (e.g. a Gate wil
 ### Build Docker-Image
 
 ```bash
-  mvn -Ddocker.useConfigFile=true -Ddocker.config.path=/home/gregor/.docker/config.json package  docker:push
+    mvn -Ddocker.useConfigFile=true -Ddocker.config.path=/home/gregor/.docker/config.json package  docker:push
 ```
 
 ### Running in Kubernetes
@@ -49,7 +49,7 @@ To run a single Cluster with one Railway-Crossing run:
 The `Controller` is listening on port 8000. To access this port when running in Kubernetes run:
 
 ```bash
-  kubectl port-forward <controller-pod> 8000:8000
+    kubectl port-forward <controller-pod> 8000:8000
 ```
 
 Then send a signal towards the `Controller` with:
@@ -58,7 +58,13 @@ Then send a signal towards the `Controller` with:
     ./sendSignal.sh <trainSeen/trainNotSeen>
 ```
 
+### Access the Railway-Crossing-Service
 
+```bash
+    kubectl port-forward svc/python-service-service 8080:8000
+```
+
+Access the status here: [Status](http://localhost:8080/status)
 
 ## Services
 
@@ -68,5 +74,5 @@ String serviceName = "python-service-service.default.svc.cluster.local";
 CompletionStage<ServiceDiscovery.Resolved> result = discovery.lookup(serviceName, Duration.ofSeconds(3));
 ```
 
-## Akka Multi-Datacenter Cluster 
+## Akka Multi-Datacenter Cluster
 
