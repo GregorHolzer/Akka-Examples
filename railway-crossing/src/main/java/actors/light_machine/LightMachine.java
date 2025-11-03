@@ -9,6 +9,8 @@ import akka.persistence.typed.javadsl.CommandHandler;
 import akka.persistence.typed.javadsl.CommandHandlerBuilder;
 import akka.persistence.typed.javadsl.EventHandler;
 import akka.persistence.typed.javadsl.EventSourcedBehavior;
+import service.RailwayService;
+
 import java.util.List;
 
 public class LightMachine extends EventSourcedBehavior<LightMachine.LightMachineCommand, LightMachine.LightMachineEvent, LightMachineState> {
@@ -29,13 +31,16 @@ public class LightMachine extends EventSourcedBehavior<LightMachine.LightMachine
 
     private final ActorContext<LightMachineCommand> context;
 
-    public static Behavior<LightMachineCommand> create(PersistenceId persistenceId) {
-        return Behaviors.setup(context -> new  LightMachine(persistenceId, context));
+    private final RailwayService railwayService;
+
+    public static Behavior<LightMachineCommand> create(PersistenceId persistenceId, RailwayService railwayService) {
+        return Behaviors.setup(context -> new  LightMachine(persistenceId, context, railwayService));
     }
 
-    private LightMachine(PersistenceId persistenceId, ActorContext<LightMachineCommand> context) {
+    private LightMachine(PersistenceId persistenceId, ActorContext<LightMachineCommand> context, RailwayService railwayService) {
         super(persistenceId);
         this.context = context;
+        this.railwayService = railwayService;
     }
 
     @Override
@@ -49,13 +54,13 @@ public class LightMachine extends EventSourcedBehavior<LightMachine.LightMachine
 
         builder.forState(state -> state.getState() ==  LightMachineState.State.OFF)
                 .onCommand(CommandTurnOn.class, cmd ->  Effect().persist(
-                        List.of(new EventAdvanceState(), new EventTurnedOn())
-                ));
+                        List.of(new EventAdvanceState(), new EventTurnedOn()))
+                        .thenRun(() -> railwayService.lightOn(context, context.getSelf().path().name())));
 
         builder.forState(state -> state.getState() ==  LightMachineState.State.ON)
                 .onCommand(CommandTurnOff.class, cmd ->  Effect().persist(
-                        List.of(new EventAdvanceState(), new EventTurnedOff())
-                ));
+                        List.of(new EventAdvanceState(), new EventTurnedOff()))
+                        .thenRun(() -> railwayService.lightOff(context, context.getSelf().path().name())));
 
         builder.forAnyState().onAnyCommand(cmd -> Effect().none());
 

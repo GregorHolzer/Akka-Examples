@@ -7,12 +7,16 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import akka.discovery.Discovery;
 import akka.discovery.ServiceDiscovery;
+import service.RailwayService;
 
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 
 public class Guardian extends AbstractBehavior<Command> {
+
+    private final RailwayService railwayService;
 
     public static Behavior<Command> create() {
         return Behaviors.setup(Guardian::new);
@@ -20,6 +24,9 @@ public class Guardian extends AbstractBehavior<Command> {
 
     public Guardian(ActorContext<Command> context) {
         super(context);
+        ServiceDiscovery discovery = Discovery.get(context.getSystem()).discovery();
+        railwayService = new RailwayService(discovery);
+        railwayService.discover(context);
         setupComponent();
     }
 
@@ -47,15 +54,15 @@ public class Guardian extends AbstractBehavior<Command> {
                     getContext().getLog().info("ControllerSetup has been started successfully");
                 }
                 case LightMachine -> {
-                    getContext().spawn(LightMachineSetup.create(crossingId), "LightMachineSetup");
+                    getContext().spawn(LightMachineSetup.create(crossingId, railwayService), "LightMachineSetup");
                     getContext().getLog().info("LightMachineSetup has been started successfully");
                 }
                 case Gate -> {
-                    getContext().spawn(GateSetup.create(crossingId), "GateSetup");
+                    getContext().spawn(GateSetup.create(crossingId, railwayService), "GateSetup");
                     getContext().getLog().info("GateSetup has been started successfully");
                 }
                 case Bell -> {
-                    getContext().spawn(BellSetup.create(crossingId), "BellSetup");
+                    getContext().spawn(BellSetup.create(crossingId, railwayService), "BellSetup");
                     getContext().getLog().info("BellSetup has been started successfully");
                 }
                 default -> getContext().getLog().info("No Rule defined for Component_Type {}",  componentType);

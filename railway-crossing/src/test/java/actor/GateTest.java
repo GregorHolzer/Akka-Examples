@@ -12,9 +12,14 @@ import akka.persistence.typed.PersistenceId;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import service.RailwayService;
+
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
 
 public class GateTest {
+
+    private final RailwayService mockedService = mock(RailwayService.class);
 
     @ClassRule
     public static final TestKitJunitResource testKit = new TestKitJunitResource(EventSourcedBehaviorTestKit.config());
@@ -23,7 +28,7 @@ public class GateTest {
 
 
     private final EventSourcedBehaviorTestKit<Gate.GateCommand, Gate.GateEvent, GateState> eventSourcedBehaviorTestKit =
-            EventSourcedBehaviorTestKit.create(testKit.system(), Gate.create(PersistenceId.ofUniqueId("gate"), bell.getRef()));
+            EventSourcedBehaviorTestKit.create(testKit.system(), Gate.create(PersistenceId.ofUniqueId("gate"), bell.getRef(), mockedService));
 
     @Before
     public void beforeEach() {

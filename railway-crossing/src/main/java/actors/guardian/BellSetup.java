@@ -10,6 +10,7 @@ import akka.actor.typed.javadsl.Receive;
 import akka.actor.typed.receptionist.Receptionist;
 import akka.actor.typed.receptionist.ServiceKey;
 import akka.persistence.typed.PersistenceId;
+import service.RailwayService;
 
 public class BellSetup extends AbstractBehavior<Receptionist.Listing> {
 
@@ -21,15 +22,18 @@ public class BellSetup extends AbstractBehavior<Receptionist.Listing> {
 
     private ActorRef<Bell.BellCommand> bell;
 
-    public static Behavior<Receptionist.Listing> create(String crossingId) {
-        return Behaviors.setup(context -> new BellSetup(context, crossingId));
+    private final RailwayService railwayService;
+
+    public static Behavior<Receptionist.Listing> create(String crossingId, RailwayService railwayService) {
+        return Behaviors.setup(context -> new BellSetup(context, crossingId, railwayService));
     }
 
-    private BellSetup(ActorContext<Receptionist.Listing> context, String crossingId) {
+    private BellSetup(ActorContext<Receptionist.Listing> context, String crossingId, RailwayService railwayService) {
         super(context);
         this.componentName = crossingId + componentSuffix;
+        this.railwayService = railwayService;
         bellServiceKey = ServiceKey.create(Bell.BellCommand.class, componentName);
-        bell = getContext().spawn(Bell.create(PersistenceId.ofUniqueId(bellServiceKey.toString())), String.format("Bell_of_service_%s", componentName));
+        bell = getContext().spawn(Bell.create(PersistenceId.ofUniqueId(bellServiceKey.toString()), railwayService), String.format("%s", componentName));
         getContext().getSystem().receptionist().tell(Receptionist.register(bellServiceKey, bell));
         getContext().getLog().info("Bell registered with ServiceKey: {}",  bellServiceKey);
     }

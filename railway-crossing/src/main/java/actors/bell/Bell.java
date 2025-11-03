@@ -10,6 +10,7 @@ import akka.persistence.typed.javadsl.CommandHandler;
 import akka.persistence.typed.javadsl.EventHandler;
 import akka.persistence.typed.javadsl.EventSourcedBehavior;
 import akka.persistence.typed.javadsl.CommandHandlerBuilder;
+import service.RailwayService;
 
 import java.util.List;
 
@@ -31,13 +32,16 @@ public class Bell extends EventSourcedBehavior<Bell.BellCommand, Bell.BellEvent,
 
     private final ActorContext<Bell.BellCommand> context;
 
-    public static Behavior<BellCommand> create(PersistenceId persistenceId) {
-        return Behaviors.setup(context -> new Bell(persistenceId, context));
+    private final RailwayService railwayService;
+
+    public static Behavior<BellCommand> create(PersistenceId persistenceId, RailwayService railwayService) {
+        return Behaviors.setup(context -> new Bell(persistenceId, context, railwayService));
     }
 
-    private Bell(PersistenceId persistenceId, ActorContext<Bell.BellCommand> context) {
+    private Bell(PersistenceId persistenceId, ActorContext<Bell.BellCommand> context, RailwayService railwayService) {
         super(persistenceId);
         this.context = context;
+        this.railwayService = railwayService;
     }
 
     @Override
@@ -51,13 +55,11 @@ public class Bell extends EventSourcedBehavior<Bell.BellCommand, Bell.BellEvent,
 
         builder.forState(state -> state.getState() ==  BellState.State.OFF)
                 .onCommand(CommandBellOn.class, cmd -> Effect().persist(List.of(
-                        new EventAdvanceState(), new EventBellOn()
-                )));
+                        new EventAdvanceState(), new EventBellOn())).thenRun(() -> railwayService.bellOn(context, context.getSelf().path().name())));
 
         builder.forState(state -> state.getState() ==  BellState.State.ON)
                 .onCommand(CommandBellOff.class, cmd -> Effect().persist(List.of(
-                        new EventAdvanceState(), new EventBellOff()
-                )));
+                        new EventAdvanceState(), new EventBellOff())).thenRun(() -> railwayService.bellOff(context, context.getSelf().path().name())));
 
         builder.forAnyState().onAnyCommand(cmd -> Effect().none());
 

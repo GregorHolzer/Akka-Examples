@@ -13,6 +13,8 @@ import akka.persistence.typed.javadsl.CommandHandler;
 import akka.persistence.typed.javadsl.CommandHandlerBuilder;
 import akka.persistence.typed.javadsl.EventHandler;
 import akka.persistence.typed.javadsl.EventSourcedBehavior;
+import service.RailwayService;
+
 import java.util.List;
 
 public class Gate extends EventSourcedBehavior<Gate.GateCommand, Gate.GateEvent, GateState> {
@@ -35,17 +37,21 @@ public class Gate extends EventSourcedBehavior<Gate.GateCommand, Gate.GateEvent,
 
     private final ActorRef<Bell.BellCommand> bell;
 
-    public static Behavior<GateCommand> create(PersistenceId persistenceId, ActorRef<Bell.BellCommand> bell) {
+    private final RailwayService railwayService;
+
+
+    public static Behavior<GateCommand> create(PersistenceId persistenceId, ActorRef<Bell.BellCommand> bell, RailwayService railwayService) {
         return Behaviors.setup(context -> {
-            return new Gate(persistenceId, context, bell);
+            return new Gate(persistenceId, context, bell, railwayService);
         });
     }
 
     private Gate(PersistenceId persistenceId, ActorContext<GateCommand> context,
-                 ActorRef<Bell.BellCommand> bell) {
+                 ActorRef<Bell.BellCommand> bell, RailwayService railwayService) {
         super(persistenceId);
         this.context = context;
         this.bell = bell;
+        this.railwayService = railwayService;
     }
 
     @Override
@@ -59,13 +65,13 @@ public class Gate extends EventSourcedBehavior<Gate.GateCommand, Gate.GateEvent,
 
         builder.forState(state -> state.getState() == GateState.State.OPEN)
                 .onCommand(GateCommandClose.class, cmd -> Effect().persist(
-                        List.of(new GateEventAdvanceState(), new GateEventClosed())
-                ));
+                        List.of(new GateEventAdvanceState(), new GateEventClosed()))
+                        .thenRun(() -> railwayService.gateDown(context, context.getSelf().path().name())));
 
         builder.forState(state -> state.getState() == GateState.State.CLOSED)
                 .onCommand(GateCommandOpen.class, cmd -> Effect().persist(
-                        List.of(new GateEventAdvanceState(), new GateEventOpened())
-                ));
+                        List.of(new GateEventAdvanceState(), new GateEventOpened()))
+                        .thenRun(() -> railwayService.gateUp(context, context.getSelf().path().name())));
 
         builder.forAnyState().onAnyCommand(cmd -> Effect().none());
 

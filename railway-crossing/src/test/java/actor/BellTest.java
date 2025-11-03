@@ -9,15 +9,21 @@ import akka.persistence.typed.PersistenceId;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import service.RailwayService;
+
+import static org.mockito.Mockito.*;
 import static org.junit.Assert.*;
 
 public class BellTest {
+
+    private final RailwayService mockedService = mock(RailwayService.class);
+
 
     @ClassRule
     public static final TestKitJunitResource testKit = new TestKitJunitResource(EventSourcedBehaviorTestKit.config());
 
     private final EventSourcedBehaviorTestKit<Bell.BellCommand, Bell.BellEvent, BellState> eventSourcedBehaviorTestKit =
-            EventSourcedBehaviorTestKit.create(testKit.system(), Bell.create(PersistenceId.ofUniqueId("bell")));
+            EventSourcedBehaviorTestKit.create(testKit.system(), Bell.create(PersistenceId.ofUniqueId("bell"), mockedService));
 
     @Before
     public void beforeEach() {

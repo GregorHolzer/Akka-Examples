@@ -19,7 +19,7 @@ A component will only be created if all subcomponents are ready (e.g. a Gate wil
 ### Build Docker-Image
 
 ```bash
- mvn -Ddocker.useConfigFile=true -Ddocker.config.path=/home/gregor/.docker/config.json package  docker:push
+  mvn -Ddocker.useConfigFile=true -Ddocker.config.path=/home/gregor/.docker/config.json package  docker:push
 ```
 
 ### Running in Kubernetes
@@ -36,9 +36,37 @@ rules:
     resources: ["pods"]
     verbs: ["get", "watch", "list"]
 ```
-## Akka Edge - Approach for Multi-Cluster-Setup
 
-Akka Edge is based on `Akka  Projection gRPC` 
+To run a single Cluster with one Railway-Crossing run:
+
+```bash
+    cd Kubernetes/
+    ./create.sh
+```
+
+### Sending Signals to the `Controller`
+
+The `Controller` is listening on port 8000. To access this port when running in Kubernetes run:
+
+```bash
+  kubectl port-forward <controller-pod> 8000:8000
+```
+
+Then send a signal towards the `Controller` with:
+
+```bash
+    ./sendSignal.sh <trainSeen/trainNotSeen>
+```
 
 
+
+## Services
+
+Services can not be discovered via a Service-Mesh but only via DNS. In this project the service-name is hardcoded:
+```java
+String serviceName = "python-service-service.default.svc.cluster.local";
+CompletionStage<ServiceDiscovery.Resolved> result = discovery.lookup(serviceName, Duration.ofSeconds(3));
+```
+
+## Akka Multi-Datacenter Cluster 
 

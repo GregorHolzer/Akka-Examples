@@ -9,16 +9,20 @@ import akka.persistence.typed.PersistenceId;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import service.RailwayService;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
 
 public class LightMachineTest {
+
+    private final RailwayService mockedService = mock(RailwayService.class);
 
     @ClassRule
     public static final TestKitJunitResource testKit = new TestKitJunitResource(EventSourcedBehaviorTestKit.config());
 
     private final EventSourcedBehaviorTestKit<LightMachine.LightMachineCommand, LightMachine.LightMachineEvent, LightMachineState> eventSourcedBehaviorTestKit =
-            EventSourcedBehaviorTestKit.create(testKit.system(), LightMachine.create(PersistenceId.ofUniqueId("light_machine")));
+            EventSourcedBehaviorTestKit.create(testKit.system(), LightMachine.create(PersistenceId.ofUniqueId("light_machine"), mockedService));
 
     @Before
     public void beforeEach() {

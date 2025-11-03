@@ -71,7 +71,7 @@ public class ControllerSetup extends AbstractBehavior<Receptionist.Listing> impl
             lightMachine = checkInstances(getContext(), availableLightMachines, LightMachine.LightMachineCommand.class);
         }
         if(gate != null && lightMachine != null && controller == null) {
-            controller = getContext().spawn(Controller.create(PersistenceId.ofUniqueId(controllerServiceKey.toString()), gate, lightMachine), String.format("Controller_of_service_%s", crossinName));
+            controller = getContext().spawn(Controller.create(PersistenceId.ofUniqueId(controllerServiceKey.toString()), gate, lightMachine), String.format("%s", crossinName));
             getContext().getSystem().receptionist().tell(Receptionist.register(controllerServiceKey, controller));
             getContext().getLog().info("Controller registered with ServiceKey: {}",  controllerServiceKey);
             setupAPI();
