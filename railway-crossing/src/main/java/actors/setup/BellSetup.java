@@ -1,4 +1,4 @@
-package actors.guardian;
+package actors.setup;
 
 import actors.bell.Bell;
 import akka.actor.typed.ActorRef;

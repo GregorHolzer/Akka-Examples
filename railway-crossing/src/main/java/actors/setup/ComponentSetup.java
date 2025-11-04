@@ -1,9 +1,7 @@
-package actors.guardian;
+package actors.setup;
 
 import akka.actor.typed.ActorRef;
-import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.receptionist.Receptionist;
 
 import java.util.List;
 

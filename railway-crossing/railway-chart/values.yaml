@@ -1,10 +1,9 @@
-crossings:
-  - id: crossing1
-  - id: crossing2
-  - id: crossing3
+crossings: 3
 
 types:
   - Controller
   - Bell
   - Gate
   - LightMachine
+
+prefix: crossing

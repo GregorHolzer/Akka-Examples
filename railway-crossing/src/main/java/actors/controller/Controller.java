@@ -4,20 +4,32 @@ import actors.Command;
 
 import actors.Event;
 import actors.gate.Gate;
+import actors.api.SignalReceiver;
 import actors.light_machine.LightMachine;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.receptionist.Receptionist;
-import akka.actor.typed.receptionist.ServiceKey;
 import akka.persistence.typed.PersistenceId;
 import akka.persistence.typed.javadsl.*;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 
 public class Controller extends EventSourcedBehavior<Controller.ControllerCommand, Controller.ControllerEvent, ControllerState> {
 
     public interface ControllerCommand extends Command {}
+
+    public static class CommandGetCrossingID implements ControllerCommand {
+
+        public final ActorRef<SignalReceiver.SignalReceiverCommand> replyTo;
+
+        @JsonCreator
+        public CommandGetCrossingID(@JsonProperty("replyTo") ActorRef<SignalReceiver.SignalReceiverCommand> replyTo) {
+            this.replyTo = replyTo;
+        }
+    }
 
     public static class CommandTrainSeen implements ControllerCommand {}
 
@@ -83,6 +95,12 @@ public class Controller extends EventSourcedBehavior<Controller.ControllerComman
                         Effect().persist(new EventAdvanceState()));
 
         builder.forAnyState()
+                .onCommand(CommandGetCrossingID.class, cmd ->
+                        Effect().none().
+                                thenRun(() -> sendControllerId(cmd.replyTo)))
+                                .build();
+
+        builder.forAnyState()
                 .onAnyCommand(cmd -> Effect().none());
 
         return builder.build();
@@ -111,5 +129,9 @@ public class Controller extends EventSourcedBehavior<Controller.ControllerComman
                 })
                 .onEvent(ControllerEvent.class, (state, event) -> new ControllerState(state.getState()))
                 .build();
+    }
+
+    private void sendControllerId(ActorRef<SignalReceiver.SignalReceiverCommand> receiver) {
+        receiver.tell(new SignalReceiver.ControllerReply(context.getSelf().path().name(), context.getSelf()));
     }
 }

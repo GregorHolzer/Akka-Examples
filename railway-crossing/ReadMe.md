@@ -44,20 +44,6 @@ To run a single Cluster with one Railway-Crossing run:
     ./create.sh
 ```
 
-### Sending Signals to the `Controller`
-
-The `Controller` is listening on port 8000. To access this port when running in Kubernetes run:
-
-```bash
-    kubectl port-forward <controller-pod> 8000:8000
-```
-
-Then send a signal towards the `Controller` with:
-
-```bash
-    ./sendSignal.sh <trainSeen/trainNotSeen>
-```
-
 ### Access the Railway-Crossing-Service
 
 ```bash

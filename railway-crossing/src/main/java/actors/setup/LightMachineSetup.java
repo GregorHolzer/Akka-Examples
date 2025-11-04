@@ -1,4 +1,4 @@
-package actors.guardian;
+package actors.setup;
 
 import actors.light_machine.LightMachine;
 import akka.actor.typed.ActorRef;

@@ -2,6 +2,11 @@ package actors.guardian;
 
 import actors.Command;
 import actors.ComponentType;
+import actors.api.SignalReceiver;
+import actors.setup.BellSetup;
+import actors.setup.ControllerSetup;
+import actors.setup.GateSetup;
+import actors.setup.LightMachineSetup;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
@@ -10,9 +15,6 @@ import akka.actor.typed.javadsl.Receive;
 import akka.discovery.Discovery;
 import akka.discovery.ServiceDiscovery;
 import service.RailwayService;
-
-import java.time.Duration;
-import java.util.concurrent.CompletionStage;
 
 public class Guardian extends AbstractBehavior<Command> {
 
@@ -28,6 +30,7 @@ public class Guardian extends AbstractBehavior<Command> {
         railwayService = new RailwayService(discovery);
         railwayService.discover(context);
         setupComponent();
+        context.spawn(SignalReceiver.create(), "SignalReceiver");
     }
 
     @Override

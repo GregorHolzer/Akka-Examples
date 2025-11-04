@@ -9,8 +9,11 @@ kind delete clusters --all
 
 # Create two clusters
 echo "🤖 Creating clusters"
-kind create cluster --config ./cluster_config.yaml
+kind create cluster --config ./kubernetes/cluster_config.yaml
 
+echo "🤖 Installing helm chart"
+
+helm install railway-chart ./railway-chart
 #echo "🤖 Apply deployment to Cluster"
 #kubectl apply -f ./permissions.yaml --context kind-akka
 #kubectl apply -f ./railway_crossing_node.yaml --context kind-akka

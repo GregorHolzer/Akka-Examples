@@ -1,12 +1,12 @@
+{{- $prefix := .Values.prefix -}}
 {{- $types := .Values.types -}}
-{{- range .Values.crossings }}
-{{- $crossingID := .id -}}
+{{- range $crossingID := until (int .Values.crossings)  -}}
 {{- range $types }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ $crossingID | lower }}-{{.|lower}}
+  name: {{$prefix}}{{ $crossingID}}-{{.|lower}}
   namespace: default
 spec:
   replicas: 1
@@ -22,7 +22,7 @@ spec:
       imagePullSecrets:
         - name: regcred
       containers:
-        - name: {{ $crossingID | lower }}-{{.|lower}}
+        - name: {{$prefix}}{{ $crossingID}}-{{.|lower}}
           image: docker.io/gregor2323/akka
           imagePullPolicy: Always
           env:
@@ -31,7 +31,7 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
             - name: CROSSING_ID
-              value:  {{ $crossingID }}
+              value:  {{$prefix}}{{ $crossingID}}
             - name: COMPONENT_TYPE
               value: {{ . }}
           readinessProbe:
@@ -74,5 +74,22 @@ spec:
       port: 8558
       protocol: TCP
       targetPort: 8558
+  selector:
+    app: railway-crossing
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: railway-crossing
+  name: railway-crossing-signal-service
+  namespace: default
+spec:
+  type: ClusterIP
+  ports:
+    - name: signal
+      port: 8000
+      protocol: TCP
+      targetPort: 8000
   selector:
     app: railway-crossing
