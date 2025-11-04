@@ -37,10 +37,9 @@ rules:
     verbs: ["get", "watch", "list"]
 ```
 
-To run a single Cluster with one Railway-Crossing run:
+To run a single Cluster with three Railway-Crossings run:
 
 ```bash
-    cd Kubernetes/
     ./create.sh
 ```
 
@@ -52,6 +51,23 @@ To run a single Cluster with one Railway-Crossing run:
 
 Access the status here: [Status](http://localhost:8080/status)
 
+### Sending Signals to a Controller
+
+```bash
+    kubectl port-forward svc/railway-crossing-signal-service 8000:8000
+```
+
+To send a signal to a specific controller run:
+
+```bash
+    ./sendSignal -i <ControllerId> <trainSeen/trainNotSeen>
+```
+To broadcast the signal to all controllers run:
+
+```bash
+    ./sendSignal -i broadcast <trainSeen/trainNotSeen>
+```
+
 ## Services
 
 Services can not be discovered via a Service-Mesh but only via DNS. In this project the service-name is hardcoded:
@@ -59,6 +75,3 @@ Services can not be discovered via a Service-Mesh but only via DNS. In this proj
 String serviceName = "python-service-service.default.svc.cluster.local";
 CompletionStage<ServiceDiscovery.Resolved> result = discovery.lookup(serviceName, Duration.ofSeconds(3));
 ```
-
-## Akka Multi-Datacenter Cluster
-
