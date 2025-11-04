@@ -2,7 +2,6 @@ package actors.api;
 
 import actors.Command;
 import actors.controller.Controller;
-import actors.controller_api.ControllerAPI;
 import actors.setup.ControllerSetup;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;

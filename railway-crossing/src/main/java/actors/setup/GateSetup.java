@@ -62,6 +62,4 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
         }
         return Behaviors.same();
     }
-
-
 }
