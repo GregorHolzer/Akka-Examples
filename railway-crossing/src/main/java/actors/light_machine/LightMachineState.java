@@ -6,23 +6,23 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class LightMachineState implements State<LightMachineState.State> {
 
-    public enum State{
-        OFF,
-        ON
-    }
+  public enum State {
+    OFF,
+    ON
+  }
 
-    private final State state;
+  private final State state;
 
-    @JsonCreator
-    public LightMachineState(@JsonProperty("state") State state){
-        this.state = state;
-    }
+  @JsonCreator
+  public LightMachineState(@JsonProperty("state") State state) {
+    this.state = state;
+  }
 
-    public LightMachineState createWithState(State state){
-        return new LightMachineState(state);
-    }
+  public LightMachineState createWithState(State state) {
+    return new LightMachineState(state);
+  }
 
-    public State getState() {
-        return state;
-    }
+  public State getState() {
+    return state;
+  }
 }

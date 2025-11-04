@@ -139,7 +139,7 @@
                 <configuration>
                     <images>
                         <image>
-                            <name>gregor2323/akka</name>
+                            <name>gregor2323/akka-railway-crossing-node</name>
                             <build>
                                 <from>eclipse-temurin:21-jre</from>
                                 <tags>

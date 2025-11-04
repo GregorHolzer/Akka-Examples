@@ -12,31 +12,54 @@ import akka.actor.typed.receptionist.ServiceKey;
 import akka.persistence.typed.PersistenceId;
 import service.RailwayService;
 
-public class LightMachineSetup extends AbstractBehavior<Receptionist.Listing> implements ComponentSetup {
+public class LightMachineSetup
+  extends AbstractBehavior<Receptionist.Listing>
+  implements ComponentSetup {
 
-    public static final String componentSuffix = "_LightMachine";
+  public static final String componentSuffix = "_LightMachine";
 
-    private final String componentName;
+  private final String componentName;
 
-    private final ServiceKey<LightMachine.LightMachineCommand>  lightMachineServiceKey;
+  private final ServiceKey<LightMachine.LightMachineCommand> lightMachineServiceKey;
 
-    private final ActorRef<LightMachine.LightMachineCommand> lightMachine;
+  private final ActorRef<LightMachine.LightMachineCommand> lightMachine;
 
-    public static Behavior<Receptionist.Listing> create(String crossingId, RailwayService railwayService) {
-        return Behaviors.setup(context -> new LightMachineSetup(context, crossingId, railwayService));
-    }
+  public static Behavior<Receptionist.Listing> create(
+    String crossingId,
+    RailwayService railwayService
+  ) {
+    return Behaviors.setup(context -> new LightMachineSetup(context, crossingId, railwayService));
+  }
 
-    private LightMachineSetup(ActorContext<Receptionist.Listing> context, String crossingId, RailwayService railwayService) {
-        super(context);
-        this.componentName = crossingId + componentSuffix;
-        lightMachineServiceKey =  ServiceKey.create(LightMachine.LightMachineCommand.class, componentName);
-        lightMachine = getContext().spawn(LightMachine.create(PersistenceId.ofUniqueId(lightMachineServiceKey.toString()), railwayService), String.format("%s", componentName));
-        getContext().getSystem().receptionist().tell(Receptionist.register(lightMachineServiceKey, lightMachine));
-        getContext().getLog().info("LightMachine registered with ServiceKey: {}",  lightMachineServiceKey);
-    }
+  private LightMachineSetup(
+    ActorContext<Receptionist.Listing> context,
+    String crossingId,
+    RailwayService railwayService
+  ) {
+    super(context);
+    this.componentName = crossingId + componentSuffix;
+    lightMachineServiceKey = ServiceKey.create(
+      LightMachine.LightMachineCommand.class,
+      componentName
+    );
+    lightMachine = getContext().spawn(
+      LightMachine.create(
+        PersistenceId.ofUniqueId(lightMachineServiceKey.toString()),
+        railwayService
+      ),
+      String.format("%s", componentName)
+    );
+    getContext()
+      .getSystem()
+      .receptionist()
+      .tell(Receptionist.register(lightMachineServiceKey, lightMachine));
+    getContext()
+      .getLog()
+      .info("LightMachine registered with ServiceKey: {}", lightMachineServiceKey);
+  }
 
-    @Override
-    public Receive<Receptionist.Listing> createReceive() {
-        return newReceiveBuilder().build();
-    }
+  @Override
+  public Receive<Receptionist.Listing> createReceive() {
+    return newReceiveBuilder().build();
+  }
 }

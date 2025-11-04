@@ -1,6 +1,6 @@
 {{- $prefix := .Values.prefix -}}
 {{- $types := .Values.types -}}
-{{- range $crossingID := until (int .Values.crossings)  -}}
+{{- range $crossingID := until (int .Values.crossings) -}}
 {{- range $types }}
 ---
 apiVersion: apps/v1
@@ -18,12 +18,12 @@ spec:
       labels:
         app: railway-crossing
     spec:
-      serviceAccountName: akka-test
+      serviceAccountName: akka-node
       imagePullSecrets:
         - name: regcred
       containers:
         - name: {{$prefix}}{{ $crossingID}}-{{.|lower}}
-          image: docker.io/gregor2323/akka
+          image: docker.io/gregor2323/akka-railway-crossing-node
           imagePullPolicy: Always
           env:
             - name: AKKA_REMOTING_BIND_HOST
@@ -49,10 +49,6 @@ spec:
             - name: management
               containerPort: 8558
               protocol: TCP
-            - name: http
-              containerPort: 8080
-              protocol: TCP
-
 {{- end }}
 {{- end }}
 ---
@@ -61,7 +57,7 @@ kind: Service
 metadata:
   labels:
     app: railway-crossing
-  name: railway-crossing-service
+  name: akka-cluster-bootstrap
   namespace: default
 spec:
   clusterIP: None
@@ -82,7 +78,7 @@ kind: Service
 metadata:
   labels:
     app: railway-crossing
-  name: railway-crossing-signal-service
+  name: railway-crossing-signals
   namespace: default
 spec:
   type: ClusterIP

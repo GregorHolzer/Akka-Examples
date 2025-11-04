@@ -75,3 +75,11 @@ Services can not be discovered via a Service-Mesh but only via DNS. In this proj
 String serviceName = "python-service-service.default.svc.cluster.local";
 CompletionStage<ServiceDiscovery.Resolved> result = discovery.lookup(serviceName, Duration.ofSeconds(3));
 ```
+
+## Communication with Actors from external Sources
+
+It is not possible to communicate with an Actor with an external application using the akka message system. The recommended way is to implement an API:
+
+- [Akka-Docs](https://doc.akka.io/libraries/guide/concepts/internal-and-external-communication.html#_communication_with_parties_outside_of_a_microservices_system)
+
+- [Akka-Forum](https://discuss.akka.io/t/registering-a-python-service-with-akka/9946)

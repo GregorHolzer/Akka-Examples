@@ -1,9 +1,9 @@
-#Permissions to be applied to all Clusters that host akka-pods
+#Permissions needed to form an Akka-Cluster within Kubernetes
 
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: akka-test
+  name: akka-node
   namespace: default
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -22,7 +22,7 @@ metadata:
   name: read-pods
 subjects:
   - kind: ServiceAccount
-    name: akka-test
+    name: akka-node
     namespace: default
 roleRef:
   kind: Role

@@ -6,23 +6,23 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class BellState implements State<BellState.State> {
 
-    public enum State {
-        OFF,
-        ON
-    }
+  public enum State {
+    OFF,
+    ON
+  }
 
-    private final State state;
+  private final State state;
 
-    @JsonCreator
-    public BellState(@JsonProperty("state") State state) {
-        this.state = state;
-    }
+  @JsonCreator
+  public BellState(@JsonProperty("state") State state) {
+    this.state = state;
+  }
 
-    public BellState createWithState(State state) {
-        return new BellState(state);
-    }
+  public BellState createWithState(State state) {
+    return new BellState(state);
+  }
 
-    public State getState() {
-        return state;
-    }
+  public State getState() {
+    return state;
+  }
 }

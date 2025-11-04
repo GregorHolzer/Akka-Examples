@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: python-service
+  name: railway-crossing-service
   namespace: default
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: python-service
+      app: railway-crossing-service
   template:
     metadata:
       labels:
-        app: python-service
+        app: railway-crossing-service
     spec:
       imagePullSecrets:
         - name: regcred
       containers:
-        - name: python-service
+        - name: railway-crossing-service
           image: docker.io/gregor2323/akka-railway-crossing-service:latest
           imagePullPolicy: Always
           ports:
@@ -29,7 +29,7 @@ kind: Service
 metadata:
   labels:
     app: python-service
-  name: python-service-service
+  name: railway-crossing-service
   namespace: default
 spec:
   type: ClusterIP
@@ -38,4 +38,4 @@ spec:
       port: 8000
       targetPort: 8000
   selector:
-    app: python-service
+    app: railway-crossing-service

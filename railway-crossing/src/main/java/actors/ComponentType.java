@@ -1,10 +1,9 @@
 package actors;
 
-
 public enum ComponentType {
-    Controller,
-    LightMachine,
-    Gate,
-    Bell,
-    None
+  Controller,
+  LightMachine,
+  Gate,
+  Bell,
+  None
 }

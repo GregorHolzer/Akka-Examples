@@ -14,32 +14,42 @@ import service.RailwayService;
 
 public class BellSetup extends AbstractBehavior<Receptionist.Listing> {
 
-    public final static String componentSuffix = "_Bell";
+  public static final String componentSuffix = "_Bell";
 
-    private final String componentName;
+  private final String componentName;
 
-    private final ServiceKey<Bell.BellCommand> bellServiceKey;
+  private final ServiceKey<Bell.BellCommand> bellServiceKey;
 
-    private ActorRef<Bell.BellCommand> bell;
+  private ActorRef<Bell.BellCommand> bell;
 
-    private final RailwayService railwayService;
+  private final RailwayService railwayService;
 
-    public static Behavior<Receptionist.Listing> create(String crossingId, RailwayService railwayService) {
-        return Behaviors.setup(context -> new BellSetup(context, crossingId, railwayService));
-    }
+  public static Behavior<Receptionist.Listing> create(
+    String crossingId,
+    RailwayService railwayService
+  ) {
+    return Behaviors.setup(context -> new BellSetup(context, crossingId, railwayService));
+  }
 
-    private BellSetup(ActorContext<Receptionist.Listing> context, String crossingId, RailwayService railwayService) {
-        super(context);
-        this.componentName = crossingId + componentSuffix;
-        this.railwayService = railwayService;
-        bellServiceKey = ServiceKey.create(Bell.BellCommand.class, componentName);
-        bell = getContext().spawn(Bell.create(PersistenceId.ofUniqueId(bellServiceKey.toString()), railwayService), String.format("%s", componentName));
-        getContext().getSystem().receptionist().tell(Receptionist.register(bellServiceKey, bell));
-        getContext().getLog().info("Bell registered with ServiceKey: {}",  bellServiceKey);
-    }
+  private BellSetup(
+    ActorContext<Receptionist.Listing> context,
+    String crossingId,
+    RailwayService railwayService
+  ) {
+    super(context);
+    this.componentName = crossingId + componentSuffix;
+    this.railwayService = railwayService;
+    bellServiceKey = ServiceKey.create(Bell.BellCommand.class, componentName);
+    bell = getContext().spawn(
+      Bell.create(PersistenceId.ofUniqueId(bellServiceKey.toString()), railwayService),
+      String.format("%s", componentName)
+    );
+    getContext().getSystem().receptionist().tell(Receptionist.register(bellServiceKey, bell));
+    getContext().getLog().info("Bell registered with ServiceKey: {}", bellServiceKey);
+  }
 
-    @Override
-    public Receive<Receptionist.Listing> createReceive() {
-        return newReceiveBuilder().build();
-    }
+  @Override
+  public Receive<Receptionist.Listing> createReceive() {
+    return newReceiveBuilder().build();
+  }
 }
