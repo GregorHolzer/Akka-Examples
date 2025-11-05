@@ -1,9 +1,14 @@
+# crossings defines how many Railway-Crossings will be deployed
 crossings: 3
 
+# For each Crossing the following component-types will be created:
 types:
   - Controller
   - Bell
   - Gate
   - LightMachine
 
+# This prefix is attached to the deployment-name and also used to construct the crossingId for the application
+#
+# e.g. deployment for crossing 1 and type Gate will be named: crossing1-gate
 prefix: crossing

@@ -3,6 +3,11 @@
 {{- range $crossingID := until (int .Values.crossings) -}}
 {{- range $types }}
 ---
+# This is the template for creating a railway-node within Kubernetes
+#
+# This template is inspired by the official Akka-Documentation:
+#
+# https://doc.akka.io/libraries/akka-management/current/kubernetes-deployment/preparing-for-production.html#deployment-spec
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -43,36 +48,13 @@ spec:
               path: /alive
               port: management
           ports:
-            - name: remoting
-              containerPort: 2551
-              protocol: TCP
             - name: management
               containerPort: 8558
               protocol: TCP
 {{- end }}
 {{- end }}
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: railway-crossing
-  name: akka-cluster-bootstrap
-  namespace: default
-spec:
-  clusterIP: None
-  ports:
-    - name: remoting
-      port: 2551
-      protocol: TCP
-      targetPort: 2551
-    - name: management
-      port: 8558
-      protocol: TCP
-      targetPort: 8558
-  selector:
-    app: railway-crossing
----
+# This template provides the service to send signals towards the Signal-API: /src/main/java/actors/api/*
 apiVersion: v1
 kind: Service
 metadata:

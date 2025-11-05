@@ -12,12 +12,32 @@ import java.util.HashMap;
 
 public class SignalAPI extends AllDirectives {
 
+  /**
+   * HashTable that contains all known pairs of controllerIds, and ActorRefs
+   */
   private final HashMap<String, ActorRef<Controller.ControllerCommand>> controllerTable;
 
+  /**
+   * Initializes this Signal-API object that provides an API to send Messages to {@link Controller}
+   * Type of messages that can be sent:
+   *    - {@link Controller.CommandTrainSeen}
+   *    - {@link Controller.CommandTrainNotSeen}
+   *
+   * @param controllerTable     Table of known {@link Controller}
+   */
   public SignalAPI(HashMap<String, ActorRef<Controller.ControllerCommand>> controllerTable) {
     this.controllerTable = controllerTable;
   }
 
+  /**
+   * Creates the routes for the API, available routes are:
+   *    - <host><port>/railway-crossing/controller/<controllerId>/trainSeen
+   *    - <host><port>/railway-crossing/controller/<controllerId>/trainNotSeen
+   *    - <host><port>/railway-crossing/broadcast/trainSeen
+   *    - <host><port>/railway-crossing/broadcast/trainNotSeen
+   *
+   * @return Route-Object
+   */
   public Route createRoutes() {
     return pathPrefix("railway-crossing", () ->
       concat(
