@@ -43,15 +43,11 @@ public class BellTest {
 
     CommandResult<Bell.BellCommand, Bell.BellEvent, BellState> result =
       eventSourcedBehaviorTestKit.runCommand(new Bell.CommandBellOn());
-    assertEquals(2, result.events().size());
-    assertTrue(result.events().get(0) instanceof Bell.EventAdvanceState);
-    assertTrue(result.events().get(1) instanceof Bell.EventBellOn);
+    assertTrue(result.event() instanceof Bell.EventAdvanceState);
     assertEquals(BellState.State.ON, eventSourcedBehaviorTestKit.getState().getState());
 
     result = eventSourcedBehaviorTestKit.runCommand(new Bell.CommandBellOff());
-    assertEquals(2, result.events().size());
-    assertTrue(result.events().get(0) instanceof Bell.EventAdvanceState);
-    assertTrue(result.events().get(1) instanceof Bell.EventBellOff);
+    assertTrue(result.event() instanceof Bell.EventAdvanceState);
     assertEquals(BellState.State.OFF, eventSourcedBehaviorTestKit.getState().getState());
   }
 

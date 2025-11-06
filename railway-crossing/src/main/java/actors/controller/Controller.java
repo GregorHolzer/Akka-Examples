@@ -59,9 +59,7 @@ public class Controller
     ActorRef<Gate.GateCommand> gate,
     ActorRef<LightMachine.LightMachineCommand> lightMachine
   ) {
-    return Behaviors.setup(context -> {
-      return new Controller(persistenceId, context, lightMachine, gate);
-    });
+    return Behaviors.setup(context -> new Controller(persistenceId, context, lightMachine, gate));
   }
 
   private Controller(

@@ -59,6 +59,15 @@ public class SignalAPI extends AllDirectives {
     );
   }
 
+  /**
+   * Checks if the controllerId is known, if yes:
+   *      Sends command {@link actors.controller.Controller.CommandTrainNotSeen} to that {@link Controller}, returns 200
+   * if not:
+   *      Returns 404 and a list of the known controllerIds
+   *  -
+   * @param controllerId id of the {@link Controller}
+   * @return response
+   */
   private Route trainNotSeen(String controllerId) {
     if (!controllerTable.containsKey(controllerId)) {
       return complete(StatusCodes.NOT_FOUND, controllerTable.keySet(), Jackson.marshaller());
@@ -67,6 +76,15 @@ public class SignalAPI extends AllDirectives {
     return complete(StatusCodes.OK);
   }
 
+  /**
+   * Checks if the controllerId is known, if yes:
+   *      Sends command {@link actors.controller.Controller.CommandTrainSeen} to that {@link Controller}, returns 200
+   * if not:
+   *      Returns 404 and a list of the known controllerIds
+   *  -
+   * @param controllerId id of the {@link Controller}
+   * @return response
+   */
   private Route trainSeen(String controllerId) {
     if (!controllerTable.containsKey(controllerId)) {
       return complete(StatusCodes.NOT_FOUND, controllerTable.keySet(), Jackson.marshaller());
@@ -75,6 +93,10 @@ public class SignalAPI extends AllDirectives {
     return complete(StatusCodes.OK);
   }
 
+  /**
+   * Sends the command {@link Controller.CommandTrainSeen} to all known {@link Controller}
+   * @return response 200
+   */
   private Route broadcastTrainSeen() {
     controllerTable.forEach((id, ref) -> {
       ref.tell(new Controller.CommandTrainSeen());
@@ -82,6 +104,10 @@ public class SignalAPI extends AllDirectives {
     return complete(StatusCodes.OK);
   }
 
+  /**
+   * Sends the command {@link Controller.CommandTrainNotSeen} to all known {@link Controller}
+   * @return response 200
+   */
   private Route broadcastTrainNotSeen() {
     controllerTable.forEach((id, ref) -> {
       ref.tell(new Controller.CommandTrainNotSeen());

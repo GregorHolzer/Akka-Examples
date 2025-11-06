@@ -10,29 +10,48 @@ import akka.persistence.typed.javadsl.CommandHandler;
 import akka.persistence.typed.javadsl.CommandHandlerBuilder;
 import akka.persistence.typed.javadsl.EventHandler;
 import akka.persistence.typed.javadsl.EventSourcedBehavior;
-import java.util.List;
 import service.RailwayService;
 
 public class Bell extends EventSourcedBehavior<Bell.BellCommand, Bell.BellEvent, BellState> {
 
+  /**
+   * Defines the message-type {@link Bell} can receive
+   */
   public interface BellCommand extends Command {}
 
+  /**
+   * Message that changes the {@link BellState} to {@link BellState.State#ON}
+   */
   public static class CommandBellOn implements BellCommand {}
 
+  /**
+   * Message that changes the {@link BellState} to {@link BellState.State#OFF}
+   */
   public static class CommandBellOff implements BellCommand {}
 
+  /**
+   * Defines the events that are persisted of {@link Bell}
+   */
   public interface BellEvent extends Event {}
 
+  /**
+   * Event that states that the {@link BellState} has advanced:
+   * {@link BellState.State#OFF} -> {@link BellState.State#ON} or
+   * {@link BellState.State#ON} -> {@link BellState.State#OFF}
+   */
   public static class EventAdvanceState implements BellEvent {}
-
-  public static class EventBellOn implements BellEvent {}
-
-  public static class EventBellOff implements BellEvent {}
 
   private final ActorContext<Bell.BellCommand> context;
 
   private final RailwayService railwayService;
 
+  /**
+   * Creates a new persistent {@link Bell} actor.
+   *
+   * @param persistenceId unique persistence identifier
+   * @param railwayService service that is invoked upon messages @see {@link RailwayService}
+   * @return a new {@link Behavior} instance for the {@link Bell} actor
+   */
   public static Behavior<BellCommand> create(
     PersistenceId persistenceId,
     RailwayService railwayService
@@ -40,6 +59,14 @@ public class Bell extends EventSourcedBehavior<Bell.BellCommand, Bell.BellEvent,
     return Behaviors.setup(context -> new Bell(persistenceId, context, railwayService));
   }
 
+  /**
+   * Initializes the {@link Bell} actor.
+   *
+   * @param persistenceId unique persistence identifier
+   * @param context {@link ActorContext} of the current Actor-System, provides information and methods to
+   *                                    interact with the Actor-System
+   * @param railwayService service that is invoked upon messages @see {@link RailwayService}
+   */
   private Bell(
     PersistenceId persistenceId,
     ActorContext<Bell.BellCommand> context,
@@ -50,11 +77,25 @@ public class Bell extends EventSourcedBehavior<Bell.BellCommand, Bell.BellEvent,
     this.railwayService = railwayService;
   }
 
+  /**
+   * Defines how to receive the initial {@link BellState}
+   * @return initial {@link BellState}
+   */
   @Override
   public BellState emptyState() {
     return new BellState(BellState.State.OFF);
   }
 
+  /**
+   * Defines how to handle {@link BellCommand}s:
+   * On message {@link CommandBellOn} and in {@link BellState.State#OFF}:
+   *  -> Persist new event {@link EventAdvanceState}
+   *  -> invoke {@link RailwayService#bellOn(ActorContext, String)}
+   *  On message {@link CommandBellOff} and in {@link BellState.State#ON}:
+   *  -> Persist new event {@link EventAdvanceState}
+   *  -> invoke {@link RailwayService#bellOff(ActorContext, String)}
+   * @return {@link CommandHandler}
+   */
   @Override
   public CommandHandler<BellCommand, BellEvent, BellState> commandHandler() {
     CommandHandlerBuilder<BellCommand, BellEvent, BellState> builder = newCommandHandlerBuilder();
@@ -63,7 +104,7 @@ public class Bell extends EventSourcedBehavior<Bell.BellCommand, Bell.BellEvent,
       .forState(state -> state.getState() == BellState.State.OFF)
       .onCommand(CommandBellOn.class, cmd ->
         Effect()
-          .persist(List.of(new EventAdvanceState(), new EventBellOn()))
+          .persist(new EventAdvanceState())
           .thenRun(() -> railwayService.bellOn(context, context.getSelf().path().name()))
       );
 
@@ -71,7 +112,7 @@ public class Bell extends EventSourcedBehavior<Bell.BellCommand, Bell.BellEvent,
       .forState(state -> state.getState() == BellState.State.ON)
       .onCommand(CommandBellOff.class, cmd ->
         Effect()
-          .persist(List.of(new EventAdvanceState(), new EventBellOff()))
+          .persist(new EventAdvanceState())
           .thenRun(() -> railwayService.bellOff(context, context.getSelf().path().name()))
       );
 
@@ -80,6 +121,11 @@ public class Bell extends EventSourcedBehavior<Bell.BellCommand, Bell.BellEvent,
     return builder.build();
   }
 
+  /**
+   * Defines how to handle {@link BellEvent}s:
+   * On event {@link EventAdvanceState}: update {@link BellState}
+   * @return {@link EventHandler}
+   */
   @Override
   public EventHandler<BellState, BellEvent> eventHandler() {
     return newEventHandlerBuilder()
