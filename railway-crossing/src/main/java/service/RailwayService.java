@@ -1,8 +1,12 @@
 package service;
 
+import actors.NodeConfig;
+import akka.actor.Actor;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.discovery.ServiceDiscovery;
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -11,32 +15,50 @@ import java.util.concurrent.CompletionStage;
 
 public class RailwayService {
 
-  public static final String serviceName = "railway-crossing-service.default.svc.cluster.local";
-
-  public static final Integer port = 8000;
+  public static final Integer port = 8080;
 
   private static final Duration timeout = Duration.ofSeconds(10);
 
+  private NodeConfig nodeConfig;
+
   private final ServiceDiscovery discovery;
 
-  private ServiceDiscovery.ResolvedTarget address;
+  private InetAddress address;
 
-  public RailwayService(ServiceDiscovery discovery) {
+  public RailwayService(ServiceDiscovery discovery, NodeConfig nodeConfig) {
     this.discovery = discovery;
+    this.nodeConfig = nodeConfig;
+  }
+
+  public void setupService(ActorContext<?> context) {
+    switch (nodeConfig.service_location()) {
+      case Remote -> this.discover(context);
+      case Local -> {
+        try {
+          address = InetAddress.getByName("localhost");
+          context.getLog().error("Using Local Service: address: {}", address);
+        } catch (UnknownHostException e) {
+          context.getLog().error("Unable to get Localhost: {}", e.getMessage());
+          context.getSystem().terminate();
+        }
+      }
+    }
   }
 
   public void discover(ActorContext<?> context) {
     while (true) {
       try {
         ServiceDiscovery.Resolved resolved = discovery
-          .lookup(serviceName, timeout)
+          .lookup(nodeConfig.remote_service_name(), timeout)
           .toCompletableFuture()
           .get();
         if (resolved.getAddresses().isEmpty()) {
+          context.getLog().error("Discovery contains no service, retrying...");
+        } else if (resolved.getAddresses().getFirst().getAddress().isEmpty()) {
           context.getLog().error("Resolved Service contains no address, retrying...");
         } else {
-          address = resolved.getAddresses().getFirst();
-          context.getLog().info("Resolved Service contains address {} ", address.getAddress());
+          address = resolved.getAddresses().getFirst().getAddress().get();
+          context.getLog().info("Resolved Service contains address: {}", address);
           break;
         }
       } catch (Exception e) {
@@ -44,7 +66,7 @@ public class RailwayService {
           .getLog()
           .error(
             "Failed to discover service {} after {}, message: {}, retrying...",
-            serviceName,
+            nodeConfig.remote_service_name(),
             timeout,
             e.getMessage()
           );
@@ -53,13 +75,11 @@ public class RailwayService {
   }
 
   private void sendRequest(ActorContext<?> context, String path, String crossingId) {
-    if (address.getAddress().isEmpty()) {
-      context.getLog().error("Resolved Service contains no address");
-      return;
+    String url = "";
+    switch (nodeConfig.service_location()) {
+      case Remote -> url = "http:/" + address + ":" + port + path;
+      case Local -> url = "http://localhost" + ":" + port + path;
     }
-
-    String url = "http:/" + address.getAddress().get() + ":" + port + path;
-
     try {
       HttpClient client = HttpClient.newHttpClient();
       HttpRequest request = HttpRequest.newBuilder()
@@ -67,9 +87,7 @@ public class RailwayService {
         .header("Cirrina-Sender-ID", crossingId)
         .POST(HttpRequest.BodyPublishers.noBody())
         .build();
-
       HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
       context
         .getLog()
         .info(

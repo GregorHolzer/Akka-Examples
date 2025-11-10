@@ -1,6 +1,10 @@
 # crossings defines how many Railway-Crossings will be deployed
 crossings: 3
 
+service_invocation: Local
+
+remote_service_name: railway-crossing-service.default.svc.cluster.local
+
 # For each Crossing the following component-types will be created:
 types:
   - Controller

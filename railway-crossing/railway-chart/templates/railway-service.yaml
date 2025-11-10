@@ -1,4 +1,5 @@
 # This template deploys the service that is invoked by the Akka-Application and makes it accessible within the cluster
+  {{ if eq .Values.service_invocation "Remote"}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,7 +23,7 @@ spec:
           imagePullPolicy: Always
           ports:
             - name: http
-              containerPort: 8000
+              containerPort: 8080
               protocol: TCP
 ---
 apiVersion: v1
@@ -36,7 +37,8 @@ spec:
   type: ClusterIP
   ports:
     - name: http
-      port: 8000
-      targetPort: 8000
+      port: 8080
+      targetPort: 8080
   selector:
     app: railway-crossing-service
+    {{end}}

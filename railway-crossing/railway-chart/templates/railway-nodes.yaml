@@ -1,13 +1,36 @@
 {{- $prefix := .Values.prefix -}}
-{{- $types := .Values.types -}}
-{{- range $crossingID := until (int .Values.crossings) -}}
+{{ $service_location := .Values.service_invocation -}}
+{{ $service_name := .Values.remote_service_name}}
+{{ $types := .Values.types -}}
+
+{{ range $crossingID := until (int .Values.crossings) -}}
 {{- range $types }}
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{$prefix}}{{ $crossingID}}-{{.|lower}}-config
+  namespace: default
+data:
+  config.json: |
+    {
+      "crossingId": "{{$prefix}}{{ $crossingID}}",
+      "componentType": "{{ . }}",
+      "service_location": "{{ $service_location }}",
+      "remote_service_name": "{{ $.Values.remote_service_name }}"
+    }
+{{- end }}
+{{- end }}
+
 # This is the template for creating a railway-node within Kubernetes
 #
 # This template is inspired by the official Akka-Documentation:
 #
 # https://doc.akka.io/libraries/akka-management/current/kubernetes-deployment/preparing-for-production.html#deployment-spec
+{{if eq .Values.service_invocation "Remote"}}
+{{ range $crossingID := until (int .Values.crossings) -}}
+{{- range $types }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -30,15 +53,10 @@ spec:
         - name: {{$prefix}}{{ $crossingID}}-{{.|lower}}
           image: docker.io/gregor2323/akka-railway-crossing-node
           imagePullPolicy: Always
-          env:
-            - name: AKKA_REMOTING_BIND_HOST
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-            - name: CROSSING_ID
-              value:  {{$prefix}}{{ $crossingID}}
-            - name: COMPONENT_TYPE
-              value: {{ . }}
+          volumeMounts:
+            - name: config
+              mountPath: /config/config.json
+              subPath: config.json
           readinessProbe:
             httpGet:
               path: /ready
@@ -51,8 +69,70 @@ spec:
             - name: management
               containerPort: 8558
               protocol: TCP
+      volumes:
+        - name: config
+          configMap:
+            name: {{$prefix}}{{ $crossingID}}-{{.|lower}}-config
 {{- end }}
 {{- end }}
+{{end}}
+
+{{if eq .Values.service_invocation "Local"}}
+{{ range $crossingID := until (int .Values.crossings) -}}
+{{- range $types }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{$prefix}}{{ $crossingID}}-{{.|lower}}
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: railway-crossing
+  template:
+    metadata:
+      labels:
+        app: railway-crossing
+    spec:
+      serviceAccountName: akka-node
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: {{$prefix}}{{ $crossingID}}-{{.|lower}}
+          image: docker.io/gregor2323/akka-railway-crossing-node
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: config
+              mountPath: /config/config.json
+              subPath: config.json
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: management
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: management
+          ports:
+            - name: management
+              containerPort: 8558
+              protocol: TCP
+        - name: railway-crossing-service
+          image: docker.io/gregor2323/akka-railway-crossing-service:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+      volumes:
+        - name: config
+          configMap:
+            name: {{$prefix}}{{ $crossingID}}-{{.|lower}}-config
+{{- end }}
+{{- end }}
+{{end}}
 ---
 # This template provides the service to send signals towards the Signal-API: /src/main/java/actors/api/*
 apiVersion: v1
