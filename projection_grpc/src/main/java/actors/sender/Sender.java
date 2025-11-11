@@ -3,12 +3,12 @@ package actors.sender;
 import actors.Command;
 import actors.Event;
 import actors.State;
+
 import akka.actor.typed.Behavior;
+import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.persistence.typed.PersistenceId;
-import akka.persistence.typed.javadsl.CommandHandler;
-import akka.persistence.typed.javadsl.EventHandler;
-import akka.persistence.typed.javadsl.EventSourcedBehavior;
+import akka.persistence.typed.javadsl.*;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -20,6 +20,8 @@ public class Sender extends EventSourcedBehavior<Sender.SenderCommand, Sender.Se
             List.of("send_echo");
 
     public interface SenderCommand extends Command{}
+
+    public static class SendMessage implements SenderCommand {}
 
     public interface SenderEvent extends Event{}
 
@@ -33,29 +35,53 @@ public class Sender extends EventSourcedBehavior<Sender.SenderCommand, Sender.Se
         }
     }
 
-    public static class SenderState implements State{}
+    public static class SenderState implements State{
 
-    public static Behavior<SenderCommand> create(PersistenceId persistenceId) {
-        return Behaviors.setup(context -> {return new Sender(persistenceId);});
+        public SenderState(){
+
+        }
+
     }
 
-    private Sender(PersistenceId persistenceId){
+    public static Behavior<SenderCommand> create(PersistenceId persistenceId) {
+        return Behaviors.setup(context -> {return new Sender(persistenceId, context);});
+    }
+
+    private final ActorContext<SenderCommand> context;
+
+    private Sender(PersistenceId persistenceId, ActorContext<SenderCommand> context) {
         super(persistenceId);
+        this.context = context;
     }
 
     @Override
     public SenderState emptyState() {
-        return null;
+        return new SenderState();
     }
 
     @Override
     public CommandHandler<SenderCommand, SenderEvent, SenderState> commandHandler() {
-        return null;
+        CommandHandlerBuilder<SenderCommand, SenderEvent, SenderState> builder = newCommandHandlerBuilder();
+
+        builder.forAnyState().onCommand(SendMessage.class, cmd -> Effect().persist(new SendEchoEvent("Hello from Sender"))
+                .thenRun(() -> {
+                    context.getLog().info("Received Command: SendMessage");
+                })
+        );
+
+        return builder.build();
     }
 
     @Override
     public EventHandler<SenderState, SenderEvent> eventHandler() {
-        return null;
+        EventHandlerBuilder<SenderState, SenderEvent> builder = newEventHandlerBuilder();
+
+        builder.forAnyState().onEvent(SendEchoEvent.class, (state, event) -> {
+            context.getLog().info("Persisted Event: SendEchoEvent");
+            return emptyState();
+        });
+
+        return builder.build();
     }
 
     @Override
