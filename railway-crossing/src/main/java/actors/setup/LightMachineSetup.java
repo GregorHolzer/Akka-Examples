@@ -44,7 +44,6 @@ public class LightMachineSetup
     );
     lightMachine = getContext().spawn(
       LightMachine.create(
-        PersistenceId.ofUniqueId(lightMachineServiceKey.toString()),
         railwayService
       ),
       String.format("%s", componentName)

@@ -70,7 +70,7 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
     bell = checkInstances(getContext(), availableBells, Bell.BellCommand.class);
     if (bell != null && gate == null) {
       gate = getContext().spawn(
-        Gate.create(PersistenceId.ofUniqueId(gateServiceKey.toString()), bell, railwayService),
+        Gate.create(bell, railwayService),
         String.format("%s", componentName)
       );
       getContext().getSystem().receptionist().tell(Receptionist.register(gateServiceKey, gate));

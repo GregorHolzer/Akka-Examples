@@ -98,7 +98,6 @@ public class ControllerSetup
     if (gate != null && lightMachine != null && controller == null) {
       controller = getContext().spawn(
         Controller.create(
-          PersistenceId.ofUniqueId(controllerServiceKey.toString()),
           gate,
           lightMachine
         ),

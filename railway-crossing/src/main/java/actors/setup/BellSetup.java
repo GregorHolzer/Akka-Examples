@@ -41,7 +41,7 @@ public class BellSetup extends AbstractBehavior<Receptionist.Listing> {
     this.railwayService = railwayService;
     bellServiceKey = ServiceKey.create(Bell.BellCommand.class, componentName);
     bell = getContext().spawn(
-      Bell.create(PersistenceId.ofUniqueId(bellServiceKey.toString()), railwayService),
+      Bell.create(railwayService),
       String.format("%s", componentName)
     );
     getContext().getSystem().receptionist().tell(Receptionist.register(bellServiceKey, bell));

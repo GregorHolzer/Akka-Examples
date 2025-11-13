@@ -18,7 +18,6 @@ import akka.discovery.ServiceDiscovery;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import service.RailwayService;
-import service.ServiceLocation;
 
 public class Guardian extends AbstractBehavior<Command> {
 

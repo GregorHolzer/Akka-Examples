@@ -4,13 +4,10 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import actors.bell.Bell;
-import actors.bell.BellState;
-import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
-import akka.persistence.testkit.javadsl.EventSourcedBehaviorTestKit;
-import akka.persistence.testkit.javadsl.EventSourcedBehaviorTestKit.CommandResult;
-import akka.persistence.typed.PersistenceId;
-import org.junit.Before;
-import org.junit.ClassRule;
+import akka.actor.testkit.typed.javadsl.ActorTestKit;
+import akka.actor.testkit.typed.javadsl.LoggingTestKit;
+import akka.actor.typed.ActorRef;
+import org.junit.AfterClass;
 import org.junit.Test;
 import service.RailwayService;
 
@@ -18,46 +15,55 @@ public class BellTest {
 
   private final RailwayService mockedService = mock(RailwayService.class);
 
-  @ClassRule
-  public static final TestKitJunitResource testKit = new TestKitJunitResource(
-    EventSourcedBehaviorTestKit.config()
-  );
+  static final ActorTestKit testKit = ActorTestKit.create();
 
-  private final EventSourcedBehaviorTestKit<
-    Bell.BellCommand,
-    Bell.BellEvent,
-    BellState
-  > eventSourcedBehaviorTestKit = EventSourcedBehaviorTestKit.create(
-    testKit.system(),
-    Bell.create(PersistenceId.ofUniqueId("bell"), mockedService)
-  );
-
-  @Before
-  public void beforeEach() {
-    eventSourcedBehaviorTestKit.clear();
-  }
 
   @Test
   public void fullBellTest() {
-    assertEquals(BellState.State.OFF, eventSourcedBehaviorTestKit.getState().getState());
-
-    CommandResult<Bell.BellCommand, Bell.BellEvent, BellState> result =
-      eventSourcedBehaviorTestKit.runCommand(new Bell.CommandBellOn());
-    assertTrue(result.event() instanceof Bell.EventAdvanceState);
-    assertEquals(BellState.State.ON, eventSourcedBehaviorTestKit.getState().getState());
-
-    result = eventSourcedBehaviorTestKit.runCommand(new Bell.CommandBellOff());
-    assertTrue(result.event() instanceof Bell.EventAdvanceState);
-    assertEquals(BellState.State.OFF, eventSourcedBehaviorTestKit.getState().getState());
+      ActorRef<Bell.BellCommand> bell = testKit.spawn(Bell.create(mockedService), "bell");
+      LoggingTestKit.info("bell in state On")
+              .expect(
+                      testKit.system(),
+                      () -> {
+                          bell.tell(new Bell.CommandBellOn());
+                          return null;
+                      }
+              );
+      verify(mockedService).bellOn(any(), any());
+      LoggingTestKit.info("bell in state Off")
+              .expect(
+                      testKit.system(),
+                      () -> {
+                          bell.tell(new Bell.CommandBellOff());
+                          return null;
+                      }
+              );
+      verify(mockedService).bellOff(any(), any());
   }
 
   @Test
   public void duplicateCommands() {
-    assertEquals(BellState.State.OFF, eventSourcedBehaviorTestKit.getState().getState());
+      ActorRef<Bell.BellCommand> bell = testKit.spawn(Bell.create(mockedService), "bell1");
+      bell.tell(new Bell.CommandBellOff());
+      verify(mockedService, times(0)).bellOn(any(), any());
+      verify(mockedService, times(0)).bellOff(any(), any());
+      LoggingTestKit.info("bell1 in state On")
+              .expect(
+                      testKit.system(),
+                      () -> {
+                          bell.tell(new Bell.CommandBellOn());
+                          return null;
+                      }
+              );
+      verify(mockedService, times(1)).bellOn(any(), any());
+      verify(mockedService, times(0)).bellOff(any(), any());
+      bell.tell(new Bell.CommandBellOn());
+      verify(mockedService, times(1)).bellOn(any(), any());
+      verify(mockedService, times(0)).bellOff(any(), any());
+  }
 
-    CommandResult<Bell.BellCommand, Bell.BellEvent, BellState> result =
-      eventSourcedBehaviorTestKit.runCommand(new Bell.CommandBellOff());
-    assertTrue(result.events().isEmpty());
-    assertEquals(BellState.State.OFF, eventSourcedBehaviorTestKit.getState().getState());
+  @AfterClass
+  public static void cleanUp(){
+      testKit.shutdownTestKit();
   }
 }

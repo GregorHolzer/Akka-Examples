@@ -1,11 +1,14 @@
 package actor;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 import actors.light_machine.LightMachine;
-import actors.light_machine.LightMachineState;
+import akka.actor.testkit.typed.javadsl.ActorTestKit;
+import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
+import akka.actor.typed.ActorRef;
 import akka.persistence.testkit.javadsl.EventSourcedBehaviorTestKit;
 import akka.persistence.testkit.javadsl.EventSourcedBehaviorTestKit.CommandResult;
 import akka.persistence.typed.PersistenceId;
@@ -18,55 +21,51 @@ public class LightMachineTest {
 
   private final RailwayService mockedService = mock(RailwayService.class);
 
-  @ClassRule
-  public static final TestKitJunitResource testKit = new TestKitJunitResource(
-    EventSourcedBehaviorTestKit.config()
-  );
+    static final ActorTestKit testKit = ActorTestKit.create();
 
-  private final EventSourcedBehaviorTestKit<
-    LightMachine.LightMachineCommand,
-    LightMachine.LightMachineEvent,
-    LightMachineState
-  > eventSourcedBehaviorTestKit = EventSourcedBehaviorTestKit.create(
-    testKit.system(),
-    LightMachine.create(PersistenceId.ofUniqueId("light_machine"), mockedService)
-  );
 
-  @Before
-  public void beforeEach() {
-    eventSourcedBehaviorTestKit.clear();
-  }
-
-  @Test
+    @Test
   public void fullLightMachineTest() {
-    assertEquals(LightMachineState.State.OFF, eventSourcedBehaviorTestKit.getState().getState());
-
-    CommandResult<
-      LightMachine.LightMachineCommand,
-      LightMachine.LightMachineEvent,
-      LightMachineState
-    > result = eventSourcedBehaviorTestKit.runCommand(new LightMachine.CommandTurnOn());
-    assertEquals(2, result.events().size());
-    assertTrue(result.events().get(0) instanceof LightMachine.EventAdvanceState);
-    assertTrue(result.events().get(1) instanceof LightMachine.EventTurnedOn);
-    assertEquals(LightMachineState.State.ON, eventSourcedBehaviorTestKit.getState().getState());
-
-    result = eventSourcedBehaviorTestKit.runCommand(new LightMachine.CommandTurnOff());
-    assertEquals(2, result.events().size());
-    assertTrue(result.events().get(0) instanceof LightMachine.EventAdvanceState);
-    assertTrue(result.events().get(1) instanceof LightMachine.EventTurnedOff);
-    assertEquals(LightMachineState.State.OFF, eventSourcedBehaviorTestKit.getState().getState());
+        ActorRef<LightMachine.LightMachineCommand> lightMachine = testKit.spawn(LightMachine.create(mockedService), "lightMachine");
+        LoggingTestKit.info("lightMachine in state On")
+                .expect(
+                        testKit.system(),
+                        () -> {
+                            lightMachine.tell(new LightMachine.CommandTurnOn());
+                            return null;
+                        }
+                );
+        verify(mockedService).lightOn(any(), any());
+        LoggingTestKit.info("lightMachine in state Off")
+                .expect(
+                        testKit.system(),
+                        () -> {
+                            lightMachine.tell(new LightMachine.CommandTurnOff());
+                            return null;
+                        }
+                );
+        verify(mockedService).lightOff(any(), any());
   }
 
   @Test
   public void duplicateCommands() {
-    assertEquals(LightMachineState.State.OFF, eventSourcedBehaviorTestKit.getState().getState());
-    CommandResult<
-      LightMachine.LightMachineCommand,
-      LightMachine.LightMachineEvent,
-      LightMachineState
-    > result = eventSourcedBehaviorTestKit.runCommand(new LightMachine.CommandTurnOff());
-    assertTrue(result.events().isEmpty());
-    assertEquals(LightMachineState.State.OFF, eventSourcedBehaviorTestKit.getState().getState());
+      ActorRef<LightMachine.LightMachineCommand> lightMachine = testKit.spawn(LightMachine.create(mockedService), "lightMachine1");
+      lightMachine.tell(new LightMachine.CommandTurnOff());
+      verify(mockedService, times(0)).lightOn(any(), any());
+      verify(mockedService, times(0)).lightOff(any(), any());
+      LoggingTestKit.info("lightMachine1 in state On")
+              .expect(
+                      testKit.system(),
+                      () -> {
+                          lightMachine.tell(new LightMachine.CommandTurnOn());
+                          return null;
+                      }
+              );
+      verify(mockedService).lightOn(any(), any());
+      verify(mockedService, times(0)).lightOff(any(), any());
+      lightMachine.tell(new LightMachine.CommandTurnOn());
+      verify(mockedService).lightOn(any(), any());
+      verify(mockedService, times(0)).lightOff(any(), any());
   }
+
 }
