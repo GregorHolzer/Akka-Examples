@@ -15,14 +15,13 @@ import akka.actor.typed.javadsl.Receive;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-
 public class Controller
   extends AbstractBehavior<Controller.ControllerCommand>
   implements StateMachine<Controller.State> {
 
-    /**
-     * Defines States of the {@link Controller} actor
-     */
+  /**
+   * Defines States of the {@link Controller} actor
+   */
   public enum State {
     Away,
     Approaching,
@@ -32,14 +31,14 @@ public class Controller
     Left
   }
 
-    /**
-     * Defines the message-type {@link Controller} can receive
-     */
+  /**
+   * Defines the message-type {@link Controller} can receive
+   */
   public interface ControllerCommand extends Command {}
 
-    /**
-     * Message that requests the name of the {@link Controller} actor
-     */
+  /**
+   * Message that requests the name of the {@link Controller} actor
+   */
   public static class CommandGetControllerName implements ControllerCommand {
 
     public final ActorRef<SignalReceiver.SignalReceiverCommand> replyTo;
@@ -52,14 +51,14 @@ public class Controller
     }
   }
 
-    /**
-     * Message that indicates that a sensor detects a train
-     */
+  /**
+   * Message that indicates that a sensor detects a train
+   */
   public static class CommandTrainSeen implements ControllerCommand {}
 
-    /**
-     * Message that indicates that a sensor no longer detects a train
-     */
+  /**
+   * Message that indicates that a sensor no longer detects a train
+   */
   public static class CommandTrainNotSeen implements ControllerCommand {}
 
   private final ActorRef<LightMachine.LightMachineCommand> lightMachine;
@@ -68,13 +67,13 @@ public class Controller
 
   private State state = State.Away;
 
-    /**
-     * Creates a new {@link Controller} actor.
-     *
-     * @param gate {@link ActorRef} of the {@link Gate} actor that belongs to the same crossing
-     * @param lightMachine {@link ActorRef} of the {@link LightMachine} actor that belongs to the same crossing
-     * @return a new {@link Behavior} instance for the {@link Bell} actor
-     */
+  /**
+   * Creates a new {@link Controller} actor.
+   *
+   * @param gate {@link ActorRef} of the {@link Gate} actor that belongs to the same crossing
+   * @param lightMachine {@link ActorRef} of the {@link LightMachine} actor that belongs to the same crossing
+   * @return a new {@link Behavior} instance for the {@link Bell} actor
+   */
   public static Behavior<ControllerCommand> create(
     ActorRef<Gate.GateCommand> gate,
     ActorRef<LightMachine.LightMachineCommand> lightMachine

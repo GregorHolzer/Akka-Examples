@@ -10,9 +10,10 @@ import akka.actor.typed.javadsl.Receive;
 import service.RailwayService;
 
 public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMachine<Bell.State> {
-    /**
-     * Defines States of the {@link Bell} actor
-     */
+
+  /**
+   * Defines States of the {@link Bell} actor
+   */
   public enum State {
     On,
     Off
@@ -52,10 +53,10 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
     this.railwayService = railwayService;
   }
 
-    /**
-     * Defines how to handle {@link BellCommand}s
-     * @return the initial {@link Behavior} for the {@link Bell} actor
-     */
+  /**
+   * Defines how to handle {@link BellCommand}s
+   * @return the initial {@link Behavior} for the {@link Bell} actor
+   */
   @Override
   public Receive<BellCommand> createReceive() {
     return newReceiveBuilder()
@@ -64,10 +65,10 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
       .build();
   }
 
-    /**
-     * Updates the {@link State} and invokes service {@link RailwayService#bellOn(ActorContext, String)}
-     * @return the same {@link Behavior} as before
-     */
+  /**
+   * Updates the {@link State} and invokes service {@link RailwayService#bellOn(ActorContext, String)}
+   * @return the same {@link Behavior} as before
+   */
   private Behavior<Bell.BellCommand> onTurnOn() {
     if (state == State.Off) {
       state = State.On;
@@ -77,10 +78,10 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
     return Behaviors.same();
   }
 
-    /**
-     * Updates the {@link State} and invokes service {@link RailwayService#bellOff(ActorContext, String)}
-     * @return the same {@link Behavior} as before
-     */
+  /**
+   * Updates the {@link State} and invokes service {@link RailwayService#bellOff(ActorContext, String)}
+   * @return the same {@link Behavior} as before
+   */
   private Behavior<Bell.BellCommand> onTurnOff() {
     if (state == State.On) {
       state = State.Off;
