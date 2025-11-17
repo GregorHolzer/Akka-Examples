@@ -10,7 +10,6 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import akka.actor.typed.receptionist.Receptionist;
 import akka.actor.typed.receptionist.ServiceKey;
-import akka.persistence.typed.PersistenceId;
 import java.util.List;
 import service.RailwayService;
 

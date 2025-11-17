@@ -1,7 +1,6 @@
 package service;
 
 import actors.NodeConfig;
-import akka.actor.Actor;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.discovery.ServiceDiscovery;
 import java.net.InetAddress;
@@ -11,7 +10,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.concurrent.CompletionStage;
 
 public class RailwayService {
 

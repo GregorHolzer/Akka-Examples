@@ -3,13 +3,17 @@
     {
       "crossingId": "crossing0",
       "components": [
-        "Controller"
+          "Bell",
+          "LightMachine",
+          "Gate"
       ]
     },
     {
       "crossingId": "crossing1",
       "components": [
-        "Controller"
+        "Bell",
+        "LightMachine",
+        "Gate"
       ]
     }
   ],

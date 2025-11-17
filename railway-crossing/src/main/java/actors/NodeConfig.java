@@ -2,9 +2,10 @@ package actors;
 
 import service.ServiceLocation;
 
+import java.util.List;
+
 public record NodeConfig(
-  String crossingId,
-  ComponentType componentType,
-  ServiceLocation service_location,
-  String remote_service_name
+        List<CrossingConfig> crossings,
+        ServiceLocation service_location,
+        String remote_service_name
 ) {}
