@@ -40,10 +40,7 @@ public class BellSetup extends AbstractBehavior<Receptionist.Listing> {
     this.componentName = crossingId + componentSuffix;
     this.railwayService = railwayService;
     bellServiceKey = ServiceKey.create(Bell.BellCommand.class, componentName);
-    bell = getContext().spawn(
-      Bell.create(railwayService),
-      String.format("%s", componentName)
-    );
+    bell = getContext().spawn(Bell.create(railwayService), String.format("%s", componentName));
     getContext().getSystem().receptionist().tell(Receptionist.register(bellServiceKey, bell));
     getContext().getLog().info("Bell registered with ServiceKey: {}", bellServiceKey);
   }

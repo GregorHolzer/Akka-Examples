@@ -97,10 +97,7 @@ public class ControllerSetup
     }
     if (gate != null && lightMachine != null && controller == null) {
       controller = getContext().spawn(
-        Controller.create(
-          gate,
-          lightMachine
-        ),
+        Controller.create(gate, lightMachine),
         String.format("%s", crossingName)
       );
       getContext()

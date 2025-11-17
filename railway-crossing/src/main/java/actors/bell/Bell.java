@@ -12,7 +12,7 @@ import service.RailwayService;
 public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMachine<Bell.State> {
 
   public enum State {
-      On,
+    On,
     Off
   }
 
@@ -41,9 +41,7 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
    * @param railwayService service that is invoked upon messages @see {@link RailwayService}
    * @return a new {@link Behavior} instance for the {@link Bell} actor
    */
-  public static Behavior<BellCommand> create(
-    RailwayService railwayService
-  ) {
+  public static Behavior<BellCommand> create(RailwayService railwayService) {
     return Behaviors.setup(context -> new Bell(context, railwayService));
   }
 
@@ -61,20 +59,20 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
   }
 
   private Behavior<Bell.BellCommand> onTurnOn() {
-      if(state == State.Off) {
-          state = State.On;
-          railwayService.bellOn(getContext(), getContext().getSelf().path().name());
-          logState(getContext(), Bell.State.On);
-      }
+    if (state == State.Off) {
+      state = State.On;
+      railwayService.bellOn(getContext(), getContext().getSelf().path().name());
+      logState(getContext(), Bell.State.On);
+    }
     return Behaviors.same();
   }
 
   private Behavior<Bell.BellCommand> onTurnOff() {
-      if(state == State.On) {
-          state = State.Off;
-          railwayService.bellOff(getContext(), getContext().getSelf().path().name());
-          logState(getContext(), state);
-      }
+    if (state == State.On) {
+      state = State.Off;
+      railwayService.bellOff(getContext(), getContext().getSelf().path().name());
+      logState(getContext(), state);
+    }
     return Behaviors.same();
   }
 }

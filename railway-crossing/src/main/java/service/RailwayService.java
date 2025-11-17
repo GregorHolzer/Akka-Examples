@@ -19,7 +19,7 @@ public class RailwayService {
 
   private static final Duration timeout = Duration.ofSeconds(10);
 
-  private NodeConfig nodeConfig;
+  private final NodeConfig nodeConfig;
 
   private final ServiceDiscovery discovery;
 
@@ -36,7 +36,7 @@ public class RailwayService {
       case Local -> {
         try {
           address = InetAddress.getByName("localhost");
-          context.getLog().error("Using Local Service: address: {}", address);
+          context.getLog().info("Using Local Service: address: {}", address);
         } catch (UnknownHostException e) {
           context.getLog().error("Unable to get Localhost: {}", e.getMessage());
           context.getSystem().terminate();

@@ -23,16 +23,17 @@ public class Guardian extends AbstractBehavior<Command> {
 
   private final RailwayService railwayService;
 
-  private static final String configPath = "/config/config.json";
+  private final String configPath;
 
   private NodeConfig config;
 
-  public static Behavior<Command> create() {
-    return Behaviors.setup(Guardian::new);
+  public static Behavior<Command> create(String configPath) {
+    return Behaviors.setup(context -> new Guardian(context, configPath));
   }
 
-  public Guardian(ActorContext<Command> context) {
+  public Guardian(ActorContext<Command> context, String configPath) {
     super(context);
+    this.configPath = configPath;
     getNodeConfig();
     ServiceDiscovery discovery = Discovery.get(context.getSystem()).discovery();
     railwayService = new RailwayService(discovery, config);

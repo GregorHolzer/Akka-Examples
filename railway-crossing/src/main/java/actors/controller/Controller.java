@@ -74,6 +74,7 @@ public class Controller
     return newReceiveBuilder()
       .onMessage(CommandTrainSeen.class, msg -> onTrainSeen())
       .onMessage(CommandTrainNotSeen.class, msg -> onTrainNotSeen())
+            .onMessage(CommandGetCrossingID.class, msg -> sendControllerId(msg.replyTo))
       .build();
   }
 
@@ -106,7 +107,7 @@ public class Controller
       case Present -> {
         lightMachine.tell(new LightMachine.CommandTurnOff());
         gate.tell(new Gate.GateCommandOpen());
-        state = State.Present;
+        state = State.Leaving;
         logState(getContext(), state);
       }
       case Left -> {
@@ -117,12 +118,13 @@ public class Controller
     return Behaviors.same();
   }
 
-  private void sendControllerId(ActorRef<SignalReceiver.SignalReceiverCommand> receiver) {
+  private Behavior<ControllerCommand> sendControllerId(ActorRef<SignalReceiver.SignalReceiverCommand> receiver) {
     receiver.tell(
       new SignalReceiver.ControllerReply(
         getContext().getSelf().path().name(),
         getContext().getSelf()
       )
     );
+    return Behaviors.same();
   }
 }

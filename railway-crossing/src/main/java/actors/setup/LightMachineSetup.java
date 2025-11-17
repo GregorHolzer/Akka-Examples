@@ -43,9 +43,7 @@ public class LightMachineSetup
       componentName
     );
     lightMachine = getContext().spawn(
-      LightMachine.create(
-        railwayService
-      ),
+      LightMachine.create(railwayService),
       String.format("%s", componentName)
     );
     getContext()

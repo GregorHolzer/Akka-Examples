@@ -68,7 +68,7 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
     if (state == State.Closed) {
       bell.tell(new Bell.CommandBellOff());
       state = State.Open;
-      railwayService.gateDown(getContext(), getContext().getSelf().path().name());
+      railwayService.gateUp(getContext(), getContext().getSelf().path().name());
       logState(getContext(), state);
     }
     return Behaviors.same();

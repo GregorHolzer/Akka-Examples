@@ -28,9 +28,7 @@ public class LightMachine
 
   private State state = State.Off;
 
-  public static Behavior<LightMachineCommand> create(
-    RailwayService railwayService
-  ) {
+  public static Behavior<LightMachineCommand> create(RailwayService railwayService) {
     return Behaviors.setup(context -> new LightMachine(context, railwayService));
   }
 
@@ -41,9 +39,9 @@ public class LightMachine
 
   public Receive<LightMachineCommand> createReceive() {
     return newReceiveBuilder()
-            .onMessage(CommandTurnOn.class, msg -> onTurnOn())
-            .onMessage(CommandTurnOff.class, msg -> onTurnOff())
-            .build();
+      .onMessage(CommandTurnOn.class, msg -> onTurnOn())
+      .onMessage(CommandTurnOff.class, msg -> onTurnOff())
+      .build();
   }
 
   private Behavior<LightMachineCommand> onTurnOn() {

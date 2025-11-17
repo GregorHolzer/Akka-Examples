@@ -1,71 +1,82 @@
 package actor;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 import actors.bell.Bell;
 import actors.gate.Gate;
-import actors.light_machine.LightMachine;
-import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
+import akka.actor.testkit.typed.javadsl.ActorTestKit;
+import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestProbe;
-import akka.persistence.testkit.javadsl.EventSourcedBehaviorTestKit;
-import akka.persistence.testkit.javadsl.EventSourcedBehaviorTestKit.CommandResult;
-import akka.persistence.typed.PersistenceId;
-import org.junit.Before;
-import org.junit.ClassRule;
+import akka.actor.typed.ActorRef;
+import org.junit.AfterClass;
 import org.junit.Test;
 import service.RailwayService;
 
 public class GateTest {
-  /**
+
   private final RailwayService mockedService = mock(RailwayService.class);
 
-  @ClassRule
-  public static final TestKitJunitResource testKit = new TestKitJunitResource(
-    EventSourcedBehaviorTestKit.config()
-  );
+  private static final ActorTestKit testKit = ActorTestKit.create();
 
   private final TestProbe<Bell.BellCommand> bell = testKit.createTestProbe(Bell.BellCommand.class);
 
-  private final EventSourcedBehaviorTestKit<
-    Gate.GateCommand,
-    Gate.GateEvent,
-    GateState
-  > eventSourcedBehaviorTestKit = EventSourcedBehaviorTestKit.create(
-    testKit.system(),
-    Gate.create(PersistenceId.ofUniqueId("gate"), bell.getRef(), mockedService)
-  );
-
-  @Before
-  public void beforeEach() {
-    eventSourcedBehaviorTestKit.clear();
-  }
-
   @Test
   public void fullLightMachineTest() {
-    assertEquals(GateState.State.OPEN, eventSourcedBehaviorTestKit.getState().getState());
+    ActorRef<Gate.GateCommand> gate = testKit.spawn(
+      Gate.create(bell.getRef(), mockedService),
+      "gate"
+    );
 
-    CommandResult<Gate.GateCommand, Gate.GateEvent, GateState> result =
-      eventSourcedBehaviorTestKit.runCommand(new Gate.GateCommandClose());
-    assertEquals(2, result.events().size());
-    assertTrue(result.events().get(0) instanceof Gate.GateEventAdvanceState);
-    assertTrue(result.events().get(1) instanceof Gate.GateEventClosed);
-    assertEquals(GateState.State.CLOSED, eventSourcedBehaviorTestKit.getState().getState());
-
-    result = eventSourcedBehaviorTestKit.runCommand(new Gate.GateCommandOpen());
-    assertEquals(2, result.events().size());
-    assertTrue(result.events().get(0) instanceof Gate.GateEventAdvanceState);
-    assertTrue(result.events().get(1) instanceof Gate.GateEventOpened);
-    assertEquals(GateState.State.OPEN, eventSourcedBehaviorTestKit.getState().getState());
+    LoggingTestKit.info("gate in state Closed").expect(testKit.system(), () -> {
+      gate.tell(new Gate.GateCommandClose());
+      return null;
+    });
+    bell.expectMessageClass(Bell.CommandBellOn.class);
+    verify(mockedService).gateDown(any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any());
+    LoggingTestKit.info("gate in state Open").expect(testKit.system(), () -> {
+      gate.tell(new Gate.GateCommandOpen());
+      return null;
+    });
+    bell.expectMessageClass(Bell.CommandBellOff.class);
+    verify(mockedService).gateDown(any(), any());
+    verify(mockedService).gateUp(any(), any());
   }
 
   @Test
   public void duplicateCommands() {
-    assertEquals(GateState.State.OPEN, eventSourcedBehaviorTestKit.getState().getState());
+    ActorRef<Gate.GateCommand> gate = testKit.spawn(
+      Gate.create(bell.getRef(), mockedService),
+      "gate1"
+    );
+    LoggingTestKit.info("gate1 in state ")
+      .withOccurrences(0)
+      .expect(testKit.system(), () -> {
+        gate.tell(new Gate.GateCommandOpen());
+        return null;
+      });
+    verify(mockedService, times(0)).gateDown(any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any());
+    LoggingTestKit.info("gate1 in state ").expect(testKit.system(), () -> {
+      gate.tell(new Gate.GateCommandClose());
+      return null;
+    });
+    bell.expectMessageClass(Bell.CommandBellOn.class);
+    verify(mockedService).gateDown(any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any());
+    LoggingTestKit.info("gate1 in state ")
+      .withOccurrences(0)
+      .expect(testKit.system(), () -> {
+        gate.tell(new Gate.GateCommandClose());
+        return null;
+      });
+    verify(mockedService).gateDown(any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any());
+  }
 
-    CommandResult<Gate.GateCommand, Gate.GateEvent, GateState> result =
-      eventSourcedBehaviorTestKit.runCommand(new Gate.GateCommandOpen());
-    assertTrue(result.events().isEmpty());
-    assertEquals(GateState.State.OPEN, eventSourcedBehaviorTestKit.getState().getState());
-  } **/
+  @AfterClass
+  public static void cleanUp() {
+    testKit.shutdownTestKit();
+  }
 }
