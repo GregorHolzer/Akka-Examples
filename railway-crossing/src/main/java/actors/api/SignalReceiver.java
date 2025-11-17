@@ -25,7 +25,7 @@ public class SignalReceiver extends AbstractBehavior<SignalReceiver.SignalReceiv
   public interface SignalReceiverCommand extends Command {}
 
   /**
-   * This command is a response from a {@link Controller} to the message {@link Controller.CommandGetCrossingID}
+   * This command is a response from a {@link Controller} to the message {@link Controller.CommandGetControllerName}
    * It contains the requested controllerId and the ActorRef of the {@link Controller}
    */
   public static class ControllerReply implements SignalReceiverCommand {
@@ -138,7 +138,7 @@ public class SignalReceiver extends AbstractBehavior<SignalReceiver.SignalReceiv
     //Request the controllerId from every available actor that is not in the table yet
     availableControllers.forEach(ref -> {
       if (!controllerTable.containsValue(ref)) {
-        ref.tell(new Controller.CommandGetCrossingID(getContext().getSelf()));
+        ref.tell(new Controller.CommandGetControllerName(getContext().getSelf()));
         getContext().getLog().info("Requested controllerId from {}", ref);
       }
     });

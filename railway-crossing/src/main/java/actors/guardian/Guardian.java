@@ -51,10 +51,12 @@ public class Guardian extends AbstractBehavior<Command> {
       ObjectMapper mapper = new ObjectMapper();
       config = mapper.readValue(new File(configPath), NodeConfig.class);
       getContext().getLog().info("Configuration loaded successfully:");
-      config.crossings().forEach(crossing -> {
+      config
+        .crossings()
+        .forEach(crossing -> {
           getContext().getLog().info("Crossing ID: {}", crossing.crossingId());
           getContext().getLog().info("Components: {}", crossing.components());
-      });
+        });
       getContext().getLog().info("Service Location: {}", config.service_location());
       getContext().getLog().info("Service Name: {}", config.remote_service_name());
     } catch (Exception e) {
@@ -64,32 +66,43 @@ public class Guardian extends AbstractBehavior<Command> {
   }
 
   private void setupComponent() {
-      config.crossings().forEach(crossing -> {
-          crossing.components().forEach(type -> {
-              switch (type) {
-                  case Controller -> {
-                      getContext().spawn(ControllerSetup.create(crossing.crossingId()),
-                              "ControllerSetup" + crossing.crossingId());
-                      getContext().getLog().info("ControllerSetup has been started successfully");
-                  }
-                  case LightMachine -> {
-                      getContext().spawn(
-                              LightMachineSetup.create(crossing.crossingId(), railwayService),
-                              "LightMachineSetup" + crossing.crossingId());
-                      getContext().getLog().info("LightMachineSetup has been started successfully");
-                  }
-                  case Gate -> {
-                      getContext().spawn(GateSetup.create(crossing.crossingId(), railwayService),
-                              "GateSetup" + crossing.crossingId());
-                      getContext().getLog().info("GateSetup has been started successfully");
-                  }
-                  case Bell -> {
-                      getContext().spawn(BellSetup.create(crossing.crossingId(), railwayService),
-                              "BellSetup" + crossing.crossingId());
-                      getContext().getLog().info("BellSetup has been started successfully");
-                  }
-                  default -> getContext().getLog().info("No Rule defined for Component_Type {}", type);
+    config
+      .crossings()
+      .forEach(crossing -> {
+        crossing
+          .components()
+          .forEach(type -> {
+            switch (type) {
+              case Controller -> {
+                getContext().spawn(
+                  ControllerSetup.create(crossing.crossingId()),
+                  "ControllerSetup" + crossing.crossingId()
+                );
+                getContext().getLog().info("ControllerSetup has been started successfully");
               }
+              case LightMachine -> {
+                getContext().spawn(
+                  LightMachineSetup.create(crossing.crossingId(), railwayService),
+                  "LightMachineSetup" + crossing.crossingId()
+                );
+                getContext().getLog().info("LightMachineSetup has been started successfully");
+              }
+              case Gate -> {
+                getContext().spawn(
+                  GateSetup.create(crossing.crossingId(), railwayService),
+                  "GateSetup" + crossing.crossingId()
+                );
+                getContext().getLog().info("GateSetup has been started successfully");
+              }
+              case Bell -> {
+                getContext().spawn(
+                  BellSetup.create(crossing.crossingId(), railwayService),
+                  "BellSetup" + crossing.crossingId()
+                );
+                getContext().getLog().info("BellSetup has been started successfully");
+              }
+              default -> getContext().getLog().info("No Rule defined for Component_Type {}", type);
+            }
           });
       });
   }

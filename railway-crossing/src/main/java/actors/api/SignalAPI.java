@@ -60,11 +60,12 @@ public class SignalAPI extends AllDirectives {
   }
 
   /**
-   * Checks if the controllerId is known, if yes:
-   *      Sends command {@link actors.controller.Controller.CommandTrainNotSeen} to that {@link Controller}, returns 200
-   * if not:
-   *      Returns 404 and a list of the known controllerIds
-   *  -
+   * Checks if the controllerId is known:
+   * yes:
+   *    - Sends command {@link actors.controller.Controller.CommandTrainNotSeen} to that {@link Controller}, returns 200
+   * no:
+   *    - Returns 404 and a list of the known controllerIds
+   *
    * @param controllerId id of the {@link Controller}
    * @return response
    */
@@ -77,11 +78,12 @@ public class SignalAPI extends AllDirectives {
   }
 
   /**
-   * Checks if the controllerId is known, if yes:
-   *      Sends command {@link actors.controller.Controller.CommandTrainSeen} to that {@link Controller}, returns 200
+   * Checks if the controllerId is known
+   * yes:
+   *    - Sends command {@link actors.controller.Controller.CommandTrainSeen} to that {@link Controller}, returns 200
    * if not:
-   *      Returns 404 and a list of the known controllerIds
-   *  -
+   *    -Returns 404 and a list of the known controllerIds
+   *
    * @param controllerId id of the {@link Controller}
    * @return response
    */
@@ -94,7 +96,7 @@ public class SignalAPI extends AllDirectives {
   }
 
   /**
-   * Sends the command {@link Controller.CommandTrainSeen} to all known {@link Controller}
+   * Sends the command {@link Controller.CommandTrainSeen} to all known {@link Controller}s
    * @return response 200
    */
   private Route broadcastTrainSeen() {
@@ -105,7 +107,7 @@ public class SignalAPI extends AllDirectives {
   }
 
   /**
-   * Sends the command {@link Controller.CommandTrainNotSeen} to all known {@link Controller}
+   * Sends the command {@link Controller.CommandTrainNotSeen} to all known {@link Controller}s
    * @return response 200
    */
   private Route broadcastTrainNotSeen() {
