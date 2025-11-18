@@ -18,5 +18,7 @@
     }
   ],
   "service_location": "Local",
-  "remote_service_name": ""
+  "remote_service_name": "",
+  "nats_server_addr": "localhost",
+  "nats_server_port": "4222"
 }

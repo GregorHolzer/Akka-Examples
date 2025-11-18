@@ -17,12 +17,6 @@ public class LightMachineSetup
 
   public static final String componentSuffix = "_LightMachine";
 
-  private final String componentName;
-
-  private final ServiceKey<LightMachine.LightMachineCommand> lightMachineServiceKey;
-
-  private final ActorRef<LightMachine.LightMachineCommand> lightMachine;
-
   public static Behavior<Receptionist.Listing> create(
     String crossingId,
     RailwayService railwayService
@@ -36,12 +30,12 @@ public class LightMachineSetup
     RailwayService railwayService
   ) {
     super(context);
-    this.componentName = crossingId + componentSuffix;
-    lightMachineServiceKey = ServiceKey.create(
+    String componentName = crossingId + componentSuffix;
+    ServiceKey<LightMachine.LightMachineCommand> lightMachineServiceKey = ServiceKey.create(
       LightMachine.LightMachineCommand.class,
       componentName
     );
-    lightMachine = getContext().spawn(
+    ActorRef<LightMachine.LightMachineCommand> lightMachine = getContext().spawn(
       LightMachine.create(railwayService),
       String.format("%s", componentName)
     );

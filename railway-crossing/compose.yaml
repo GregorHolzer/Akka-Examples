@@ -1,0 +1,10 @@
+version: '3.7'
+services:
+  nats-server:
+    image: "nats"
+    ports:
+      - "4222:4222"
+  akka-railway-service:
+      image: "gregor2323/akka-railway-crossing-service:latest"
+      ports:
+        - "8080:8080"
