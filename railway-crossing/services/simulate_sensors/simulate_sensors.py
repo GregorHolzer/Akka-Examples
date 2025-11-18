@@ -143,7 +143,8 @@ class Simulation:
         for i, sensor_value in enumerate(self._sensor_values):
             s = s or sensor_value
 
-        subject = "peripheral.sensor"
+        #subject = "peripheral.sensor"
+        subject = "Sensor"
 
         # Specify event data
         event = Event_pb2.Event()
@@ -160,7 +161,11 @@ class Simulation:
         variable.value.bool = s
 
         # Publish event
-        await self._nc.publish(subject, event.SerializeToString())
+        #await self._nc.publish(subject, event.SerializeToString())
+        if s:
+            await self._nc.publish(subject, b"TrainSeen")
+        else:
+            await self._nc.publish(subject, b"TrainNotSeen")
 
         events_published_counter.add(1)
 
