@@ -2,7 +2,6 @@ package actors.guardian;
 
 import actors.Command;
 import actors.NodeConfig;
-import actors.api.SignalReceiver;
 import actors.setup.BellSetup;
 import actors.setup.ControllerSetup;
 import actors.setup.GateSetup;
@@ -20,10 +19,10 @@ import service.RailwayService;
 
 public class Guardian extends AbstractBehavior<Command> {
 
-    private enum ConfigStatus{
-        Success,
-        Failure
-    }
+  private enum ConfigStatus {
+    Success,
+    Failure
+  }
 
   private RailwayService railwayService;
 
@@ -38,12 +37,11 @@ public class Guardian extends AbstractBehavior<Command> {
   public Guardian(ActorContext<Command> context, String configPath) {
     super(context);
     this.configPath = configPath;
-    if(getNodeConfig() == ConfigStatus.Success) {
-        ServiceDiscovery discovery = Discovery.get(context.getSystem()).discovery();
-        railwayService = new RailwayService(discovery, config);
-        railwayService.setupService(context);
-        setupComponent();
-        //context.spawn(SignalReceiver.create(), "SignalReceiver");
+    if (getNodeConfig() == ConfigStatus.Success) {
+      ServiceDiscovery discovery = Discovery.get(context.getSystem()).discovery();
+      railwayService = new RailwayService(discovery, config);
+      railwayService.setupService(context);
+      setupComponent();
     }
   }
 
@@ -78,14 +76,14 @@ public class Guardian extends AbstractBehavior<Command> {
   private void setupComponent() {
     config
       .crossings()
-      .forEach(crossing -> {
+      .forEach(crossing ->
         crossing
           .components()
           .forEach(type -> {
             switch (type) {
               case Controller -> {
                 getContext().spawn(
-                  ControllerSetup.create(crossing.crossingId()),
+                  ControllerSetup.create(crossing.crossingId(), config),
                   "ControllerSetup" + crossing.crossingId()
                 );
                 getContext().getLog().info("ControllerSetup has been started successfully");
@@ -113,7 +111,7 @@ public class Guardian extends AbstractBehavior<Command> {
               }
               default -> getContext().getLog().info("No Rule defined for Component_Type {}", type);
             }
-          });
-      });
+          })
+      );
   }
 }

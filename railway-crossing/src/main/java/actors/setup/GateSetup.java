@@ -17,8 +17,6 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
 
   public static final String componentSuffix = "_Gate";
 
-  private ActorRef<Bell.BellCommand> bell;
-
   private ActorRef<Gate.GateCommand> gate;
 
   private final ServiceKey<Bell.BellCommand> bellServiceKey;
@@ -66,7 +64,11 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
       .getServiceInstances(bellServiceKey)
       .stream()
       .toList();
-    bell = checkInstances(getContext(), availableBells, Bell.BellCommand.class);
+    ActorRef<Bell.BellCommand> bell = checkInstances(
+      getContext(),
+      availableBells,
+      Bell.BellCommand.class
+    );
     if (bell != null && gate == null) {
       gate = getContext().spawn(
         Gate.create(bell, railwayService),

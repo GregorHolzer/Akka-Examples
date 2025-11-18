@@ -2,7 +2,6 @@ package actors.controller;
 
 import actors.Command;
 import actors.StateMachine;
-import actors.api.SignalReceiver;
 import actors.bell.Bell;
 import actors.gate.Gate;
 import actors.light_machine.LightMachine;
@@ -12,8 +11,6 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Controller
   extends AbstractBehavior<Controller.ControllerCommand>
@@ -35,21 +32,6 @@ public class Controller
    * Defines the message-type {@link Controller} can receive
    */
   public interface ControllerCommand extends Command {}
-
-  /**
-   * Message that requests the name of the {@link Controller} actor
-   */
-  public static class CommandGetControllerName implements ControllerCommand {
-
-    public final ActorRef<SignalReceiver.SignalReceiverCommand> replyTo;
-
-    @JsonCreator
-    public CommandGetControllerName(
-      @JsonProperty("replyTo") ActorRef<SignalReceiver.SignalReceiverCommand> replyTo
-    ) {
-      this.replyTo = replyTo;
-    }
-  }
 
   /**
    * Message that indicates that a sensor detects a train
@@ -96,7 +78,6 @@ public class Controller
     return newReceiveBuilder()
       .onMessage(CommandTrainSeen.class, msg -> onTrainSeen())
       .onMessage(CommandTrainNotSeen.class, msg -> onTrainNotSeen())
-      .onMessage(CommandGetControllerName.class, msg -> sendControllerName(msg.replyTo))
       .build();
   }
 
@@ -137,18 +118,6 @@ public class Controller
         logState(getContext(), state);
       }
     }
-    return Behaviors.same();
-  }
-
-  private Behavior<ControllerCommand> sendControllerName(
-    ActorRef<SignalReceiver.SignalReceiverCommand> receiver
-  ) {
-    receiver.tell(
-      new SignalReceiver.ControllerReply(
-        getContext().getSelf().path().name(),
-        getContext().getSelf()
-      )
-    );
     return Behaviors.same();
   }
 }

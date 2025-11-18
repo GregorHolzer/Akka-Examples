@@ -1,85 +1,52 @@
-# Akka Railway-Crossing within a single Kubernetes-Cluster
+# Akka Railway-Crossing Use Case
 
-## Usage
+### Test local example:
 
-Each Crossing is identified by a `crossingId` and consists of four Components: 
-
-- `Bell`
-- `Gate`
-- `LightMachine`
-- `Controller`
-
-To create a component for a crossing the following variables have to be set:
-
-- `CROSSING_ID=<id>`
-- `COMPONENT_TYPE=<type>`
-
-A component will only be created if all subcomponents are ready (e.g. a Gate will only be created if the Bell is ready).
-
-### Build Docker-Image
+Build the project:
 
 ```bash
-    mvn -Ddocker.useConfigFile=true -Ddocker.config.path=/home/gregor/.docker/config.json package  docker:push
+    mvn clean install
 ```
 
-### Running in Kubernetes
-
-To form an Akka-Cluster within Kubernetes the following Permissions need to be granted:
-
-```yaml
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: pod-reader
-rules:
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "watch", "list"]
-```
-
-To run a single Cluster with three Railway-Crossings run:
+Create the Nats Server and the Railway-Crossing Service:
 
 ```bash
-    ./create.sh
+    docker compose up -d 
 ```
 
-### Access the Railway-Crossing-Service
+An Akka-Node can be launched with:
 
 ```bash
-    kubectl port-forward svc/python-service-service 8080:8000
+    mvn exec:java -Dexec.mainClass=Main \
+  -Dakka.remote.artery.canonical.port=<port> \
+  -Dakka.management.http.port=<management_port> \
+  -Dexec.args=<path_to_config>
 ```
 
-Access the status here: [Status](http://localhost:8080/status)
-
-### Sending Signals to a Controller
+There is also a script to launch nodes:
 
 ```bash
-    kubectl port-forward svc/railway-crossing-signal-service 8000:8000
+    ./runNode.sh -n <number_of_node> -c <path_to_config>
 ```
 
-To send a signal to a specific controller run:
+To run two nodes with an example configuration:
 
 ```bash
-    ./sendSignal -i <ControllerId> <trainSeen/trainNotSeen>
+    ./runNode.sh -c ./configs/node0.json
 ```
-To broadcast the signal to all controllers run:
 
 ```bash
-    ./sendSignal -i broadcast <trainSeen/trainNotSeen>
+    ./runNode.sh -n 1 -c ./configs/node1.json
 ```
 
-## Services
+Publish a Sensor-Event to the Server via Nats-Cli:
 
-Services can not be discovered via a Service-Mesh but only via DNS. In this project the service-name is hardcoded:
-```java
-String serviceName = "python-service-service.default.svc.cluster.local";
-CompletionStage<ServiceDiscovery.Resolved> result = discovery.lookup(serviceName, Duration.ofSeconds(3));
+```bash
+    nats pub -s nats://localhost:4222 Sensor "TrainSeen"
 ```
 
-## Communication with Actors from external Sources
+```bash
+    nats pub -s nats://localhost:4222 Sensor "TrainNotSeen"
+```
 
-It is not possible to communicate with an Actor with an external application using the akka message system. The recommended way is to implement an API:
-
-- [Akka-Docs](https://doc.akka.io/libraries/guide/concepts/internal-and-external-communication.html#_communication_with_parties_outside_of_a_microservices_system)
-
-- [Akka-Forum](https://discuss.akka.io/t/registering-a-python-service-with-akka/9946)
+[See the Status](http://localhost:8080/status)

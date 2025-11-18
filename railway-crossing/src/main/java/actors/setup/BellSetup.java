@@ -15,14 +15,6 @@ public class BellSetup extends AbstractBehavior<Receptionist.Listing> {
 
   public static final String componentSuffix = "_Bell";
 
-  private final String componentName;
-
-  private final ServiceKey<Bell.BellCommand> bellServiceKey;
-
-  private ActorRef<Bell.BellCommand> bell;
-
-  private final RailwayService railwayService;
-
   public static Behavior<Receptionist.Listing> create(
     String crossingId,
     RailwayService railwayService
@@ -36,10 +28,15 @@ public class BellSetup extends AbstractBehavior<Receptionist.Listing> {
     RailwayService railwayService
   ) {
     super(context);
-    this.componentName = crossingId + componentSuffix;
-    this.railwayService = railwayService;
-    bellServiceKey = ServiceKey.create(Bell.BellCommand.class, componentName);
-    bell = getContext().spawn(Bell.create(railwayService), String.format("%s", componentName));
+    String componentName = crossingId + componentSuffix;
+    ServiceKey<Bell.BellCommand> bellServiceKey = ServiceKey.create(
+      Bell.BellCommand.class,
+      componentName
+    );
+    ActorRef<Bell.BellCommand> bell = getContext().spawn(
+      Bell.create(railwayService),
+      String.format("%s", componentName)
+    );
     getContext().getSystem().receptionist().tell(Receptionist.register(bellServiceKey, bell));
     getContext().getLog().info("Bell registered with ServiceKey: {}", bellServiceKey);
   }
