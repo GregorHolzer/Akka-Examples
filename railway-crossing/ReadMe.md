@@ -50,3 +50,43 @@ Publish a Sensor-Event to the Server via Nats-Cli:
 ```
 
 [See the Status](http://localhost:8080/status)
+
+### Example Config
+
+```json
+{
+  "crossings": [
+    {
+      "crossingId": "crossing0",
+      "components": [
+          "Bell",
+          "LightMachine",
+          "Gate"
+      ]
+    },
+    {
+      "crossingId": "crossing1",
+      "components": [
+        "Bell",
+        "LightMachine",
+        "Gate"
+      ]
+    }
+  ],
+  "service_location": "Local",
+  "remote_service_name": "",
+  "nats_server_addr": "localhost",
+  "nats_server_port": "4222"
+}
+```
+
+If this config is passed to an Actor-System this system will launch:
+- For Crossing with id `crossing0`:
+    - `Bell`
+    - `LightMachine`
+    - `Bell`
+- For Crossing with id `crossing1`:
+    - `Bell`
+    - `LightMachine`
+    - `Bell`
+
