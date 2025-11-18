@@ -20,7 +20,12 @@ import service.RailwayService;
 
 public class Guardian extends AbstractBehavior<Command> {
 
-  private final RailwayService railwayService;
+    private enum ConfigStatus{
+        Success,
+        Failure
+    }
+
+  private RailwayService railwayService;
 
   private final String configPath;
 
@@ -33,12 +38,13 @@ public class Guardian extends AbstractBehavior<Command> {
   public Guardian(ActorContext<Command> context, String configPath) {
     super(context);
     this.configPath = configPath;
-    getNodeConfig();
-    ServiceDiscovery discovery = Discovery.get(context.getSystem()).discovery();
-    railwayService = new RailwayService(discovery, config);
-    railwayService.setupService(context);
-    setupComponent();
-    context.spawn(SignalReceiver.create(), "SignalReceiver");
+    if(getNodeConfig() == ConfigStatus.Success) {
+        ServiceDiscovery discovery = Discovery.get(context.getSystem()).discovery();
+        railwayService = new RailwayService(discovery, config);
+        railwayService.setupService(context);
+        setupComponent();
+        //context.spawn(SignalReceiver.create(), "SignalReceiver");
+    }
   }
 
   @Override
@@ -46,7 +52,7 @@ public class Guardian extends AbstractBehavior<Command> {
     return newReceiveBuilder().build();
   }
 
-  private void getNodeConfig() {
+  private ConfigStatus getNodeConfig() {
     try {
       ObjectMapper mapper = new ObjectMapper();
       config = mapper.readValue(new File(configPath), NodeConfig.class);
@@ -59,9 +65,13 @@ public class Guardian extends AbstractBehavior<Command> {
         });
       getContext().getLog().info("Service Location: {}", config.service_location());
       getContext().getLog().info("Service Name: {}", config.remote_service_name());
+      getContext().getLog().info("Nats IP: {}", config.nats_server_addr());
+      getContext().getLog().info("Nats Port: {}", config.nats_server_port());
+      return ConfigStatus.Success;
     } catch (Exception e) {
       getContext().getLog().error("Error parsing ConfigFile: {}", e.getMessage());
       getContext().getSystem().terminate();
+      return ConfigStatus.Failure;
     }
   }
 

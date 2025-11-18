@@ -10,8 +10,9 @@
         <maven.compiler.target>21</maven.compiler.target>
         <akka.version>2.10.9</akka.version>
         <scala.binary.version>2.13</scala.binary.version>
-       <akka.management.version>1.6.3</akka.management.version>
+        <akka.management.version>1.6.3</akka.management.version>
         <version.number>1</version.number>
+        <nats.version>2.24.0</nats.version>
     </properties>
 
     <repositories>
@@ -127,6 +128,11 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-http-jackson_${scala.binary.version}</artifactId>
             <version>10.7.2</version>
+        </dependency>
+        <dependency>
+            <groupId>io.nats</groupId>
+            <artifactId>jnats</artifactId>
+            <version>${nats.version}</version>
         </dependency>
     </dependencies>
 
