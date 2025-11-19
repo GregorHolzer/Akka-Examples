@@ -12,6 +12,8 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import akka.actor.typed.receptionist.Receptionist;
 import akka.actor.typed.receptionist.ServiceKey;
+import com.google.protobuf.InvalidProtocolBufferException;
+import exchange.ContextVariableProtos.*;
 import io.nats.client.Connection;
 import io.nats.client.Dispatcher;
 import io.nats.client.Nats;
@@ -132,8 +134,9 @@ public class ControllerSetup
     }
     try {
       nc = Nats.connect("nats://" + config.nats_server_addr() + ":" + config.nats_server_port());
-      Dispatcher dispatcher = nc.createDispatcher(msg -> {
-        String data = new String(msg.getData());
+      Dispatcher dispatcher = nc.createDispatcher(msg ->  {
+          //Add event
+          String data = new String(msg.getData());
         if (data.equals("TrainSeen")) {
           System.out.println(natsLoggingMessage + "Received TrainSeen Signal");
           controller.tell(new Controller.CommandTrainSeen());

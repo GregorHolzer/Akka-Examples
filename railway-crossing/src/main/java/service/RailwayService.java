@@ -3,6 +3,7 @@ package service;
 import actors.NodeConfig;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.discovery.ServiceDiscovery;
+import exchange.ContextVariableProtos.*;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
@@ -10,6 +11,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Optional;
 
 public class RailwayService {
 
@@ -72,7 +74,7 @@ public class RailwayService {
     }
   }
 
-  private void sendRequest(ActorContext<?> context, String path, String crossingId) {
+  private void sendRequest(ActorContext<?> context, String path, String crossingId, Optional<Double> trainSpeed) {
     String url = "";
     switch (nodeConfig.service_location()) {
       case Remote -> url = "http:/" + address + ":" + port + path;
@@ -80,12 +82,35 @@ public class RailwayService {
     }
     try {
       HttpClient client = HttpClient.newHttpClient();
-      HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create(url))
-        .header("Cirrina-Sender-ID", crossingId)
-        .POST(HttpRequest.BodyPublishers.noBody())
-        .build();
-      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpRequest request;
+        if(trainSpeed.isPresent()) {
+            ContextVariables.Builder var = ContextVariables.newBuilder();
+            var.addData(
+                    ContextVariable.newBuilder()
+                            .setName("approachingSpeed")
+                            .setValue(
+                                    Value.newBuilder()
+                                            .setDouble(trainSpeed.get())
+                                            .build()
+                            )
+                            .build()
+            );
+            byte[] body = var.build().toByteArray();
+            request = HttpRequest.newBuilder()
+                  .uri(URI.create(url))
+                  .header("Cirrina-Sender-ID", crossingId)
+                  .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                  .build();
+      }
+      else{
+          request = HttpRequest.newBuilder()
+                  .uri(URI.create(url))
+                  .header("Cirrina-Sender-ID", crossingId)
+                  .POST(HttpRequest.BodyPublishers.noBody())
+                  .build();
+      }
+
+      HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
       context
         .getLog()
         .info(
@@ -100,26 +125,26 @@ public class RailwayService {
   }
 
   public void bellOn(ActorContext<?> context, String crossingId) {
-    sendRequest(context, "/bell/on", crossingId);
+    sendRequest(context, "/bell/on", crossingId, Optional.empty());
   }
 
   public void bellOff(ActorContext<?> context, String crossingId) {
-    sendRequest(context, "/bell/off", crossingId);
+    sendRequest(context, "/bell/off", crossingId, Optional.empty());
   }
 
   public void gateUp(ActorContext<?> context, String crossingId) {
-    sendRequest(context, "/gate/up", crossingId);
+    sendRequest(context, "/gate/up", crossingId, Optional.empty());
   }
 
   public void gateDown(ActorContext<?> context, String crossingId) {
-    sendRequest(context, "/gate/down", crossingId);
+    sendRequest(context, "/gate/down", crossingId, Optional.empty());
   }
 
   public void lightOn(ActorContext<?> context, String crossingId) {
-    sendRequest(context, "/light/on", crossingId);
+    sendRequest(context, "/light/on", crossingId, Optional.empty());
   }
 
   public void lightOff(ActorContext<?> context, String crossingId) {
-    sendRequest(context, "/light/off", crossingId);
+    sendRequest(context, "/light/off", crossingId, Optional.empty());
   }
 }
