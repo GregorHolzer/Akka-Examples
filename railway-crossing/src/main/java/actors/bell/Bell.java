@@ -7,6 +7,8 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import service.RailwayService;
 
 public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMachine<Bell.State> {
@@ -27,7 +29,14 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
   /**
    * Message that changes the {@link State} to {@link State#On}
    */
-  public static class CommandBellOn implements BellCommand {}
+  public static class CommandBellOn implements BellCommand {
+      public Double trainSpeed;
+
+      @JsonCreator
+      public CommandBellOn(@JsonProperty("trainSpeed") Double trainSpeed) {
+          this.trainSpeed = trainSpeed;
+      }
+  }
 
   /**
    * Message that changes the {@link State} to {@link State#Off}
@@ -60,19 +69,19 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
   @Override
   public Receive<BellCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(CommandBellOn.class, msg -> onTurnOn())
+      .onMessage(CommandBellOn.class, msg -> onTurnOn(msg.trainSpeed))
       .onMessage(CommandBellOff.class, msg -> onTurnOff())
       .build();
   }
 
   /**
-   * Updates the {@link State} and invokes service {@link RailwayService#bellOn(ActorContext, String)}
+   * Updates the {@link State} and invokes service {@link RailwayService#bellOn(ActorContext, String, Double)}
    * @return the same {@link Behavior} as before
    */
-  private Behavior<Bell.BellCommand> onTurnOn() {
+  private Behavior<Bell.BellCommand> onTurnOn(Double trainSpeed) {
     if (state == State.Off) {
       state = State.On;
-      railwayService.bellOn(getContext(), getContext().getSelf().path().name());
+      railwayService.bellOn(getContext(), getContext().getSelf().path().name(), trainSpeed);
       logState(getContext(), Bell.State.On);
     }
     return Behaviors.same();

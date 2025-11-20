@@ -124,8 +124,8 @@ public class RailwayService {
     }
   }
 
-  public void bellOn(ActorContext<?> context, String crossingId) {
-    sendRequest(context, "/bell/on", crossingId, Optional.empty());
+    public void bellOn(ActorContext<?> context, String crossingId, Double trainSpeed) {
+    sendRequest(context, "/bell/on", crossingId, Optional.of(trainSpeed));
   }
 
   public void bellOff(ActorContext<?> context, String crossingId) {
@@ -136,15 +136,19 @@ public class RailwayService {
     sendRequest(context, "/gate/up", crossingId, Optional.empty());
   }
 
-  public void gateDown(ActorContext<?> context, String crossingId) {
-    sendRequest(context, "/gate/down", crossingId, Optional.empty());
+  public void gateDown(ActorContext<?> context, String crossingId, Double trainSpeed) {
+    sendRequest(context, "/gate/down", crossingId, Optional.of(trainSpeed));
   }
 
-  public void lightOn(ActorContext<?> context, String crossingId) {
-    sendRequest(context, "/light/on", crossingId, Optional.empty());
+  public void lightOn(ActorContext<?> context, String crossingId, Double trainSpeed) {
+    sendRequest(context, "/light/on", crossingId, Optional.of(trainSpeed));
   }
 
   public void lightOff(ActorContext<?> context, String crossingId) {
     sendRequest(context, "/light/off", crossingId, Optional.empty());
+  }
+
+  public void lightEarlyWarning(ActorContext<?> context, String crossingId){
+      sendRequest(context, "/light/earlyWarning", crossingId, Optional.empty());
   }
 }

@@ -7,6 +7,8 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import service.RailwayService;
 
 public class LightMachine
@@ -20,9 +22,23 @@ public class LightMachine
 
   public interface LightMachineCommand extends Command {}
 
-  public static class CommandTurnOn implements LightMachineCommand {}
+  public static class CommandTurnOn implements LightMachineCommand {
+      public Double trainSpeed;
 
-  public static class CommandTurnOff implements LightMachineCommand {}
+      @JsonCreator
+      public CommandTurnOn(@JsonProperty("trainSpeed") Double trainSpeed) {
+          this.trainSpeed = trainSpeed;
+      }
+  }
+
+  public static class CommandTurnOff implements LightMachineCommand {
+      public Double trainSpeed;
+
+      @JsonCreator
+      public CommandTurnOff(@JsonProperty("trainSpeed") Double trainSpeed) {
+          this.trainSpeed = trainSpeed;
+      }
+  }
 
   private final RailwayService railwayService;
 
@@ -39,15 +55,16 @@ public class LightMachine
 
   public Receive<LightMachineCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(CommandTurnOn.class, msg -> onTurnOn())
+      .onMessage(CommandTurnOn.class, msg -> onTurnOn(msg.trainSpeed))
       .onMessage(CommandTurnOff.class, msg -> onTurnOff())
       .build();
   }
 
-  private Behavior<LightMachineCommand> onTurnOn() {
+  private Behavior<LightMachineCommand> onTurnOn(Double trainSpeed) {
     if (state == State.Off) {
       state = State.On;
-      railwayService.lightOn(getContext(), getContext().getSelf().path().name());
+      railwayService.lightEarlyWarning(getContext(), getContext().getSelf().path().name());
+      railwayService.lightOn(getContext(), getContext().getSelf().path().name(), trainSpeed);
       logState(getContext(), state);
     }
     return Behaviors.same();

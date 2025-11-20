@@ -9,6 +9,8 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import service.RailwayService;
 
 public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMachine<Gate.State> {
@@ -20,9 +22,16 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
 
   public interface GateCommand extends Command {}
 
-  public static class GateCommandOpen implements GateCommand {}
+  public static class CommandOpen implements GateCommand {}
 
-  public static class GateCommandClose implements GateCommand {}
+  public static class CommandClose implements GateCommand {
+      public Double trainSpeed;
+
+      @JsonCreator
+      public CommandClose(@JsonProperty("trainSpeed") Double trainSpeed) {
+          this.trainSpeed = trainSpeed;
+      }
+  }
 
   private final ActorRef<Bell.BellCommand> bell;
 
@@ -49,16 +58,16 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
 
   public Receive<GateCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(GateCommandOpen.class, cmd -> onGateOpen())
-      .onMessage(GateCommandClose.class, cmd -> onGateClose())
+      .onMessage(CommandOpen.class, msg -> onGateOpen())
+      .onMessage(CommandClose.class, msg -> onGateClose(msg.trainSpeed))
       .build();
   }
 
-  private Behavior<GateCommand> onGateClose() {
+  private Behavior<GateCommand> onGateClose(Double trainSpeed) {
     if (state == State.Open) {
-      bell.tell(new Bell.CommandBellOn());
+      bell.tell(new Bell.CommandBellOn(trainSpeed));
       state = State.Closed;
-      railwayService.gateDown(getContext(), getContext().getSelf().path().name());
+      railwayService.gateDown(getContext(), getContext().getSelf().path().name(), trainSpeed);
       logState(getContext(), state);
     }
     return Behaviors.same();

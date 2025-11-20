@@ -12,7 +12,10 @@ import service.RailwayService;
 
 public class BellTest {
 
-  private final RailwayService mockedService = mock(RailwayService.class);
+    private static final Double trainSpeed = 50.0;
+
+
+    private final RailwayService mockedService = mock(RailwayService.class);
 
   static final ActorTestKit testKit = ActorTestKit.create();
 
@@ -20,10 +23,10 @@ public class BellTest {
   public void fullBellTest() {
     ActorRef<Bell.BellCommand> bell = testKit.spawn(Bell.create(mockedService), "bell");
     LoggingTestKit.info("bell in state On").expect(testKit.system(), () -> {
-      bell.tell(new Bell.CommandBellOn());
+      bell.tell(new Bell.CommandBellOn(trainSpeed));
       return null;
     });
-    verify(mockedService).bellOn(any(), any());
+    verify(mockedService).bellOn(any(), any(), any());
     LoggingTestKit.info("bell in state Off").expect(testKit.system(), () -> {
       bell.tell(new Bell.CommandBellOff());
       return null;
@@ -40,21 +43,21 @@ public class BellTest {
         bell.tell(new Bell.CommandBellOff());
         return null;
       });
-    verify(mockedService, times(0)).bellOn(any(), any());
+    verify(mockedService, times(0)).bellOn(any(), any(), any());
     verify(mockedService, times(0)).bellOff(any(), any());
     LoggingTestKit.info("bell1 in state On").expect(testKit.system(), () -> {
-      bell.tell(new Bell.CommandBellOn());
+      bell.tell(new Bell.CommandBellOn(trainSpeed));
       return null;
     });
-    verify(mockedService, times(1)).bellOn(any(), any());
+    verify(mockedService, times(1)).bellOn(any(), any(), any());
     verify(mockedService, times(0)).bellOff(any(), any());
     LoggingTestKit.info("bell1 in state")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        bell.tell(new Bell.CommandBellOn());
+        bell.tell(new Bell.CommandBellOn(trainSpeed));
         return null;
       });
-    verify(mockedService, times(1)).bellOn(any(), any());
+    verify(mockedService, times(1)).bellOn(any(), any(), any());
     verify(mockedService, times(0)).bellOff(any(), any());
   }
 

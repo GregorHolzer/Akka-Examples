@@ -11,6 +11,8 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Controller
   extends AbstractBehavior<Controller.ControllerCommand>
@@ -36,12 +38,26 @@ public class Controller
   /**
    * Message that indicates that a sensor detects a train
    */
-  public static class CommandTrainSeen implements ControllerCommand {}
+  public static class CommandTrainSeen implements ControllerCommand {
+      public Double trainSpeed;
+
+      @JsonCreator
+      public CommandTrainSeen(@JsonProperty("trainSpeed") Double trainSpeed) {
+          this.trainSpeed = trainSpeed;
+      }
+  }
 
   /**
    * Message that indicates that a sensor no longer detects a train
    */
-  public static class CommandTrainNotSeen implements ControllerCommand {}
+  public static class CommandTrainNotSeen implements ControllerCommand {
+      public Double trainSpeed;
+
+      @JsonCreator
+      public CommandTrainNotSeen(@JsonProperty("trainSpeed") Double trainSpeed) {
+          this.trainSpeed = trainSpeed;
+      }
+  }
 
   private final ActorRef<LightMachine.LightMachineCommand> lightMachine;
 
@@ -76,16 +92,16 @@ public class Controller
   @Override
   public Receive<ControllerCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(CommandTrainSeen.class, msg -> onTrainSeen())
-      .onMessage(CommandTrainNotSeen.class, msg -> onTrainNotSeen())
+      .onMessage(CommandTrainSeen.class, msg -> onTrainSeen(msg.trainSpeed))
+      .onMessage(CommandTrainNotSeen.class, msg -> onTrainNotSeen(msg.trainSpeed))
       .build();
   }
 
-  private Behavior<ControllerCommand> onTrainSeen() {
+  private Behavior<ControllerCommand> onTrainSeen(Double trainSpeed) {
     switch (state) {
       case Away -> {
-        lightMachine.tell(new LightMachine.CommandTurnOn());
-        gate.tell(new Gate.GateCommandClose());
+        lightMachine.tell(new LightMachine.CommandTurnOn(trainSpeed));
+        gate.tell(new Gate.CommandClose(trainSpeed));
         state = State.Approaching;
         logState(getContext(), state);
       }
@@ -101,15 +117,15 @@ public class Controller
     return Behaviors.same();
   }
 
-  private Behavior<ControllerCommand> onTrainNotSeen() {
+  private Behavior<ControllerCommand> onTrainNotSeen(Double trainSpeed) {
     switch (state) {
       case Approaching -> {
         state = State.Close;
         logState(getContext(), state);
       }
       case Present -> {
-        lightMachine.tell(new LightMachine.CommandTurnOff());
-        gate.tell(new Gate.GateCommandOpen());
+        lightMachine.tell(new LightMachine.CommandTurnOff(trainSpeed));
+        gate.tell(new Gate.CommandOpen());
         state = State.Leaving;
         logState(getContext(), state);
       }

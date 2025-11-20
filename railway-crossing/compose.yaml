@@ -28,4 +28,4 @@ services:
   akka-railway-service:
       image: "gregor2323/akka-railway-crossing-service:latest"
       ports:
-        - "8080:8080"
+        - "8000:8000"
