@@ -15,6 +15,20 @@ import akka.discovery.Discovery;
 import akka.discovery.ServiceDiscovery;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
+import java.time.Duration;
+
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
+import io.opentelemetry.context.propagation.ContextPropagators;
+import io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
+import io.opentelemetry.semconv.ServiceAttributes;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.semconv.ResourceAttributes;
+import open_telemetry.TelemetryJaeger;
 import service.RailwayService;
 
 public class Guardian extends AbstractBehavior<Command> {
@@ -30,6 +44,8 @@ public class Guardian extends AbstractBehavior<Command> {
 
   private NodeConfig config;
 
+  private OpenTelemetry openTelemetry;
+
   public static Behavior<Command> create(String configPath) {
     return Behaviors.setup(context -> new Guardian(context, configPath));
   }
@@ -41,6 +57,7 @@ public class Guardian extends AbstractBehavior<Command> {
       ServiceDiscovery discovery = Discovery.get(context.getSystem()).discovery();
       railwayService = new RailwayService(discovery, config);
       railwayService.setupService(context);
+      openTelemetry = TelemetryJaeger.initOpenTelemetry(config);
       setupComponent();
     }
   }

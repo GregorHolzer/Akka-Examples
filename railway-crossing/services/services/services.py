@@ -274,7 +274,7 @@ async def bell_off(request: Request):
             print("Failed to extract span")
 
     with tracer.start_as_current_span(
-            "process_bell_invocation", context=parent_context
+        "process_bell_invocation", context=parent_context
     ) as span:
 
         span.set_attribute("service", "bellOff")

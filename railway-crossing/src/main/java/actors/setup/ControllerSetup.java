@@ -1,5 +1,7 @@
 package actors.setup;
 
+import io.opentelemetry.api.OpenTelemetry;
+import nats.NatsMessage;
 import actors.NodeConfig;
 import actors.controller.Controller;
 import actors.gate.Gate;
@@ -17,9 +19,13 @@ import exchange.ContextVariableProtos.*;
 import exchange.EventProtos;
 import io.nats.client.Connection;
 import io.nats.client.Dispatcher;
+import io.nats.client.Message;
 import io.nats.client.Nats;
+import open_telemetry.TelemetryJaeger;
+
 import java.util.List;
-import java.util.Optional;
+
+import static nats.NatsMessage.getNatsMessage;
 
 public class ControllerSetup
   extends AbstractBehavior<Receptionist.Listing>
@@ -54,14 +60,16 @@ public class ControllerSetup
 
   private Connection nc = null;
 
+  private NatsMessage latestNatsMessage = null;
+
   public static Behavior<Receptionist.Listing> create(String crossingId, NodeConfig config) {
     return Behaviors.setup(context -> new ControllerSetup(context, crossingId, config));
   }
 
   private ControllerSetup(
-    ActorContext<Receptionist.Listing> context,
-    String crossingId,
-    NodeConfig config
+          ActorContext<Receptionist.Listing> context,
+          String crossingId,
+          NodeConfig config
   ) {
     super(context);
     this.crossingId = crossingId;
@@ -75,7 +83,7 @@ public class ControllerSetup
       crossingId + LightMachineSetup.componentSuffix
     );
     this.config = config;
-    getContext()
+      getContext()
       .getSystem()
       .receptionist()
       .tell(Receptionist.subscribe(gateServiceKey, getContext().getSelf()));
@@ -86,6 +94,7 @@ public class ControllerSetup
     context
       .getLog()
       .info("Controller subscribed to ServiceKeys: {}, {}", gateServiceKey, lightMachineServiceKey);
+
   }
 
   @Override
@@ -125,8 +134,8 @@ public class ControllerSetup
     );
     NatsSetupStatus status = natsSetup();
     while (status.equals(NatsSetupStatus.Failure)) {
-      getContext().getLog().info("Connecting to Nats Server...");
-      natsSetup();
+      getContext().getLog().info("Retrying connection to nats server...");
+      status = natsSetup();
     }
   }
 
@@ -136,55 +145,7 @@ public class ControllerSetup
     }
     try {
       nc = Nats.connect("nats://" + config.nats_server_addr() + ":" + config.nats_server_port());
-      Dispatcher dispatcher = nc.createDispatcher(msg -> {
-        try {
-          EventProtos.Event event = EventProtos.Event.parseFrom(msg.getData());
-          List<ContextVariable> dataList = event.getDataList();
-          Optional<Boolean> sensorValue = Optional.empty();
-          Optional<Double> trainSpeed = Optional.empty();
-          Optional<String> traceId = Optional.empty();
-          Optional<String> spanId = Optional.empty();
-          for (ContextVariable contextVariable : dataList) {
-            if (contextVariable.getName().equals("value")) {
-              sensorValue = Optional.of(contextVariable.getValue().getBool());
-            } else if (contextVariable.getName().equals("trainSpeed")) {
-              trainSpeed = Optional.of(contextVariable.getValue().getDouble());
-            } else if (contextVariable.getName().equals("traceId")) {
-              traceId = Optional.of(contextVariable.getValue().getString());
-            } else if (contextVariable.getName().equals("spanId")) {
-              spanId = Optional.of(contextVariable.getValue().getString());
-            }
-          }
-          if (
-            sensorValue.isEmpty() || trainSpeed.isEmpty() || traceId.isEmpty() || spanId.isEmpty()
-          ) {
-            System.out.println(
-              natsLoggingMessage +
-                String.format(
-                  "Message was missing values: SensorValue: %s, TrainSpeed: %s, TraceId: %s, SpanId: %s",
-                  sensorValue,
-                  trainSpeed,
-                  traceId,
-                  spanId
-                )
-            );
-          } else {
-            if (sensorValue.get()) {
-              controller.tell(
-                new Controller.CommandSensorSeen(trainSpeed.get(), traceId.get(), spanId.get())
-              );
-            } else {
-              controller.tell(
-                new Controller.CommandSensorNotSeen(trainSpeed.get(), traceId.get(), spanId.get())
-              );
-            }
-          }
-        } catch (InvalidProtocolBufferException e) {
-          System.out.println(
-            natsLoggingMessage + "Error parsing nats message to event: " + e.getMessage()
-          );
-        }
-      });
+      Dispatcher dispatcher = nc.createDispatcher(this::NatsDispatcher);
       dispatcher.subscribe(natsTopic);
       getContext().getLog().info("{} subscribed to Topic: {}", componentName, natsTopic);
       return NatsSetupStatus.Success;
@@ -192,5 +153,43 @@ public class ControllerSetup
       getContext().getLog().error("Could not connect to nats server, error: {}", e.getMessage());
       return NatsSetupStatus.Failure;
     }
+  }
+
+  private void NatsDispatcher(Message msg){
+      try {
+          EventProtos.Event event = EventProtos.Event.parseFrom(msg.getData());
+          List<ContextVariable> dataList = event.getDataList();
+          NatsMessage currentNatsMessage = getNatsMessage(dataList);
+          if (!currentNatsMessage.isValid()) {
+              System.out.println(
+                      natsLoggingMessage +
+                              String.format(
+                                      "Message was missing values: SensorValue: %s, TrainSpeed: %s, TraceId: %s, SpanId: %s",
+                                      currentNatsMessage.sensorValue,
+                                      currentNatsMessage.trainSpeed,
+                                      currentNatsMessage.traceId,
+                                      currentNatsMessage.spanId
+                              )
+              );
+          } else {
+              if (!currentNatsMessage.equals(latestNatsMessage)){
+                  latestNatsMessage = currentNatsMessage;
+                  System.out.println(natsLoggingMessage + "Sent NatsMessage to controller: " + currentNatsMessage);
+                  if (currentNatsMessage.sensorValue) {
+                      controller.tell(
+                              new Controller.CommandSensorSeen(currentNatsMessage.trainSpeed, currentNatsMessage.traceId, currentNatsMessage.spanId)
+                      );
+                  } else {
+                      controller.tell(
+                              new Controller.CommandSensorNotSeen(currentNatsMessage.trainSpeed, currentNatsMessage.traceId, currentNatsMessage.spanId)
+                      );
+                  }
+              }
+          }
+      } catch (InvalidProtocolBufferException e) {
+          System.out.println(
+                  natsLoggingMessage + "Error parsing nats message to event: " + e.getMessage()
+          );
+      }
   }
 }

@@ -124,9 +124,9 @@ class Simulation:
             if train.front_position() >= sensor_pos and train_times["enter"] is None:
                 train_times["enter"] = self._simulated_time_in_s
             if (
-                    train.back_position() > sensor_pos
-                    and train_times["enter"] is not None
-                    and train_times["leave"] is None
+                train.back_position() > sensor_pos
+                and train_times["enter"] is not None
+                and train_times["leave"] is None
             ):
                 train_times["leave"] = self._simulated_time_in_s
                 delta_t = train_times["leave"] - train_times["enter"]
@@ -152,7 +152,7 @@ class Simulation:
 
         # Linear interpolation
         return START_INTERVAL_IN_SECONDS + (
-                END_INTERVAL_IN_SECONDS - START_INTERVAL_IN_SECONDS
+            END_INTERVAL_IN_SECONDS - START_INTERVAL_IN_SECONDS
         ) * (elapsed_time / DURATION_IN_SECONDS)
 
     async def simulate(self):
