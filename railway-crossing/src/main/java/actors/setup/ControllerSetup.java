@@ -142,29 +142,41 @@ public class ControllerSetup
           List<ContextVariable> dataList = event.getDataList();
           Optional<Boolean> sensorValue = Optional.empty();
           Optional<Double> trainSpeed = Optional.empty();
+          Optional<String> traceId = Optional.empty();
+          Optional<String> spanId = Optional.empty();
           for (ContextVariable contextVariable : dataList) {
             if (contextVariable.getName().equals("value")) {
               sensorValue = Optional.of(contextVariable.getValue().getBool());
             } else if (contextVariable.getName().equals("trainSpeed")) {
               trainSpeed = Optional.of(contextVariable.getValue().getDouble());
+            } else if (contextVariable.getName().equals("traceId")) {
+              traceId = Optional.of(contextVariable.getValue().getString());
+            } else if (contextVariable.getName().equals("spanId")) {
+              spanId = Optional.of(contextVariable.getValue().getString());
             }
           }
-          if (sensorValue.isEmpty() || trainSpeed.isEmpty()) {
+          if (
+            sensorValue.isEmpty() || trainSpeed.isEmpty() || traceId.isEmpty() || spanId.isEmpty()
+          ) {
             System.out.println(
               natsLoggingMessage +
                 String.format(
-                  "Message was missing values: SensorValue: %s, TrainSpeed: %s",
+                  "Message was missing values: SensorValue: %s, TrainSpeed: %s, TraceId: %s, SpanId: %s",
                   sensorValue,
-                  trainSpeed
+                  trainSpeed,
+                  traceId,
+                  spanId
                 )
             );
           } else {
-            //System.out.println(natsLoggingMessage +
-            //        String.format("Received Signal with values SensorValue: %s, TrainSpeed: %s",  sensorValue.get(), trainSpeed.get()));
             if (sensorValue.get()) {
-              controller.tell(new Controller.CommandTrainSeen(trainSpeed.get()));
+              controller.tell(
+                new Controller.CommandSensorSeen(trainSpeed.get(), traceId.get(), spanId.get())
+              );
             } else {
-              controller.tell(new Controller.CommandTrainNotSeen(trainSpeed.get()));
+              controller.tell(
+                new Controller.CommandSensorNotSeen(trainSpeed.get(), traceId.get(), spanId.get())
+              );
             }
           }
         } catch (InvalidProtocolBufferException e) {

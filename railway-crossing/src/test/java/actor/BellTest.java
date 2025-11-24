@@ -14,6 +14,10 @@ public class BellTest {
 
   private static final Double trainSpeed = 50.0;
 
+  private static final String traceId = "trace1";
+
+  private static final String spanId = "span1";
+
   private final RailwayService mockedService = mock(RailwayService.class);
 
   static final ActorTestKit testKit = ActorTestKit.create();
@@ -27,10 +31,10 @@ public class BellTest {
     });
     verify(mockedService).bellOn(any(), any(), any());
     LoggingTestKit.info("bell in state Off").expect(testKit.system(), () -> {
-      bell.tell(new Bell.CommandBellOff());
+      bell.tell(new Bell.CommandBellOff(traceId, spanId));
       return null;
     });
-    verify(mockedService).bellOff(any(), any());
+    verify(mockedService).bellOff(any(), any(), any(), any());
   }
 
   @Test
@@ -39,17 +43,17 @@ public class BellTest {
     LoggingTestKit.info("bell1 in state")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        bell.tell(new Bell.CommandBellOff());
+        bell.tell(new Bell.CommandBellOff(traceId, spanId));
         return null;
       });
     verify(mockedService, times(0)).bellOn(any(), any(), any());
-    verify(mockedService, times(0)).bellOff(any(), any());
+    verify(mockedService, times(0)).bellOff(any(), any(), any(), any());
     LoggingTestKit.info("bell1 in state On").expect(testKit.system(), () -> {
       bell.tell(new Bell.CommandBellOn(trainSpeed));
       return null;
     });
     verify(mockedService, times(1)).bellOn(any(), any(), any());
-    verify(mockedService, times(0)).bellOff(any(), any());
+    verify(mockedService, times(0)).bellOff(any(), any(), any(), any());
     LoggingTestKit.info("bell1 in state")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
@@ -57,7 +61,7 @@ public class BellTest {
         return null;
       });
     verify(mockedService, times(1)).bellOn(any(), any(), any());
-    verify(mockedService, times(0)).bellOff(any(), any());
+    verify(mockedService, times(0)).bellOff(any(), any(), any(), any());
   }
 
   @AfterClass

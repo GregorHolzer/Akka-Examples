@@ -7,14 +7,6 @@
           "LightMachine",
           "Gate"
       ]
-    },
-    {
-      "crossingId": "crossing1",
-      "components": [
-        "Bell",
-        "LightMachine",
-        "Gate"
-      ]
     }
   ],
   "service_location": "Local",

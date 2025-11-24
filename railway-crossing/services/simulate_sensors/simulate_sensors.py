@@ -5,10 +5,15 @@ import nats
 import random
 
 from opentelemetry import metrics
+from opentelemetry import trace
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.trace import SpanContext, TraceFlags
 
 import uuid
 import os
@@ -41,6 +46,13 @@ meter = metrics.get_meter("railway")
 
 events_published_counter = meter.create_counter("events_published")
 phase_counter = meter.create_counter("phase")
+
+trace_provider = TracerProvider(resource=resource)
+span_exporter = OTLPSpanExporter()
+span_processor = BatchSpanProcessor(span_exporter)
+trace_provider.add_span_processor(span_processor)
+trace.set_tracer_provider(trace_provider)
+tracer = trace.get_tracer(__name__)
 
 
 class Train:
@@ -112,9 +124,9 @@ class Simulation:
             if train.front_position() >= sensor_pos and train_times["enter"] is None:
                 train_times["enter"] = self._simulated_time_in_s
             if (
-                train.back_position() > sensor_pos
-                and train_times["enter"] is not None
-                and train_times["leave"] is None
+                    train.back_position() > sensor_pos
+                    and train_times["enter"] is not None
+                    and train_times["leave"] is None
             ):
                 train_times["leave"] = self._simulated_time_in_s
                 delta_t = train_times["leave"] - train_times["enter"]
@@ -140,7 +152,7 @@ class Simulation:
 
         # Linear interpolation
         return START_INTERVAL_IN_SECONDS + (
-            END_INTERVAL_IN_SECONDS - START_INTERVAL_IN_SECONDS
+                END_INTERVAL_IN_SECONDS - START_INTERVAL_IN_SECONDS
         ) * (elapsed_time / DURATION_IN_SECONDS)
 
     async def simulate(self):
@@ -173,6 +185,7 @@ class Simulation:
             await asyncio.sleep(current_interval)
 
     async def _broadcast_sensor_values(self):
+
         s = any(self._sensor_values)
         current_speed = 0.0
         for train in self._trains:
@@ -199,8 +212,21 @@ class Simulation:
         variable_speed.name = "trainSpeed"
         variable_speed.value.double = current_speed
 
-        # Publish event
-        await self._nc.publish(subject, event.SerializeToString())
+        with tracer.start_as_current_span("broadcast_sensor") as span:
+            ctx = span.get_span_context()
+            traceId = trace.format_trace_id(ctx.trace_id)
+            spanId = trace.format_span_id(ctx.span_id)
+
+            variable_traceId = event.data.add()
+            variable_traceId.name = "traceId"
+            variable_traceId.value.string = traceId
+
+            variable_spanId = event.data.add()
+            variable_spanId.name = "spanId"
+            variable_spanId.value.string = spanId
+
+            # Publish event
+            await self._nc.publish(subject, event.SerializeToString())
 
         events_published_counter.add(1)
 

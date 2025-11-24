@@ -42,7 +42,21 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
   /**
    * Message that changes the {@link State} to {@link State#Off}
    */
-  public static class CommandBellOff implements BellCommand {}
+  public static class CommandBellOff implements BellCommand {
+
+    public String traceId;
+
+    public String spanId;
+
+    @JsonCreator
+    public CommandBellOff(
+      @JsonProperty("traceId") String traceId,
+      @JsonProperty("spanId") String spanId
+    ) {
+      this.traceId = traceId;
+      this.spanId = spanId;
+    }
+  }
 
   private final RailwayService railwayService;
 
@@ -71,7 +85,7 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
   public Receive<BellCommand> createReceive() {
     return newReceiveBuilder()
       .onMessage(CommandBellOn.class, msg -> onTurnOn(msg.trainSpeed))
-      .onMessage(CommandBellOff.class, msg -> onTurnOff())
+      .onMessage(CommandBellOff.class, this::onTurnOff)
       .build();
   }
 
@@ -92,10 +106,15 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
    * Updates the {@link State} and invokes service {@link RailwayService#bellOff(ActorContext, String)}
    * @return the same {@link Behavior} as before
    */
-  private Behavior<Bell.BellCommand> onTurnOff() {
+  private Behavior<Bell.BellCommand> onTurnOff(CommandBellOff cmd) {
     if (state == State.On) {
       state = State.Off;
-      railwayService.bellOff(getContext(), getContext().getSelf().path().name());
+      railwayService.bellOff(
+        getContext(),
+        getContext().getSelf().path().name(),
+        cmd.traceId,
+        cmd.spanId
+      );
       logState(getContext(), state);
     }
     return Behaviors.same();

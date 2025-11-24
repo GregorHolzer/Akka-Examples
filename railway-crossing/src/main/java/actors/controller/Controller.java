@@ -35,29 +35,45 @@ public class Controller
    */
   public interface ControllerCommand extends Command {}
 
-  /**
-   * Message that indicates that a sensor detects a train
-   */
-  public static class CommandTrainSeen implements ControllerCommand {
+  public abstract static class SensorCommand implements ControllerCommand {
 
     public Double trainSpeed;
 
+    public String traceId;
+
+    public String spanId;
+
     @JsonCreator
-    public CommandTrainSeen(@JsonProperty("trainSpeed") Double trainSpeed) {
+    public SensorCommand(
+      @JsonProperty("trainSpeed") Double trainSpeed,
+      @JsonProperty("traceId") String traceId,
+      @JsonProperty("spanId") String spanId
+    ) {
       this.trainSpeed = trainSpeed;
+      this.traceId = traceId;
+      this.spanId = spanId;
+    }
+  }
+
+  /**
+   * Message that indicates that a sensor detects a train
+   */
+  public static class CommandSensorSeen extends SensorCommand {
+
+    @JsonCreator
+    public CommandSensorSeen(Double trainSpeed, String traceId, String spanId) {
+      super(trainSpeed, traceId, spanId);
     }
   }
 
   /**
    * Message that indicates that a sensor no longer detects a train
    */
-  public static class CommandTrainNotSeen implements ControllerCommand {
-
-    public Double trainSpeed;
+  public static class CommandSensorNotSeen extends SensorCommand {
 
     @JsonCreator
-    public CommandTrainNotSeen(@JsonProperty("trainSpeed") Double trainSpeed) {
-      this.trainSpeed = trainSpeed;
+    public CommandSensorNotSeen(Double trainSpeed, String traceId, String spanId) {
+      super(trainSpeed, traceId, spanId);
     }
   }
 
@@ -94,8 +110,8 @@ public class Controller
   @Override
   public Receive<ControllerCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(CommandTrainSeen.class, msg -> onTrainSeen(msg.trainSpeed))
-      .onMessage(CommandTrainNotSeen.class, msg -> onTrainNotSeen(msg.trainSpeed))
+      .onMessage(CommandSensorSeen.class, msg -> onTrainSeen(msg.trainSpeed))
+      .onMessage(CommandSensorNotSeen.class, this::onTrainNotSeen)
       .build();
   }
 
@@ -117,18 +133,18 @@ public class Controller
     return Behaviors.same();
   }
 
-  private Behavior<ControllerCommand> onTrainNotSeen(Double trainSpeed) {
+  private Behavior<ControllerCommand> onTrainNotSeen(CommandSensorNotSeen cmd) {
     switch (state) {
       case Approaching -> {
-        getContext().getLog().info("Passed on TrainSpeed: {}", trainSpeed);
-        lightMachine.tell(new LightMachine.CommandTurnOn(trainSpeed));
-        gate.tell(new Gate.CommandClose(trainSpeed));
+        getContext().getLog().info("Passed on TrainSpeed: {}", cmd.trainSpeed);
+        lightMachine.tell(new LightMachine.CommandTurnOn(cmd.trainSpeed));
+        gate.tell(new Gate.CommandClose(cmd.trainSpeed));
         state = State.Close;
         logState(getContext(), state);
       }
       case Present -> {
         lightMachine.tell(new LightMachine.CommandTurnOff());
-        gate.tell(new Gate.CommandOpen());
+        gate.tell(new Gate.CommandOpen(cmd.traceId, cmd.spanId));
         state = State.Leaving;
         logState(getContext(), state);
       }

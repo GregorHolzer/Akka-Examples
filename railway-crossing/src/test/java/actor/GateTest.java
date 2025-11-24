@@ -17,6 +17,10 @@ public class GateTest {
 
   private static final Double trainSpeed = 50.0;
 
+  private static final String traceId = "trace1";
+
+  private static final String spanId = "span1";
+
   private final RailwayService mockedService = mock(RailwayService.class);
 
   private static final ActorTestKit testKit = ActorTestKit.create();
@@ -38,7 +42,7 @@ public class GateTest {
     verify(mockedService).gateDown(any(), any(), any());
     verify(mockedService, times(0)).gateUp(any(), any(), any());
     LoggingTestKit.info("gate in state Open").expect(testKit.system(), () -> {
-      gate.tell(new Gate.CommandOpen());
+      gate.tell(new Gate.CommandOpen(traceId, spanId));
       return null;
     });
     gate.tell(
@@ -60,7 +64,7 @@ public class GateTest {
     LoggingTestKit.info("gate1 in state ")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        gate.tell(new Gate.CommandOpen());
+        gate.tell(new Gate.CommandOpen(traceId, spanId));
         return null;
       });
     verify(mockedService, times(0)).gateDown(any(), any(), any());

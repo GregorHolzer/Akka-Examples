@@ -22,7 +22,21 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
 
   public interface GateCommand extends Command {}
 
-  public static class CommandOpen implements GateCommand {}
+  public static class CommandOpen implements GateCommand {
+
+    public String traceId;
+
+    public String spanId;
+
+    @JsonCreator
+    public CommandOpen(
+      @JsonProperty("traceId") String traceId,
+      @JsonProperty("spanId") String spanId
+    ) {
+      this.traceId = traceId;
+      this.spanId = spanId;
+    }
+  }
 
   public static class CommandClose implements GateCommand {
 
@@ -54,6 +68,10 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
 
   private State state = State.Open;
 
+  private String currentTraceId;
+
+  private String currentSpanId;
+
   public static Behavior<GateCommand> create(
     ActorRef<Bell.BellCommand> bell,
     RailwayService railwayService
@@ -77,7 +95,7 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
 
   public Receive<GateCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(CommandOpen.class, msg -> onGateOpen())
+      .onMessage(CommandOpen.class, this::onGateOpen)
       .onMessage(CommandClose.class, msg -> onGateClose(msg.trainSpeed))
       .onMessage(WrappedInvocationResponse.class, this::onWrappedInvocationResponse)
       .build();
@@ -93,8 +111,10 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
     return Behaviors.same();
   }
 
-  private Behavior<GateCommand> onGateOpen() {
+  private Behavior<GateCommand> onGateOpen(CommandOpen cmd) {
     if (state == State.Closed) {
+      currentTraceId = cmd.traceId;
+      currentSpanId = cmd.spanId;
       railwayService.gateUp(getContext(), messageAdapter, getContext().getSelf().path().name());
       state = State.Open;
       logState(getContext(), state);
@@ -107,7 +127,7 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
   ) {
     RailwayService.InvocationResult result = wrappedInvocationResponse.response.result;
     if (result == RailwayService.InvocationResult.Success) {
-      bell.tell(new Bell.CommandBellOff());
+      bell.tell(new Bell.CommandBellOff(currentTraceId, currentSpanId));
       getContext().getLog().info("Gate service invocation was successful");
     } else {
       getContext().getLog().error("Gate service invocation failed");
