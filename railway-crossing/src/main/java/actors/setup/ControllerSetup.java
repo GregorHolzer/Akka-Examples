@@ -136,37 +136,42 @@ public class ControllerSetup
     }
     try {
       nc = Nats.connect("nats://" + config.nats_server_addr() + ":" + config.nats_server_port());
-      Dispatcher dispatcher = nc.createDispatcher(msg ->  {
-          try {
-              EventProtos.Event event = EventProtos.Event.parseFrom(msg.getData());
-              List<ContextVariable> dataList = event.getDataList();
-              Optional<Boolean> sensorValue = Optional.empty();
-              Optional<Double> trainSpeed = Optional.empty();
-              for(ContextVariable contextVariable : dataList) {
-                  if(contextVariable.getName().equals("value")) {
-                      sensorValue = Optional.of(contextVariable.getValue().getBool());
-                  }
-                  else if (contextVariable.getName().equals("trainSpeed")) {
-                      trainSpeed = Optional.of(contextVariable.getValue().getDouble());
-                  }
-              }
-              if(sensorValue.isEmpty() ||  trainSpeed.isEmpty()) {
-                  System.out.println(natsLoggingMessage +
-                          String.format("Message was missing values: SensorValue: %s, TrainSpeed: %s", sensorValue, trainSpeed));
-              }
-              else{
-                  System.out.println(natsLoggingMessage +
-                          String.format("Received Signal with values SensorValue: %s, TrainSpeed: %s",  sensorValue.get(), trainSpeed.get()));
-                  if(sensorValue.get()) {
-                      controller.tell(new Controller.CommandTrainSeen(trainSpeed.get()));
-                  }
-                  else {
-                      controller.tell(new Controller.CommandTrainNotSeen(trainSpeed.get()));
-                  }
-              }
-          } catch (InvalidProtocolBufferException e) {
-              System.out.println(natsLoggingMessage + "Error parsing nats message to event: " + e.getMessage());
+      Dispatcher dispatcher = nc.createDispatcher(msg -> {
+        try {
+          EventProtos.Event event = EventProtos.Event.parseFrom(msg.getData());
+          List<ContextVariable> dataList = event.getDataList();
+          Optional<Boolean> sensorValue = Optional.empty();
+          Optional<Double> trainSpeed = Optional.empty();
+          for (ContextVariable contextVariable : dataList) {
+            if (contextVariable.getName().equals("value")) {
+              sensorValue = Optional.of(contextVariable.getValue().getBool());
+            } else if (contextVariable.getName().equals("trainSpeed")) {
+              trainSpeed = Optional.of(contextVariable.getValue().getDouble());
+            }
           }
+          if (sensorValue.isEmpty() || trainSpeed.isEmpty()) {
+            System.out.println(
+              natsLoggingMessage +
+                String.format(
+                  "Message was missing values: SensorValue: %s, TrainSpeed: %s",
+                  sensorValue,
+                  trainSpeed
+                )
+            );
+          } else {
+            //System.out.println(natsLoggingMessage +
+            //        String.format("Received Signal with values SensorValue: %s, TrainSpeed: %s",  sensorValue.get(), trainSpeed.get()));
+            if (sensorValue.get()) {
+              controller.tell(new Controller.CommandTrainSeen(trainSpeed.get()));
+            } else {
+              controller.tell(new Controller.CommandTrainNotSeen(trainSpeed.get()));
+            }
+          }
+        } catch (InvalidProtocolBufferException e) {
+          System.out.println(
+            natsLoggingMessage + "Error parsing nats message to event: " + e.getMessage()
+          );
+        }
       });
       dispatcher.subscribe(natsTopic);
       getContext().getLog().info("{} subscribed to Topic: {}", componentName, natsTopic);

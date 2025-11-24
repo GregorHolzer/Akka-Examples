@@ -25,13 +25,28 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
   public static class CommandOpen implements GateCommand {}
 
   public static class CommandClose implements GateCommand {
-      public Double trainSpeed;
 
-      @JsonCreator
-      public CommandClose(@JsonProperty("trainSpeed") Double trainSpeed) {
-          this.trainSpeed = trainSpeed;
-      }
+    public Double trainSpeed;
+
+    @JsonCreator
+    public CommandClose(@JsonProperty("trainSpeed") Double trainSpeed) {
+      this.trainSpeed = trainSpeed;
+    }
   }
+
+  public static class WrappedInvocationResponse implements GateCommand {
+
+    public RailwayService.InvocationResponse response;
+
+    @JsonCreator
+    public WrappedInvocationResponse(
+      @JsonProperty("result") RailwayService.InvocationResponse response
+    ) {
+      this.response = response;
+    }
+  }
+
+  private final ActorRef<RailwayService.InvocationResponse> messageAdapter;
 
   private final ActorRef<Bell.BellCommand> bell;
 
@@ -54,12 +69,17 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
     super(context);
     this.bell = bell;
     this.railwayService = railwayService;
+    this.messageAdapter = context.messageAdapter(
+      RailwayService.InvocationResponse.class,
+      WrappedInvocationResponse::new
+    );
   }
 
   public Receive<GateCommand> createReceive() {
     return newReceiveBuilder()
       .onMessage(CommandOpen.class, msg -> onGateOpen())
       .onMessage(CommandClose.class, msg -> onGateClose(msg.trainSpeed))
+      .onMessage(WrappedInvocationResponse.class, this::onWrappedInvocationResponse)
       .build();
   }
 
@@ -75,10 +95,22 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
 
   private Behavior<GateCommand> onGateOpen() {
     if (state == State.Closed) {
-      bell.tell(new Bell.CommandBellOff());
+      railwayService.gateUp(getContext(), messageAdapter, getContext().getSelf().path().name());
       state = State.Open;
-      railwayService.gateUp(getContext(), getContext().getSelf().path().name());
       logState(getContext(), state);
+    }
+    return Behaviors.same();
+  }
+
+  private Behavior<GateCommand> onWrappedInvocationResponse(
+    WrappedInvocationResponse wrappedInvocationResponse
+  ) {
+    RailwayService.InvocationResult result = wrappedInvocationResponse.response.result;
+    if (result == RailwayService.InvocationResult.Success) {
+      bell.tell(new Bell.CommandBellOff());
+      getContext().getLog().info("Gate service invocation was successful");
+    } else {
+      getContext().getLog().error("Gate service invocation failed");
     }
     return Behaviors.same();
   }

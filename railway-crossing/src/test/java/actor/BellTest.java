@@ -12,10 +12,9 @@ import service.RailwayService;
 
 public class BellTest {
 
-    private static final Double trainSpeed = 50.0;
+  private static final Double trainSpeed = 50.0;
 
-
-    private final RailwayService mockedService = mock(RailwayService.class);
+  private final RailwayService mockedService = mock(RailwayService.class);
 
   static final ActorTestKit testKit = ActorTestKit.create();
 

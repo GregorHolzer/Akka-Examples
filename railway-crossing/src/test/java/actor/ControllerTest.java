@@ -12,7 +12,7 @@ import org.junit.Test;
 
 public class ControllerTest {
 
-    private static final Double trainSpeed = 50.0;
+  private static final Double trainSpeed = 50.0;
 
   private static final ActorTestKit testKit = ActorTestKit.create();
 
@@ -32,12 +32,12 @@ public class ControllerTest {
       controller.tell(new Controller.CommandTrainSeen(trainSpeed));
       return null;
     });
-    gate.expectMessageClass(Gate.CommandClose.class);
-    lightMachine.expectMessageClass(LightMachine.CommandTurnOn.class);
     LoggingTestKit.info("controller in state Close").expect(testKit.system(), () -> {
       controller.tell(new Controller.CommandTrainNotSeen(trainSpeed));
       return null;
     });
+    gate.expectMessageClass(Gate.CommandClose.class);
+    lightMachine.expectMessageClass(LightMachine.CommandTurnOn.class);
     LoggingTestKit.info("controller in state Present").expect(testKit.system(), () -> {
       controller.tell(new Controller.CommandTrainSeen(trainSpeed));
       return null;

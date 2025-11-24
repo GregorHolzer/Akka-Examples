@@ -30,12 +30,13 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
    * Message that changes the {@link State} to {@link State#On}
    */
   public static class CommandBellOn implements BellCommand {
-      public Double trainSpeed;
 
-      @JsonCreator
-      public CommandBellOn(@JsonProperty("trainSpeed") Double trainSpeed) {
-          this.trainSpeed = trainSpeed;
-      }
+    public Double trainSpeed;
+
+    @JsonCreator
+    public CommandBellOn(@JsonProperty("trainSpeed") Double trainSpeed) {
+      this.trainSpeed = trainSpeed;
+    }
   }
 
   /**

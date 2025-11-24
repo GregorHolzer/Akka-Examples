@@ -39,17 +39,14 @@ To run two nodes with an example configuration:
     ./runNode.sh -n 1 -c ./configs/node1.json
 ```
 
-Publish a Sensor-Event to the Server via Nats-Cli:
+Start the simulate-sensor service:
 
 ```bash
-    nats pub -s nats://localhost:4222 Sensor "TrainSeen"
+    cd ./services/simulate_sensors/
+    docker compose up -d
 ```
 
-```bash
-    nats pub -s nats://localhost:4222 Sensor "TrainNotSeen"
-```
-
-[See the Status](http://localhost:8080/status)
+[See the Status](http://localhost:8000/status)
 
 ### Example Config
 

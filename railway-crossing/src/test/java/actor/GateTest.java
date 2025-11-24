@@ -15,9 +15,9 @@ import service.RailwayService;
 
 public class GateTest {
 
-    private static final Double trainSpeed = 50.0;
+  private static final Double trainSpeed = 50.0;
 
-    private final RailwayService mockedService = mock(RailwayService.class);
+  private final RailwayService mockedService = mock(RailwayService.class);
 
   private static final ActorTestKit testKit = ActorTestKit.create();
 
@@ -36,14 +36,19 @@ public class GateTest {
     });
     bell.expectMessageClass(Bell.CommandBellOn.class);
     verify(mockedService).gateDown(any(), any(), any());
-    verify(mockedService, times(0)).gateUp(any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any(), any());
     LoggingTestKit.info("gate in state Open").expect(testKit.system(), () -> {
       gate.tell(new Gate.CommandOpen());
       return null;
     });
+    gate.tell(
+      new Gate.WrappedInvocationResponse(
+        new RailwayService.InvocationResponse(RailwayService.InvocationResult.Success)
+      )
+    );
     bell.expectMessageClass(Bell.CommandBellOff.class);
     verify(mockedService).gateDown(any(), any(), any());
-    verify(mockedService).gateUp(any(), any());
+    verify(mockedService).gateUp(any(), any(), any());
   }
 
   @Test
@@ -59,14 +64,14 @@ public class GateTest {
         return null;
       });
     verify(mockedService, times(0)).gateDown(any(), any(), any());
-    verify(mockedService, times(0)).gateUp(any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any(), any());
     LoggingTestKit.info("gate1 in state ").expect(testKit.system(), () -> {
       gate.tell(new Gate.CommandClose(trainSpeed));
       return null;
     });
     bell.expectMessageClass(Bell.CommandBellOn.class);
     verify(mockedService).gateDown(any(), any(), any());
-    verify(mockedService, times(0)).gateUp(any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any(), any());
     LoggingTestKit.info("gate1 in state ")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
@@ -74,7 +79,7 @@ public class GateTest {
         return null;
       });
     verify(mockedService).gateDown(any(), any(), any());
-    verify(mockedService, times(0)).gateUp(any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any(), any());
   }
 
   @AfterClass

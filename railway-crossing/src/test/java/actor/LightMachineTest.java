@@ -13,9 +13,9 @@ import service.RailwayService;
 
 public class LightMachineTest {
 
-    private static final Double trainSpeed = 50.0;
+  private static final Double trainSpeed = 50.0;
 
-    private final RailwayService mockedService = mock(RailwayService.class);
+  private final RailwayService mockedService = mock(RailwayService.class);
 
   static final ActorTestKit testKit = ActorTestKit.create();
 
@@ -31,7 +31,7 @@ public class LightMachineTest {
     });
     verify(mockedService).lightOn(any(), any(), any());
     LoggingTestKit.info("lightMachine in state Off").expect(testKit.system(), () -> {
-      lightMachine.tell(new LightMachine.CommandTurnOff(trainSpeed));
+      lightMachine.tell(new LightMachine.CommandTurnOff());
       return null;
     });
     verify(mockedService).lightOff(any(), any());
@@ -46,7 +46,7 @@ public class LightMachineTest {
     LoggingTestKit.info("lightMachine1 in state ")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        lightMachine.tell(new LightMachine.CommandTurnOff(trainSpeed));
+        lightMachine.tell(new LightMachine.CommandTurnOff());
         return null;
       });
     verify(mockedService, times(0)).lightOn(any(), any(), any());

@@ -23,22 +23,16 @@ public class LightMachine
   public interface LightMachineCommand extends Command {}
 
   public static class CommandTurnOn implements LightMachineCommand {
-      public Double trainSpeed;
 
-      @JsonCreator
-      public CommandTurnOn(@JsonProperty("trainSpeed") Double trainSpeed) {
-          this.trainSpeed = trainSpeed;
-      }
+    public Double trainSpeed;
+
+    @JsonCreator
+    public CommandTurnOn(@JsonProperty("trainSpeed") Double trainSpeed) {
+      this.trainSpeed = trainSpeed;
+    }
   }
 
-  public static class CommandTurnOff implements LightMachineCommand {
-      public Double trainSpeed;
-
-      @JsonCreator
-      public CommandTurnOff(@JsonProperty("trainSpeed") Double trainSpeed) {
-          this.trainSpeed = trainSpeed;
-      }
-  }
+  public static class CommandTurnOff implements LightMachineCommand {}
 
   private final RailwayService railwayService;
 
