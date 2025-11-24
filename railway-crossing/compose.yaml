@@ -27,5 +27,6 @@ services:
       - "4222:4222"
   akka-railway-service:
       image: "gregor2323/akka-railway-crossing-service:latest"
+      pull_policy: always
       ports:
         - "8000:8000"

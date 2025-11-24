@@ -1,6 +1,7 @@
 services:
   simulate-sensors:
     image: gregor2323/akka-simulate-sensors:latest
+    pull_policy: always
     environment:
       - START_INTERVAL_IN_SECONDS=0.1
       - END_INTERVAL_IN_SECONDS=0.01
