@@ -11,6 +11,8 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.opentelemetry.api.trace.Span;
+import open_telemetry.TelemetryJaeger;
 import service.RailwayService;
 
 public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMachine<Gate.State> {
@@ -48,29 +50,13 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
     }
   }
 
-  public static class WrappedInvocationResponse implements GateCommand {
-
-    public RailwayService.InvocationResponse response;
-
-    @JsonCreator
-    public WrappedInvocationResponse(
-      @JsonProperty("result") RailwayService.InvocationResponse response
-    ) {
-      this.response = response;
-    }
-  }
-
-  private final ActorRef<RailwayService.InvocationResponse> messageAdapter;
-
   private final ActorRef<Bell.BellCommand> bell;
 
   private final RailwayService railwayService;
 
   private State state = State.Open;
 
-  private String currentTraceId;
-
-  private String currentSpanId;
+  private Integer timesGateOpened;
 
   public static Behavior<GateCommand> create(
     ActorRef<Bell.BellCommand> bell,
@@ -87,18 +73,14 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
     super(context);
     this.bell = bell;
     this.railwayService = railwayService;
-    this.messageAdapter = context.messageAdapter(
-      RailwayService.InvocationResponse.class,
-      WrappedInvocationResponse::new
-    );
+    timesGateOpened = 0;
   }
 
   public Receive<GateCommand> createReceive() {
     return newReceiveBuilder()
       .onMessage(CommandOpen.class, this::onGateOpen)
       .onMessage(CommandClose.class, msg -> onGateClose(msg.trainSpeed))
-      .onMessage(WrappedInvocationResponse.class, this::onWrappedInvocationResponse)
-      .build();
+            .build();
   }
 
   private Behavior<GateCommand> onGateClose(Double trainSpeed) {
@@ -113,24 +95,18 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
 
   private Behavior<GateCommand> onGateOpen(CommandOpen cmd) {
     if (state == State.Closed) {
-      currentTraceId = cmd.traceId;
-      currentSpanId = cmd.spanId;
-      railwayService.gateUp(getContext(), messageAdapter, getContext().getSelf().path().name());
-      state = State.Open;
-      logState(getContext(), state);
-    }
-    return Behaviors.same();
-  }
-
-  private Behavior<GateCommand> onWrappedInvocationResponse(
-    WrappedInvocationResponse wrappedInvocationResponse
-  ) {
-    RailwayService.InvocationResult result = wrappedInvocationResponse.response.result;
-    if (result == RailwayService.InvocationResult.Success) {
-      bell.tell(new Bell.CommandBellOff(currentTraceId, currentSpanId));
-      getContext().getLog().info("Gate service invocation was successful");
-    } else {
-      getContext().getLog().error("Gate service invocation failed");
+        Span span = TelemetryJaeger.createNewSpan(cmd.traceId, cmd.spanId, "gate", "gate-open");
+        try{
+            span.makeCurrent();
+            railwayService.gateUp(getContext(), bell, getContext().getSelf().path().name(), span.getSpanContext().getTraceId(), span.getSpanContext().getSpanId());
+            state = State.Open;
+            logState(getContext(), state);
+            timesGateOpened++;
+            getContext().getLog().info("Number gate was opend: {}", timesGateOpened);
+        }
+        finally {
+            span.end();
+        }
     }
     return Behaviors.same();
   }

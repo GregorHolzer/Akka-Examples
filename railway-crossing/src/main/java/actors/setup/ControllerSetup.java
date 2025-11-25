@@ -1,6 +1,6 @@
 package actors.setup;
 
-import io.opentelemetry.api.OpenTelemetry;
+
 import nats.NatsMessage;
 import actors.NodeConfig;
 import actors.controller.Controller;
@@ -21,9 +21,8 @@ import io.nats.client.Connection;
 import io.nats.client.Dispatcher;
 import io.nats.client.Message;
 import io.nats.client.Nats;
-import open_telemetry.TelemetryJaeger;
-
 import java.util.List;
+
 
 import static nats.NatsMessage.getNatsMessage;
 
@@ -62,6 +61,8 @@ public class ControllerSetup
 
   private NatsMessage latestNatsMessage = null;
 
+  private Integer sensorChanges;
+
   public static Behavior<Receptionist.Listing> create(String crossingId, NodeConfig config) {
     return Behaviors.setup(context -> new ControllerSetup(context, crossingId, config));
   }
@@ -94,7 +95,7 @@ public class ControllerSetup
     context
       .getLog()
       .info("Controller subscribed to ServiceKeys: {}, {}", gateServiceKey, lightMachineServiceKey);
-
+    sensorChanges = 0;
   }
 
   @Override
@@ -160,6 +161,16 @@ public class ControllerSetup
           EventProtos.Event event = EventProtos.Event.parseFrom(msg.getData());
           List<ContextVariable> dataList = event.getDataList();
           NatsMessage currentNatsMessage = getNatsMessage(dataList);
+          if(latestNatsMessage == null){
+              latestNatsMessage = currentNatsMessage;
+          }
+          if(latestNatsMessage.sensorValue == true && currentNatsMessage.sensorValue == false ){
+              sensorChanges++;
+              System.out.println(sensorChanges);
+          }
+          if(currentNatsMessage.sensorValue != latestNatsMessage.sensorValue){
+              latestNatsMessage = currentNatsMessage;
+          }
           if (!currentNatsMessage.isValid()) {
               System.out.println(
                       natsLoggingMessage +
@@ -172,9 +183,7 @@ public class ControllerSetup
                               )
               );
           } else {
-              if (!currentNatsMessage.equals(latestNatsMessage)){
-                  latestNatsMessage = currentNatsMessage;
-                  System.out.println(natsLoggingMessage + "Sent NatsMessage to controller: " + currentNatsMessage);
+                  //System.out.println(natsLoggingMessage + "Sent NatsMessage to controller: " + currentNatsMessage);
                   if (currentNatsMessage.sensorValue) {
                       controller.tell(
                               new Controller.CommandSensorSeen(currentNatsMessage.trainSpeed, currentNatsMessage.traceId, currentNatsMessage.spanId)
@@ -184,7 +193,7 @@ public class ControllerSetup
                               new Controller.CommandSensorNotSeen(currentNatsMessage.trainSpeed, currentNatsMessage.traceId, currentNatsMessage.spanId)
                       );
                   }
-              }
+
           }
       } catch (InvalidProtocolBufferException e) {
           System.out.println(

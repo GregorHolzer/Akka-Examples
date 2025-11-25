@@ -9,6 +9,6 @@ public record NodeConfig(
   String remote_service_name,
   String nats_server_addr,
   int nats_server_port,
-  String jaeger_server_addr,
-  int jaeger_server_port
+  String export_server_addr,
+  int export_server_port
 ) {}

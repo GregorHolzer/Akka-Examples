@@ -3,17 +3,21 @@ package actor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import actors.NodeConfig;
 import actors.bell.Bell;
 import actors.gate.Gate;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
+import open_telemetry.TelemetryJaeger;
 import org.junit.AfterClass;
 import org.junit.Test;
 import service.RailwayService;
 
 public class GateTest {
+
+  private static final NodeConfig nodeConfig = new NodeConfig(null, null, null, null, 1, "localhost", 4317);
 
   private static final Double trainSpeed = 50.0;
 
@@ -29,30 +33,24 @@ public class GateTest {
 
   @Test
   public void fullLightMachineTest() {
+      TelemetryJaeger.setupOpenTelemetry(nodeConfig);
     ActorRef<Gate.GateCommand> gate = testKit.spawn(
       Gate.create(bell.getRef(), mockedService),
       "gate"
     );
-
     LoggingTestKit.info("gate in state Closed").expect(testKit.system(), () -> {
       gate.tell(new Gate.CommandClose(trainSpeed));
       return null;
     });
     bell.expectMessageClass(Bell.CommandBellOn.class);
     verify(mockedService).gateDown(any(), any(), any());
-    verify(mockedService, times(0)).gateUp(any(), any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any(), any(),any(), any());
     LoggingTestKit.info("gate in state Open").expect(testKit.system(), () -> {
       gate.tell(new Gate.CommandOpen(traceId, spanId));
       return null;
     });
-    gate.tell(
-      new Gate.WrappedInvocationResponse(
-        new RailwayService.InvocationResponse(RailwayService.InvocationResult.Success)
-      )
-    );
-    bell.expectMessageClass(Bell.CommandBellOff.class);
     verify(mockedService).gateDown(any(), any(), any());
-    verify(mockedService).gateUp(any(), any(), any());
+    verify(mockedService).gateUp(any(), any(), any(),any(), any());
   }
 
   @Test
@@ -68,14 +66,14 @@ public class GateTest {
         return null;
       });
     verify(mockedService, times(0)).gateDown(any(), any(), any());
-    verify(mockedService, times(0)).gateUp(any(), any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any(), any(),any(), any());
     LoggingTestKit.info("gate1 in state ").expect(testKit.system(), () -> {
       gate.tell(new Gate.CommandClose(trainSpeed));
       return null;
     });
     bell.expectMessageClass(Bell.CommandBellOn.class);
     verify(mockedService).gateDown(any(), any(), any());
-    verify(mockedService, times(0)).gateUp(any(), any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any(), any(),any(), any());
     LoggingTestKit.info("gate1 in state ")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
@@ -83,7 +81,7 @@ public class GateTest {
         return null;
       });
     verify(mockedService).gateDown(any(), any(), any());
-    verify(mockedService, times(0)).gateUp(any(), any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any(), any(),any(), any());
   }
 
   @AfterClass

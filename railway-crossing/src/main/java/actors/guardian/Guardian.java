@@ -44,8 +44,6 @@ public class Guardian extends AbstractBehavior<Command> {
 
   private NodeConfig config;
 
-  private OpenTelemetry openTelemetry;
-
   public static Behavior<Command> create(String configPath) {
     return Behaviors.setup(context -> new Guardian(context, configPath));
   }
@@ -57,7 +55,7 @@ public class Guardian extends AbstractBehavior<Command> {
       ServiceDiscovery discovery = Discovery.get(context.getSystem()).discovery();
       railwayService = new RailwayService(discovery, config);
       railwayService.setupService(context);
-      openTelemetry = TelemetryJaeger.initOpenTelemetry(config);
+      TelemetryJaeger.setupOpenTelemetry(config);
       setupComponent();
     }
   }

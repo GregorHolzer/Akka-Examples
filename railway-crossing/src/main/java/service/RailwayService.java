@@ -2,6 +2,7 @@ package service;
 
 import actors.Command;
 import actors.NodeConfig;
+import actors.bell.Bell;
 import akka.actor.Actor;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.javadsl.ActorContext;
@@ -16,6 +17,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 public class RailwayService {
 
@@ -102,24 +104,11 @@ public class RailwayService {
     return url;
   }
 
-  private void sendRequest(
+  private CompletionStage<HttpResponse> sendRequest(
     ActorContext<?> context,
-    Optional<ActorRef<InvocationResponse>> reply,
     HttpRequest request
   ) {
-    Http.get(context.getSystem())
-      .singleRequest(request)
-      .whenComplete((httpResponse, throwable) -> {
-        if (reply.isPresent()) {
-          if (throwable != null) {
-            reply.get().tell(new InvocationResponse(InvocationResult.Failure));
-          } else if (httpResponse.status().equals(StatusCodes.OK)) {
-            reply.get().tell(new InvocationResponse(InvocationResult.Success));
-          } else {
-            reply.get().tell(new InvocationResponse(InvocationResult.Failure));
-          }
-        }
-      });
+      return Http.get(context.getSystem()).singleRequest(request);
   }
 
   private HttpRequest buildRequest(String path, String crossingId) {
@@ -165,43 +154,51 @@ public class RailwayService {
   public void bellOn(ActorContext<?> context, String crossingId, Double trainSpeed) {
     byte[] body = buildRequestBody(trainSpeed);
     HttpRequest request = buildRequest("/bell/on", crossingId, body);
-    sendRequest(context, Optional.empty(), request);
+    sendRequest(context,  request);
   }
 
   public void bellOff(ActorContext<?> context, String crossingId, String traceId, String spanId) {
     byte[] body = buildRequestBody(traceId, spanId);
     HttpRequest request = buildRequest("/bell/off", crossingId, body);
-    sendRequest(context, Optional.empty(), request);
+    sendRequest(context,  request);
   }
 
   public void gateUp(
     ActorContext<?> context,
-    ActorRef<InvocationResponse> reply,
-    String crossingId
+    ActorRef<Bell.BellCommand> bell,
+    String crossingId,
+    String traceId,
+    String spanId
   ) {
+      
     HttpRequest request = buildRequest("/gate/up", crossingId);
-    sendRequest(context, Optional.of(reply), request);
+    sendRequest(context, request)
+              .whenComplete((httpResponse, throwable) -> {
+                      if (throwable == null && httpResponse.status().equals(StatusCodes.OK)) {
+                          bell.tell(new Bell.CommandBellOff(traceId, spanId));
+                      }
+              });
   }
 
   public void gateDown(ActorContext<?> context, String crossingId, Double trainSpeed) {
     byte[] body = buildRequestBody(trainSpeed);
     HttpRequest request = buildRequest("/gate/down", crossingId, body);
-    sendRequest(context, Optional.empty(), request);
+    sendRequest(context,  request);
   }
 
   public void lightOn(ActorContext<?> context, String crossingId, Double trainSpeed) {
     byte[] body = buildRequestBody(trainSpeed);
     HttpRequest request = buildRequest("/light/on", crossingId, body);
-    sendRequest(context, Optional.empty(), request);
+    sendRequest(context,  request);
   }
 
   public void lightOff(ActorContext<?> context, String crossingId) {
     HttpRequest request = buildRequest("/light/off", crossingId);
-    sendRequest(context, Optional.empty(), request);
+    sendRequest(context,  request);
   }
 
   public void lightEarlyWarning(ActorContext<?> context, String crossingId) {
     HttpRequest request = buildRequest("/light/earlyWarning", crossingId);
-    sendRequest(context, Optional.empty(), request);
+    sendRequest(context,  request);
   }
 }

@@ -19,17 +19,18 @@ import uuid
 import os
 import time
 
-MIN_TRAIN_SPEED_IN_MS = 25
-MAX_TRAIN_SPEED_IN_MS = 38.89
+MIN_TRAIN_SPEED_IN_MS = 1500
+MAX_TRAIN_SPEED_IN_MS = 1500
 TRAIN_LENGTH_IN_M = 150.0
+NUMBER_OF_TRAINS = int(os.environ["NUMBER_OF_TRAINS"])
 
 START_INTERVAL_IN_SECONDS = float(os.environ["START_INTERVAL_IN_SECONDS"])
 END_INTERVAL_IN_SECONDS = float(os.environ["END_INTERVAL_IN_SECONDS"])
 DURATION_IN_SECONDS = 300
 
-SENSOR_POSITIONS = [0.0, 1000.0, 1200.0]
+SENSOR_POSITIONS = [0.0, 1000.0, 1500.0]
 
-TRAINS_INTERVAL_IN_S = 60.0
+TRAINS_INTERVAL_IN_S = 1
 
 TIME_FACTOR = 1.0
 
@@ -75,7 +76,7 @@ class Train:
 
 
 class Simulation:
-    def __init__(self, trains_interval_in_s, sensor_positions, time_factor, nc):
+    def __init__(self, trains_interval_in_s, sensor_positions, time_factor, nc, max_trains):
         self._trains = []
 
         self._simulated_time_in_s = 0.0
@@ -96,8 +97,15 @@ class Simulation:
 
         self._start_time = time.time()
 
+        self._max_trains = max_trains
+
+        self.num_generated_trains = 0
+
     def _new_train(self):
         train = Train(random.uniform(MIN_TRAIN_SPEED_IN_MS, MAX_TRAIN_SPEED_IN_MS))
+
+        self.num_generated_trains +=1
+
         self._trains.append(train)
         # track enter/leave times for sensor 0
         self._train_sensor_times[train] = {"enter": None, "leave": None}
@@ -156,7 +164,7 @@ class Simulation:
         ) * (elapsed_time / DURATION_IN_SECONDS)
 
     async def simulate(self):
-        while True:
+        while self.num_generated_trains < self._max_trains:
             # Compute current broadcast interval
             current_interval = self._compute_broadcast_interval()
 
@@ -180,7 +188,6 @@ class Simulation:
 
             # Broadcast sensor values
             await self._broadcast_sensor_values()
-
             # Sleep to maintain broadcast rate
             await asyncio.sleep(current_interval)
 
@@ -228,7 +235,7 @@ class Simulation:
             # Publish event
             await self._nc.publish(subject, event.SerializeToString())
 
-        events_published_counter.add(1)
+        #events_published_counter.add(1)
 
 
 async def main():
@@ -238,9 +245,11 @@ async def main():
 
     print(f"Running sensor simulation, NATS URL={nats_url}")
 
-    simulation = Simulation(TRAINS_INTERVAL_IN_S, SENSOR_POSITIONS, TIME_FACTOR, nc)
+    simulation = Simulation(TRAINS_INTERVAL_IN_S, SENSOR_POSITIONS, TIME_FACTOR, nc, NUMBER_OF_TRAINS)
+    start_time = time.time()
     await simulation.simulate()
-
+    print(str(time.time() - start_time))
+    print(simulation.num_generated_trains)
     await nc.drain()
 
 
