@@ -1,7 +1,7 @@
 package actors.setup;
 
+import static nats.NatsMessage.getNatsMessage;
 
-import nats.NatsMessage;
 import actors.NodeConfig;
 import actors.controller.Controller;
 import actors.gate.Gate;
@@ -22,9 +22,7 @@ import io.nats.client.Dispatcher;
 import io.nats.client.Message;
 import io.nats.client.Nats;
 import java.util.List;
-
-
-import static nats.NatsMessage.getNatsMessage;
+import nats.NatsMessage;
 
 public class ControllerSetup
   extends AbstractBehavior<Receptionist.Listing>
@@ -59,18 +57,14 @@ public class ControllerSetup
 
   private Connection nc = null;
 
-  private NatsMessage latestNatsMessage = null;
-
-  private Integer sensorChanges;
-
   public static Behavior<Receptionist.Listing> create(String crossingId, NodeConfig config) {
     return Behaviors.setup(context -> new ControllerSetup(context, crossingId, config));
   }
 
   private ControllerSetup(
-          ActorContext<Receptionist.Listing> context,
-          String crossingId,
-          NodeConfig config
+    ActorContext<Receptionist.Listing> context,
+    String crossingId,
+    NodeConfig config
   ) {
     super(context);
     this.crossingId = crossingId;
@@ -84,7 +78,7 @@ public class ControllerSetup
       crossingId + LightMachineSetup.componentSuffix
     );
     this.config = config;
-      getContext()
+    getContext()
       .getSystem()
       .receptionist()
       .tell(Receptionist.subscribe(gateServiceKey, getContext().getSelf()));
@@ -95,7 +89,6 @@ public class ControllerSetup
     context
       .getLog()
       .info("Controller subscribed to ServiceKeys: {}, {}", gateServiceKey, lightMachineServiceKey);
-    sensorChanges = 0;
   }
 
   @Override
@@ -156,49 +149,45 @@ public class ControllerSetup
     }
   }
 
-  private void NatsDispatcher(Message msg){
-      try {
-          EventProtos.Event event = EventProtos.Event.parseFrom(msg.getData());
-          List<ContextVariable> dataList = event.getDataList();
-          NatsMessage currentNatsMessage = getNatsMessage(dataList);
-          if(latestNatsMessage == null){
-              latestNatsMessage = currentNatsMessage;
-          }
-          if(latestNatsMessage.sensorValue == true && currentNatsMessage.sensorValue == false ){
-              sensorChanges++;
-              System.out.println(sensorChanges);
-          }
-          if(currentNatsMessage.sensorValue != latestNatsMessage.sensorValue){
-              latestNatsMessage = currentNatsMessage;
-          }
-          if (!currentNatsMessage.isValid()) {
-              System.out.println(
-                      natsLoggingMessage +
-                              String.format(
-                                      "Message was missing values: SensorValue: %s, TrainSpeed: %s, TraceId: %s, SpanId: %s",
-                                      currentNatsMessage.sensorValue,
-                                      currentNatsMessage.trainSpeed,
-                                      currentNatsMessage.traceId,
-                                      currentNatsMessage.spanId
-                              )
-              );
-          } else {
-                  //System.out.println(natsLoggingMessage + "Sent NatsMessage to controller: " + currentNatsMessage);
-                  if (currentNatsMessage.sensorValue) {
-                      controller.tell(
-                              new Controller.CommandSensorSeen(currentNatsMessage.trainSpeed, currentNatsMessage.traceId, currentNatsMessage.spanId)
-                      );
-                  } else {
-                      controller.tell(
-                              new Controller.CommandSensorNotSeen(currentNatsMessage.trainSpeed, currentNatsMessage.traceId, currentNatsMessage.spanId)
-                      );
-                  }
-
-          }
-      } catch (InvalidProtocolBufferException e) {
-          System.out.println(
-                  natsLoggingMessage + "Error parsing nats message to event: " + e.getMessage()
+  private void NatsDispatcher(Message msg) {
+    try {
+      EventProtos.Event event = EventProtos.Event.parseFrom(msg.getData());
+      List<ContextVariable> dataList = event.getDataList();
+      NatsMessage currentNatsMessage = getNatsMessage(dataList);
+      if (!currentNatsMessage.isValid()) {
+        System.out.println(
+          natsLoggingMessage +
+            String.format(
+              "Message was missing values: SensorValue: %s, TrainSpeed: %s, TraceId: %s, SpanId: %s",
+              currentNatsMessage.sensorValue,
+              currentNatsMessage.trainSpeed,
+              currentNatsMessage.traceId,
+              currentNatsMessage.spanId
+            )
+        );
+      } else {
+        if (currentNatsMessage.sensorValue) {
+          controller.tell(
+            new Controller.CommandSensorSeen(
+              currentNatsMessage.trainSpeed,
+              currentNatsMessage.traceId,
+              currentNatsMessage.spanId
+            )
           );
+        } else {
+          controller.tell(
+            new Controller.CommandSensorNotSeen(
+              currentNatsMessage.trainSpeed,
+              currentNatsMessage.traceId,
+              currentNatsMessage.spanId
+            )
+          );
+        }
       }
+    } catch (InvalidProtocolBufferException e) {
+      System.out.println(
+        natsLoggingMessage + "Error parsing nats message to event: " + e.getMessage()
+      );
+    }
   }
 }

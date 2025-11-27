@@ -8,14 +8,21 @@ import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-import open_telemetry.TelemetryJaeger;
+import open_telemetry.Telemetry;
 import org.junit.AfterClass;
 import org.junit.Test;
 
-/**
 public class ControllerTest {
 
-    private static final NodeConfig nodeConfig = new NodeConfig(null, null, null, null, 1, "localhost", 4317);
+  private static final NodeConfig nodeConfig = new NodeConfig(
+    null,
+    null,
+    null,
+    null,
+    1,
+    "localhost",
+    4317
+  );
 
   private static final Double trainSpeed = 50.0;
 
@@ -33,7 +40,7 @@ public class ControllerTest {
 
   @Test
   public void initialState() {
-      TelemetryJaeger.setupOpenTelemetry(nodeConfig);
+    Telemetry.setupOpenTelemetry(nodeConfig);
     ActorRef<Controller.ControllerCommand> controller = testKit.spawn(
       Controller.create(gate.getRef(), lightMachine.getRef()),
       "controller"
@@ -136,4 +143,4 @@ public class ControllerTest {
   public static void cleanUp() {
     testKit.shutdownTestKit();
   }
-}**/
+}

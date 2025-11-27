@@ -3,11 +3,10 @@ services:
     image: gregor2323/akka-simulate-sensors:latest
     pull_policy: always
     environment:
-      - NUMBER_OF_TRAINS=100
-      - START_INTERVAL_IN_SECONDS=0.01
-      - END_INTERVAL_IN_SECONDS=0.01
+      - START_INTERVAL_IN_SECONDS=0.05
+      - END_INTERVAL_IN_SECONDS=0.00005
       - NATS_URL=nats-server
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://telegraf:4317
 
     networks:
       - railway-crossing_default

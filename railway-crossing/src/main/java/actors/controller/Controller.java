@@ -14,7 +14,7 @@ import akka.actor.typed.javadsl.Receive;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.opentelemetry.api.trace.Span;
-import open_telemetry.TelemetryJaeger;
+import open_telemetry.Telemetry;
 
 public class Controller
   extends AbstractBehavior<Controller.ControllerCommand>
@@ -85,8 +85,6 @@ public class Controller
 
   private State state = State.Away;
 
-  private Integer numberOfLeaving;
-
   /**
    * Creates a new {@link Controller} actor.
    *
@@ -102,14 +100,13 @@ public class Controller
   }
 
   private Controller(
-          ActorContext<ControllerCommand> context,
-          ActorRef<LightMachine.LightMachineCommand> lightMachine,
-          ActorRef<Gate.GateCommand> gate
+    ActorContext<ControllerCommand> context,
+    ActorRef<LightMachine.LightMachineCommand> lightMachine,
+    ActorRef<Gate.GateCommand> gate
   ) {
     super(context);
-      this.lightMachine = lightMachine;
+    this.lightMachine = lightMachine;
     this.gate = gate;
-    this.numberOfLeaving = 0;
   }
 
   @Override
@@ -124,15 +121,15 @@ public class Controller
     switch (state) {
       case Away -> {
         state = State.Approaching;
-        //logState(getContext(), state);
+        logState(getContext(), state);
       }
       case Close -> {
         state = State.Present;
-        //logState(getContext(), state);
+        logState(getContext(), state);
       }
       case Leaving -> {
         state = State.Left;
-        //logState(getContext(), state);
+        logState(getContext(), state);
       }
     }
     return Behaviors.same();
@@ -145,10 +142,11 @@ public class Controller
         lightMachine.tell(new LightMachine.CommandTurnOn(cmd.trainSpeed));
         gate.tell(new Gate.CommandClose(cmd.trainSpeed));
         state = State.Close;
-        //logState(getContext(), state);
+        logState(getContext(), state);
       }
       case Present -> {
-          Span span = TelemetryJaeger.createNewSpan(cmd.traceId, cmd.spanId, "controller", "train-leaving");
+        /*
+          Span span = Telemetry.createNewSpan(cmd.traceId, cmd.spanId, "controller", "train-leaving");
           try {
               span.makeCurrent();
               lightMachine.tell(new LightMachine.CommandTurnOff());
@@ -159,11 +157,15 @@ public class Controller
               //logState(getContext(), state);
           } finally {
               span.end();
-          }
+          }*/
+        lightMachine.tell(new LightMachine.CommandTurnOff());
+        gate.tell(new Gate.CommandOpen(cmd.traceId, cmd.spanId));
+        state = State.Leaving;
+        logState(getContext(), state);
       }
       case Left -> {
         state = State.Away;
-        //logState(getContext(), state);
+        logState(getContext(), state);
       }
     }
     return Behaviors.same();

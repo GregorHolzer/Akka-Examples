@@ -9,8 +9,6 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.opentelemetry.api.trace.Span;
-import open_telemetry.TelemetryJaeger;
 import service.RailwayService;
 
 public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMachine<Bell.State> {
@@ -64,8 +62,6 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
 
   private State state = State.Off;
 
-  private Integer timesBellTurnedOff;
-
   /**
    * Creates a new {@link Bell} actor.
    *
@@ -79,7 +75,6 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
   private Bell(ActorContext<Bell.BellCommand> context, RailwayService railwayService) {
     super(context);
     this.railwayService = railwayService;
-    this.timesBellTurnedOff = 0;
   }
 
   /**
@@ -108,12 +103,12 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
   }
 
   /**
-   * Updates the {@link State} and invokes service {@link RailwayService#bellOff(ActorContext, String)}
+   * Updates the {@link State} and invokes service {@link RailwayService#bellOff(ActorContext, String, String, String)}
    * @return the same {@link Behavior} as before
    */
   private Behavior<Bell.BellCommand> onTurnOff(CommandBellOff cmd) {
     if (state == State.On) {
-        /*Span span = TelemetryJaeger.createNewSpan(cmd.traceId, cmd.spanId, "bell", "off");
+      /*Span span = TelemetryJaeger.createNewSpan(cmd.traceId, cmd.spanId, "bell", "off");
         try{
             span.makeCurrent();
             state = State.Off;
@@ -128,16 +123,14 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
         finally {
             span.end();
         }*/
-        state = State.Off;
-        railwayService.bellOff(
-                getContext(),
-                getContext().getSelf().path().name(),
-                cmd.traceId,
-                cmd.spanId
-        );
-        timesBellTurnedOff++;
-        logState(getContext(), state);
-        getContext().getLog().info("Number bell was turned off: {}", timesBellTurnedOff);
+      state = State.Off;
+      railwayService.bellOff(
+        getContext(),
+        getContext().getSelf().path().name(),
+        cmd.traceId,
+        cmd.spanId
+      );
+      logState(getContext(), state);
     }
     return Behaviors.same();
   }

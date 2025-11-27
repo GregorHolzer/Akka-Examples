@@ -11,8 +11,6 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.opentelemetry.api.trace.Span;
-import open_telemetry.TelemetryJaeger;
 import service.RailwayService;
 
 public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMachine<Gate.State> {
@@ -56,8 +54,6 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
 
   private State state = State.Open;
 
-  private Integer timesGateOpened;
-
   public static Behavior<GateCommand> create(
     ActorRef<Bell.BellCommand> bell,
     RailwayService railwayService
@@ -73,14 +69,13 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
     super(context);
     this.bell = bell;
     this.railwayService = railwayService;
-    timesGateOpened = 0;
   }
 
   public Receive<GateCommand> createReceive() {
     return newReceiveBuilder()
       .onMessage(CommandOpen.class, this::onGateOpen)
       .onMessage(CommandClose.class, msg -> onGateClose(msg.trainSpeed))
-            .build();
+      .build();
   }
 
   private Behavior<GateCommand> onGateClose(Double trainSpeed) {
@@ -95,7 +90,7 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
 
   private Behavior<GateCommand> onGateOpen(CommandOpen cmd) {
     if (state == State.Closed) {
-        Span span = TelemetryJaeger.createNewSpan(cmd.traceId, cmd.spanId, "gate", "gate-open");
+      /*Span span = Telemetry.createNewSpan(cmd.traceId, cmd.spanId, "gate", "gate-open");
         try{
             span.makeCurrent();
             railwayService.gateUp(getContext(), bell, getContext().getSelf().path().name(), span.getSpanContext().getTraceId(), span.getSpanContext().getSpanId());
@@ -106,7 +101,16 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
         }
         finally {
             span.end();
-        }
+        }*/
+      railwayService.gateUp(
+        getContext(),
+        bell,
+        getContext().getSelf().path().name(),
+        cmd.traceId,
+        cmd.spanId
+      );
+      state = State.Open;
+      logState(getContext(), state);
     }
     return Behaviors.same();
   }

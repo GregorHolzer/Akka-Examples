@@ -104,11 +104,8 @@ public class RailwayService {
     return url;
   }
 
-  private CompletionStage<HttpResponse> sendRequest(
-    ActorContext<?> context,
-    HttpRequest request
-  ) {
-      return Http.get(context.getSystem()).singleRequest(request);
+  private CompletionStage<HttpResponse> sendRequest(ActorContext<?> context, HttpRequest request) {
+    return Http.get(context.getSystem()).singleRequest(request);
   }
 
   private HttpRequest buildRequest(String path, String crossingId) {
@@ -154,13 +151,13 @@ public class RailwayService {
   public void bellOn(ActorContext<?> context, String crossingId, Double trainSpeed) {
     byte[] body = buildRequestBody(trainSpeed);
     HttpRequest request = buildRequest("/bell/on", crossingId, body);
-    sendRequest(context,  request);
+    sendRequest(context, request);
   }
 
   public void bellOff(ActorContext<?> context, String crossingId, String traceId, String spanId) {
     byte[] body = buildRequestBody(traceId, spanId);
     HttpRequest request = buildRequest("/bell/off", crossingId, body);
-    sendRequest(context,  request);
+    sendRequest(context, request);
   }
 
   public void gateUp(
@@ -170,35 +167,33 @@ public class RailwayService {
     String traceId,
     String spanId
   ) {
-      
     HttpRequest request = buildRequest("/gate/up", crossingId);
-    sendRequest(context, request)
-              .whenComplete((httpResponse, throwable) -> {
-                      if (throwable == null && httpResponse.status().equals(StatusCodes.OK)) {
-                          bell.tell(new Bell.CommandBellOff(traceId, spanId));
-                      }
-              });
+    sendRequest(context, request).whenComplete((httpResponse, throwable) -> {
+      if (throwable == null && httpResponse.status().equals(StatusCodes.OK)) {
+        bell.tell(new Bell.CommandBellOff(traceId, spanId));
+      }
+    });
   }
 
   public void gateDown(ActorContext<?> context, String crossingId, Double trainSpeed) {
     byte[] body = buildRequestBody(trainSpeed);
     HttpRequest request = buildRequest("/gate/down", crossingId, body);
-    sendRequest(context,  request);
+    sendRequest(context, request);
   }
 
   public void lightOn(ActorContext<?> context, String crossingId, Double trainSpeed) {
     byte[] body = buildRequestBody(trainSpeed);
     HttpRequest request = buildRequest("/light/on", crossingId, body);
-    sendRequest(context,  request);
+    sendRequest(context, request);
   }
 
   public void lightOff(ActorContext<?> context, String crossingId) {
     HttpRequest request = buildRequest("/light/off", crossingId);
-    sendRequest(context,  request);
+    sendRequest(context, request);
   }
 
   public void lightEarlyWarning(ActorContext<?> context, String crossingId) {
     HttpRequest request = buildRequest("/light/earlyWarning", crossingId);
-    sendRequest(context,  request);
+    sendRequest(context, request);
   }
 }
