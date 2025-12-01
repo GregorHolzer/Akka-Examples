@@ -1,121 +1,86 @@
 package actors.Surveillance;
 
 import actors.Command;
-import actors.Detector.Detector;
-import actors.Event;
-import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
+import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
-import akka.persistence.typed.PersistenceId;
-import akka.persistence.typed.javadsl.CommandHandler;
-import akka.persistence.typed.javadsl.CommandHandlerBuilder;
-import akka.persistence.typed.javadsl.EventHandler;
-import akka.persistence.typed.javadsl.EventSourcedBehavior;
+import akka.actor.typed.javadsl.Receive;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import services.SurveillanceServices;
 
-public class Surveillance extends EventSourcedBehavior<Surveillance.SurveillanceCommand, Surveillance.SurveillanceEvent, SurveillanceState> {
+public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceCommand> {
 
-    public interface SurveillanceCommand extends Command {}
+    public enum SurveillanceState{
+        Processing,
+        Alarm
+    }
 
-    public static class CommandFoundPerson implements SurveillanceCommand {}
+    public interface  SurveillanceCommand extends Command {}
 
-    public static class CommandAnalyzed implements SurveillanceCommand {
-
-        private final Boolean hasThread;
+    private static class FoundPersons implements SurveillanceCommand{
+        public byte[] image;
 
         @JsonCreator
-        public CommandAnalyzed(@JsonProperty("hasThread") Boolean hasThread) {
+        public FoundPersons(@JsonProperty("image") byte[] image){
+            this.image = image;
+        }
+    }
+
+    public static class Analyzed implements SurveillanceCommand {}
+
+    private Surveillance(ActorContext<Surveillance.SurveillanceCommand> context) {
+        super(context);
+    }
+
+    public static class ImageWrapper {
+
+        public byte[] image;
+
+        public Boolean hasThread;
+
+        public ImageWrapper(byte[] image, Boolean hasThread){
+            this.image = image;
             this.hasThread = hasThread;
         }
-
-        public Boolean getHasThread() {
-            return hasThread;
-        }
     }
 
-    public static class CommandAlarm implements SurveillanceCommand {}
+    private ImageWrapper imageWrapper = new ImageWrapper(new byte[0], false);
 
-    public static class CommandDisarm implements SurveillanceCommand {}
-
-    public interface SurveillanceEvent extends Event {}
-
-    public static class EventFoundPerson implements SurveillanceEvent {}
-
-    public static class EventAnalyzed implements SurveillanceEvent {
-
-        private final Boolean hasThread;
-
-        @JsonCreator
-        public EventAnalyzed(@JsonProperty("hasThread")Boolean hasThread) {
-            this.hasThread = hasThread;
-        }
-
-        public Boolean getHasThread() {
-            return hasThread;
-        }
-    }
-
-    public static class EventAlarm implements SurveillanceEvent {}
-
-    public static class EventDisarm implements SurveillanceEvent {}
-
-    private final ActorContext<SurveillanceCommand> context;
-
-    private final ActorRef<Detector.DetectorCommand> detector;
-
-    public static Behavior<SurveillanceCommand> create(PersistenceId persistenceId, ActorRef<Detector.DetectorCommand> detector){
-        return Behaviors.setup(context -> {
-            return new Surveillance(persistenceId, context, detector);
-        });
-    }
-
-    private Surveillance(PersistenceId persistenceId, ActorContext<SurveillanceCommand> context, ActorRef<Detector.DetectorCommand> detector) {
-        super(persistenceId);
-        this.context = context;
-        this.detector = detector;
-    }
+    private SurveillanceState surveillanceState = SurveillanceState.Processing;
 
     @Override
-    public SurveillanceState emptyState() {
-        return new SurveillanceState(SurveillanceState.State.Analyzing);
-    }
-
-    @Override
-    public CommandHandler<SurveillanceCommand, SurveillanceEvent, SurveillanceState> commandHandler() {
-        CommandHandlerBuilder<SurveillanceCommand, SurveillanceEvent, SurveillanceState> builder = new CommandHandlerBuilder<>();
-
-        builder.forState(state -> state.getState() ==  SurveillanceState.State.Analyzing)
-                .onCommand(CommandFoundPerson.class, cmd -> Effect().persist(new EventFoundPerson()))
-                .onCommand(CommandAnalyzed.class, cmd -> Effect().persist(new EventAnalyzed(cmd.getHasThread())))
-                .onCommand(CommandAlarm.class, cmd -> Effect().persist(new EventAlarm()));
-
-        builder.forState(state -> state.getState() == SurveillanceState.State.Alarm)
-                        .onCommand(CommandDisarm.class, cmd -> Effect().persist(new EventDisarm()));
-
-        builder.forAnyState().onAnyCommand(cmd -> Effect().none());
-
-        return builder.build();
-    }
-
-    @Override
-    public EventHandler<SurveillanceState, SurveillanceEvent> eventHandler() {
-        return newEventHandlerBuilder()
-                .forAnyState()
-                .onEvent(EventFoundPerson.class, (state, event) -> {
-                    //Todo: invoke analyze
-                    return new SurveillanceState(SurveillanceState.State.Analyzing);
-                })
-                .onEvent(EventAnalyzed.class, (state, event) -> {
-                    if(event.getHasThread()) {
-                        context.getSelf().tell(new CommandAlarm());
-                        detector.tell(new Detector.CommandAlarm());
-                    }
-                    return new SurveillanceState(SurveillanceState.State.Analyzing);
-                })
-                .onEvent(EventAlarm.class, (state, event) -> new SurveillanceState(SurveillanceState.State.Alarm))
-                .onEvent(EventDisarm.class, (state, event ) -> new SurveillanceState(SurveillanceState.State.Analyzing))
+    public Receive<SurveillanceCommand> createReceive(){
+        return newReceiveBuilder()
+                .onMessage(FoundPersons.class, this::onFoundPersons)
                 .build();
+    }
+
+    private Behavior<SurveillanceCommand> onFoundPersons(FoundPersons persons){
+        if(surveillanceState == SurveillanceState.Processing){
+            imageWrapper.image = persons.image;
+            SurveillanceServices.analyze(getContext(),imageWrapper);
+            return newReceiveBuilder()
+                    .onMessage(Analyzed.class, msg -> onAnalyzed())
+                    .build();
+        }
+        return Behaviors.same();
+    }
+
+    private Behavior<SurveillanceCommand> onAnalyzed(){
+        if(surveillanceState == SurveillanceState.Processing){
+            if(imageWrapper.hasThread){
+                surveillanceState = SurveillanceState.Alarm;
+            }
+            else {
+
+            }
+        }
+        return Behaviors.same();
+    }
+
+    private Behavior<SurveillanceCommand> onAlarm(){
+
     }
 }

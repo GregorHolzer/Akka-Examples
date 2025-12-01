@@ -25,7 +25,7 @@ TRAIN_LENGTH_IN_M = 150.0
 
 START_INTERVAL_IN_SECONDS = float(os.environ["START_INTERVAL_IN_SECONDS"])
 END_INTERVAL_IN_SECONDS = float(os.environ["END_INTERVAL_IN_SECONDS"])
-DURATION_IN_SECONDS = 300
+DURATION_IN_SECONDS = 600
 
 SENSOR_POSITIONS = [0.0, 1000.0, 1500.0]
 
@@ -146,7 +146,7 @@ class Simulation:
     def _compute_broadcast_interval(self):
         elapsed_time = time.time() - self._start_time
         if elapsed_time > DURATION_IN_SECONDS:
-            # Reset the start time and elapsed time to loop
+            exit(0)
             self._start_time = time.time()
             elapsed_time = 0
 
@@ -158,6 +158,7 @@ class Simulation:
         ) * (elapsed_time / DURATION_IN_SECONDS)
 
     async def simulate(self):
+
         while True:
             start_time = time.time()
             # Compute current broadcast interval
@@ -187,7 +188,7 @@ class Simulation:
             await asyncio.sleep(current_interval - (time.time() - start_time) if (current_interval - (time.time() - start_time)) > 0 else 0)
 
     async def _broadcast_sensor_values(self, current_interval):
-
+        global c
         s = any(self._sensor_values)
         current_speed = 0.0
         for train in self._trains:
@@ -216,8 +217,8 @@ class Simulation:
 
         with tracer.start_as_current_span("broadcast_sensor") as span:
             ctx = span.get_span_context()
-            span.set_attribute("event_rate", current_interval)
-
+            span.set_attribute("event_interval", current_interval)
+            span.set_attribute("number_of_generated_trains", c)
             traceId = trace.format_trace_id(ctx.trace_id)
             spanId = trace.format_span_id(ctx.span_id)
 

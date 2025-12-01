@@ -1,91 +1,131 @@
 package actors.Detector;
 
 import actors.Command;
-import actors.Event;
-import actors.Surveillance.Surveillance;
-import actors.Surveillance.SurveillanceState;
-import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.persistence.typed.PersistenceId;
-import akka.persistence.typed.javadsl.CommandHandler;
-import akka.persistence.typed.javadsl.CommandHandlerBuilder;
-import akka.persistence.typed.javadsl.EventHandler;
-import akka.persistence.typed.javadsl.EventSourcedBehavior;
+import akka.actor.typed.javadsl.*;
+import services.SurveillanceServices;
 
-public class Detector extends EventSourcedBehavior<Detector.DetectorCommand, Detector.DetectorEvent, DetectorState> {
+import java.time.Duration;
+
+public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
+
+    public enum DetectorState {
+        Capturing,
+        Processing,
+        Alarm
+    }
 
     public interface DetectorCommand extends Command {}
 
-    public static class CommandCaptured implements DetectorCommand {}
+    public static class CapturedImage implements DetectorCommand{}
 
-    public static class CommandTimeout implements DetectorCommand {}
+    public static class Disarm implements DetectorCommand{}
 
-    public static class CommandAlarm implements DetectorCommand {}
+    public static class DetectedPersons implements DetectorCommand{}
 
-    public static class CommandDisarm implements DetectorCommand {}
+    public static class Alarm implements DetectorCommand{}
 
-    public interface DetectorEvent extends Event {}
+    public static class Timeout implements DetectorCommand{}
 
-    public static class EventCaptured implements DetectorEvent {}
+    public static class ImageWrapper{
 
-    public static class EventTimeout implements DetectorEvent {}
+        public byte[] image;
 
-    public static class EventAlarm implements DetectorEvent {}
+        public Boolean hasDetectedPersons = false;
 
-    public static class EventDisarm implements DetectorEvent {}
-
-    private final ActorContext<DetectorCommand> context;
-
-    private final ActorRef<Surveillance.SurveillanceCommand> surveillance;
-
-    public static Behavior<DetectorCommand> create(PersistenceId  persistenceId) {
-        return Behaviors.setup(context -> {
-            String surveillanceName = String.format("surveillance_%s", context.getSelf().path().name());
-            ActorRef<Surveillance.SurveillanceCommand> surveillance = context.spawn(Surveillance.create(PersistenceId.ofUniqueId(surveillanceName), context.getSelf()), surveillanceName);
-            return new Detector(persistenceId,context, surveillance);
-        });
+        public ImageWrapper(byte[] image) {
+            this.image = image;
+        }
     }
 
-    private Detector(PersistenceId persistenceId, ActorContext<DetectorCommand> context, ActorRef<Surveillance.SurveillanceCommand> surveillance) {
-        super(persistenceId);
-        this.context = context;
-        this.surveillance = surveillance;
+    private static final Object TIMEOUT_KEY = new Object();
+
+    private final TimerScheduler<DetectorCommand> timers;
+
+    private final String cameraId;
+
+    private DetectorState detectorState = DetectorState.Capturing;
+
+    private final ImageWrapper imageWrapper = new ImageWrapper(new byte[0]);
+
+    public static Behavior<DetectorCommand> create(String cameraId) {
+        return Behaviors.withTimers(timer -> Behaviors.setup(context ->
+                new Detector(context, timer, cameraId)));
     }
 
-    @Override
-    public DetectorState emptyState() {
-        return new DetectorState(DetectorState.State.Capturing);
-    }
-
-    @Override
-    public CommandHandler<DetectorCommand, DetectorEvent, DetectorState> commandHandler() {
-        CommandHandlerBuilder<DetectorCommand, DetectorEvent, DetectorState> builder = newCommandHandlerBuilder();
-
-        builder.forState(state -> state.getState() == DetectorState.State.Capturing)
-                .onCommand(CommandCaptured.class, cmd -> Effect().persist(new EventCaptured()));
-
-        builder.forState(state -> state.getState() == DetectorState.State.Processing)
-                .onCommand(CommandTimeout.class, t -> Effect().persist(new EventTimeout()))
-                .onCommand(CommandAlarm.class, t -> Effect().persist(new EventAlarm()));
-
-        builder.forState(state -> state.getState() == DetectorState.State.Alarm)
-                .onCommand(CommandDisarm.class, t -> Effect().persist(new EventDisarm()));
-
-        builder.forAnyState().onAnyCommand(cmd -> Effect().none());
-
-        return builder.build();
+    public Detector(ActorContext<DetectorCommand> context, TimerScheduler<DetectorCommand> timers, String cameraId) {
+        super(context);
+        this.timers = timers;
+        this.cameraId = cameraId;
     }
 
     @Override
-    public EventHandler<DetectorState, DetectorEvent> eventHandler() {
-        return newEventHandlerBuilder()
-                .forAnyState()
-                .onEvent(EventCaptured.class, (state, event) -> new DetectorState(DetectorState.State.Processing))
-                .onEvent(EventTimeout.class, (state, event) -> new DetectorState(DetectorState.State.Capturing))
-                .onEvent(EventAlarm.class, (state, event) -> new DetectorState(DetectorState.State.Alarm))
-                .onEvent(EventDisarm.class, (state, event) -> new DetectorState(DetectorState.State.Capturing))
+    public Receive<DetectorCommand> createReceive() {
+        SurveillanceServices.cameraCapture(getContext(), cameraId, imageWrapper);
+        return newReceiveBuilder()
+                .onMessage(CapturedImage.class, msg -> onCapturedImage())
                 .build();
+    }
+
+    private Behavior<DetectorCommand> onCapturedImage() {
+        if(detectorState == DetectorState.Capturing) {
+            detectorState = DetectorState.Processing;
+            SurveillanceServices.detectPersons(getContext(), imageWrapper);
+            timers.startSingleTimer(TIMEOUT_KEY, new Timeout(), Duration.ofMillis(500));
+            return newReceiveBuilder()
+                    .onMessage(Timeout.class, msg -> onTimeout())
+                    .onMessage(Alarm.class, msg -> onAlarm())
+                    .onMessage(DetectedPersons.class, msg -> onDetectedPersons())
+                    .build();
+        }
+        return Behaviors.same();
+    }
+
+    private Behavior<DetectorCommand> onDetectedPersons() {
+        if (detectorState == DetectorState.Processing) {
+            if(imageWrapper.hasDetectedPersons) {
+                //raise foundPerson event
+            }
+            return newReceiveBuilder()
+                    .onMessage(Timeout.class, msg -> onTimeout())
+                    .onMessage(Alarm.class, msg -> onAlarm())
+                    .build();
+        }
+        return Behaviors.same();
+    }
+
+    private Behavior<DetectorCommand> onTimeout(){
+        if(detectorState == DetectorState.Processing) {
+            detectorState = DetectorState.Capturing;
+            SurveillanceServices.cameraCapture(getContext(), cameraId, imageWrapper);
+            return newReceiveBuilder()
+                    .onMessage(CapturedImage.class, msg -> onCapturedImage())
+                    .build();
+        }
+        return Behaviors.same();
+    }
+
+    private Behavior<DetectorCommand> onAlarm() {
+        if(detectorState == DetectorState.Processing) {
+            timers.cancel(TIMEOUT_KEY);
+            detectorState = DetectorState.Alarm;
+            SurveillanceServices.alarmOn(getContext());
+            return newReceiveBuilder()
+                    .onMessage(Disarm.class, msg -> onDisarm())
+                    .build();
+        }
+        return Behaviors.same();
+    }
+
+    private Behavior<DetectorCommand> onDisarm() {
+        if(detectorState == DetectorState.Alarm) {
+            detectorState = DetectorState.Capturing;
+            SurveillanceServices.alarmOff(getContext());
+            SurveillanceServices.cameraCapture(getContext(), cameraId, imageWrapper);
+            return newReceiveBuilder()
+                    .onMessage(CapturedImage.class, msg -> onCapturedImage())
+                    .build();
+        }
+        return Behaviors.same();
     }
 }

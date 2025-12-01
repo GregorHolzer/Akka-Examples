@@ -1,6 +1,6 @@
 services:
   simulate-sensors:
-    image: gregor2323/akka-simulate-sensors:latest
+    image: gregor2323/akka-railway-simple-sensors:latest
     pull_policy: always
     environment:
       - START_INTERVAL_IN_SECONDS=0.0000005
