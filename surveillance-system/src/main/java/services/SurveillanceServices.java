@@ -12,8 +12,8 @@ public class SurveillanceServices {
     ActorContext<Surveillance.SurveillanceCommand> context,
     Surveillance.FoundPersons foundPersons
   ) {
-    context.getLog().info("SurveillanceServices.analyze()");
-    counter++;
+      counter++;
+    context.getLog().info("analyze(), hasThreat: {}", counter % 2 == 0);
     context.getSelf().tell(new Surveillance.Analyzed(foundPersons.image, counter % 2 == 0));
   }
 }

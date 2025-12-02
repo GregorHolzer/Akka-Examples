@@ -45,7 +45,10 @@ public class Configuration {
     Failure
   }
 
-  public record DetectorConfiguration(String cameraId, String surveillanceId) {}
+  public record DetectorConfiguration(
+          String detectorId,
+          String cameraId,
+          String surveillanceId) {}
 
   public record NodeConfiguration(
     List<DetectorConfiguration> detectors,

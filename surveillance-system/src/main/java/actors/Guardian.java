@@ -5,6 +5,7 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import services.SurveillanceServices;
 
 public class Guardian extends AbstractBehavior<Command> {
 
@@ -21,7 +22,20 @@ public class Guardian extends AbstractBehavior<Command> {
     return Behaviors.setup(context -> new Guardian(context, configPath));
   }
 
-  private void setupComponents() {}
+  private void setupComponents() {
+      SurveillanceServices surveillanceServices = new SurveillanceServices();
+      Configuration.NodeConfiguration configuration = Configuration.getNodeConfiguration();
+      configuration.surveillanceIds().forEach(surveillanceId -> {
+          getContext().spawn(Surveillance.create(surveillanceServices, surveillanceId), surveillanceId);
+      });
+      configuration.detectors().forEach(detector -> {
+          getContext().spawn(DetectorSetup.create(
+                  detector.detectorId(),
+                  detector.surveillanceId(),
+                  detector.cameraId()
+                  ), "Setup_" + detector.detectorId());
+      });
+  }
 
   @Override
   public Receive<Command> createReceive() {

@@ -44,7 +44,7 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestNoAlarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceServices)
+      Surveillance.create(surveillanceServices, "test")
     );
 
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
@@ -63,7 +63,7 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestAlarmManualDisarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceServices)
+      Surveillance.create(surveillanceServices, "test")
     );
 
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
@@ -94,7 +94,7 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestAlarmTimeoutDisarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceServices)
+      Surveillance.create(surveillanceServices, "test")
     );
 
     LoggingTestKit.info("analyze")

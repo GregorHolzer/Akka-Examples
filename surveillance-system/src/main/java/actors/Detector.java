@@ -60,6 +60,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
       .getSystem()
       .receptionist()
       .tell(Receptionist.register(receptionist_detector_key, getContext().getSelf()));
+      detectorServices.cameraCapture(getContext(), cameraId);
   }
 
   public static Behavior<DetectorCommand> create(
@@ -76,7 +77,6 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
 
   @Override
   public Receive<DetectorCommand> createReceive() {
-    detectorServices.cameraCapture(getContext(), cameraId);
     return capturingBehaviour;
   }
 
