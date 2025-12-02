@@ -1,11 +1,7 @@
-package actors.Detector;
+package actors;
 
-import actors.Command;
-import actors.Surveillance.Surveillance;
-import actors.global_commands.GlobalCommands;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.internal.receptionist.ReceptionistMessages;
 import akka.actor.typed.javadsl.*;
 import akka.actor.typed.receptionist.Receptionist;
 import akka.actor.typed.receptionist.ServiceKey;
@@ -20,47 +16,6 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
     DetectorCommand.class,
     "GLOBAL_DETECTOR_KEY"
   );
-
-  public enum DetectorState {
-    Capturing,
-    Processing,
-    Alarm
-  }
-
-  public interface DetectorCommand extends Command {}
-
-  public static class CapturedImage implements DetectorCommand {
-
-    public final ImageWrapper wrapper;
-
-    @JsonCreator
-    public CapturedImage(@JsonProperty("wrapper") ImageWrapper wrapper) {
-      this.wrapper = wrapper;
-    }
-  }
-
-  public static class DetectedPersons implements DetectorCommand {
-
-    public final ImageWrapper wrapper;
-
-    @JsonCreator
-    public DetectedPersons(@JsonProperty("wrapper") ImageWrapper wrapper) {
-      this.wrapper = wrapper;
-    }
-  }
-
-  public static class Timeout implements DetectorCommand {}
-
-  public static class ImageWrapper {
-
-    public byte[] image;
-
-    public Boolean hasDetectedPersons = false;
-
-    public ImageWrapper(byte[] image) {
-      this.image = image;
-    }
-  }
 
   private static final Object TIMEOUT_KEY = new Object();
 
@@ -88,18 +43,6 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
 
   private DetectorState detectorState = DetectorState.Capturing;
 
-  public static Behavior<DetectorCommand> create(
-    String cameraId,
-    ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef,
-    DetectorServices detectorServices
-  ) {
-    return Behaviors.withTimers(timer ->
-      Behaviors.setup(context ->
-        new Detector(context, timer, detectorServices, cameraId, surveillanceActorRef)
-      )
-    );
-  }
-
   public Detector(
     ActorContext<DetectorCommand> context,
     TimerScheduler<DetectorCommand> timers,
@@ -117,19 +60,30 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
       .getSystem()
       .receptionist()
       .tell(Receptionist.register(receptionist_detector_key, getContext().getSelf()));
+      detectorServices.cameraCapture(getContext(), cameraId);
+  }
+
+  public static Behavior<DetectorCommand> create(
+    String cameraId,
+    ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef,
+    DetectorServices detectorServices
+  ) {
+    return Behaviors.withTimers(timer ->
+      Behaviors.setup(context ->
+        new Detector(context, timer, detectorServices, cameraId, surveillanceActorRef)
+      )
+    );
   }
 
   @Override
   public Receive<DetectorCommand> createReceive() {
-    ImageWrapper wrapper = new ImageWrapper(new byte[0]);
-    detectorServices.cameraCapture(getContext(), cameraId, wrapper);
     return capturingBehaviour;
   }
 
   private Behavior<DetectorCommand> onCapturedImage(CapturedImage capturedImage) {
     if (detectorState == DetectorState.Capturing) {
       detectorState = DetectorState.Processing;
-      detectorServices.detectPersons(getContext(), capturedImage.wrapper);
+      detectorServices.detectPersons(getContext(), capturedImage);
       timers.startSingleTimer(TIMEOUT_KEY, new Timeout(), Duration.ofMillis(500));
       return processingBehaviour;
     }
@@ -138,8 +92,8 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
 
   private Behavior<DetectorCommand> onDetectedPersons(DetectedPersons detectedPersons) {
     if (detectorState == DetectorState.Processing) {
-      if (detectedPersons.wrapper.hasDetectedPersons) {
-        surveillanceActorRef.tell(new Surveillance.FoundPersons(detectedPersons.wrapper.image));
+      if (detectedPersons.hasDetectedPersons) {
+        surveillanceActorRef.tell(new Surveillance.FoundPersons(detectedPersons.image));
       }
       return processingBehaviour;
     }
@@ -149,8 +103,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
   private Behavior<DetectorCommand> onTimeout() {
     if (detectorState == DetectorState.Processing) {
       detectorState = DetectorState.Capturing;
-      ImageWrapper wrapper = new ImageWrapper(new byte[0]);
-      detectorServices.cameraCapture(getContext(), cameraId, wrapper);
+      detectorServices.cameraCapture(getContext(), cameraId);
       return capturingBehaviour;
     }
     return Behaviors.same();
@@ -170,10 +123,45 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
     if (detectorState == DetectorState.Alarm) {
       detectorState = DetectorState.Capturing;
       detectorServices.alarmOff(getContext());
-      ImageWrapper wrapper = new ImageWrapper(new byte[0]);
-      detectorServices.cameraCapture(getContext(), cameraId, wrapper);
+      detectorServices.cameraCapture(getContext(), cameraId);
       return capturingBehaviour;
     }
     return Behaviors.same();
   }
+
+  public enum DetectorState {
+    Capturing,
+    Processing,
+    Alarm
+  }
+
+  public interface DetectorCommand extends Command {}
+
+  public static class CapturedImage implements DetectorCommand {
+
+    public final byte[] image;
+
+    @JsonCreator
+    public CapturedImage(@JsonProperty("image") byte[] image) {
+      this.image = image;
+    }
+  }
+
+  public static class DetectedPersons implements DetectorCommand {
+
+    public final byte[] image;
+
+    public final Boolean hasDetectedPersons;
+
+    @JsonCreator
+    public DetectedPersons(
+      @JsonProperty("image") byte[] image,
+      @JsonProperty("hasDetectedPersons") Boolean hasDetectedPersons
+    ) {
+      this.image = image;
+      this.hasDetectedPersons = hasDetectedPersons;
+    }
+  }
+
+  public static class Timeout implements DetectorCommand {}
 }

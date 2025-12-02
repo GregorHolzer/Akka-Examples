@@ -1,5 +1,5 @@
 import actors.Command;
-import actors.guardian.Guardian;
+import actors.Guardian;
 import akka.actor.typed.ActorSystem;
 import akka.cluster.Cluster;
 import akka.management.javadsl.AkkaManagement;
@@ -17,7 +17,5 @@ public class Main {
     );
     Cluster.get(system);
     AkkaManagement.get(system).start();
-    //Currently working with Seed-Nodes
-    //ClusterBootstrap.get(system).start();
   }
 }

@@ -3,9 +3,6 @@ package actors;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import actors.Detector.Detector;
-import actors.Surveillance.Surveillance;
-import actors.global_commands.GlobalCommands;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestProbe;
@@ -51,7 +48,7 @@ public class DetectorTest {
       return null;
     })
       .when(detectorServices)
-      .cameraCapture(any(), any(), any());
+      .cameraCapture(any(), any());
 
     doAnswer(invocationOnMock -> {
       ActorContext<Detector.DetectorCommand> context = invocationOnMock.getArgument(0);
@@ -69,10 +66,10 @@ public class DetectorTest {
     );
 
     LoggingTestKit.info("detectPersons").expect(testKit.system(), () -> {
-      detector.tell(new Detector.CapturedImage(new Detector.ImageWrapper(new byte[0])));
+      detector.tell(new Detector.CapturedImage(new byte[0]));
       return null;
     });
-    verify(detectorServices, times(1)).cameraCapture(any(), any(), any());
+    verify(detectorServices, times(1)).cameraCapture(any(), any());
     LoggingTestKit.info("alarmOn").expect(testKit.system(), () -> {
       detector.tell(new GlobalCommands.Alarm());
       return null;
@@ -81,7 +78,7 @@ public class DetectorTest {
       detector.tell(new GlobalCommands.Disarm());
       return null;
     });
-    verify(detectorServices, times(2)).cameraCapture(any(), any(), any());
+    verify(detectorServices, times(2)).cameraCapture(any(), any());
   }
 
   @Test
@@ -91,10 +88,10 @@ public class DetectorTest {
     );
 
     LoggingTestKit.info("detectPersons").expect(testKit.system(), () -> {
-      detector.tell(new Detector.CapturedImage(new Detector.ImageWrapper(new byte[0])));
+      detector.tell(new Detector.CapturedImage(new byte[0]));
       return null;
     });
-    verify(detectorServices, times(1)).cameraCapture(any(), any(), any());
+    verify(detectorServices, times(1)).cameraCapture(any(), any());
 
     LoggingTestKit.info("captureCamera").expect(testKit.system(), () -> {
       //Wait for Timeout

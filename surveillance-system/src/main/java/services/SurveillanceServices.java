@@ -1,7 +1,6 @@
 package services;
 
-import actors.Detector.Detector;
-import actors.Surveillance.Surveillance;
+import actors.Surveillance;
 import akka.actor.typed.javadsl.ActorContext;
 
 //Dummy Services
@@ -11,10 +10,10 @@ public class SurveillanceServices {
 
   public void analyze(
     ActorContext<Surveillance.SurveillanceCommand> context,
-    Surveillance.ImageWrapper wrapper
+    Surveillance.FoundPersons foundPersons
   ) {
-    context.getLog().info("SurveillanceServices.analyze()");
-    wrapper.hasThread = (counter % 2 == 0);
-    context.getSelf().tell(new Surveillance.Analyzed(wrapper));
+      counter++;
+    context.getLog().info("analyze(), hasThreat: {}", counter % 2 == 0);
+    context.getSelf().tell(new Surveillance.Analyzed(foundPersons.image, counter % 2 == 0));
   }
 }

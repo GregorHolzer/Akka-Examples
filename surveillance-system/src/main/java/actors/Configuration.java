@@ -1,4 +1,4 @@
-package Configuration;
+package actors;
 
 import akka.actor.typed.javadsl.ActorContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,18 +7,6 @@ import java.util.List;
 
 public class Configuration {
 
-  public enum ConfigurationStatus {
-    Success,
-    Failure
-  }
-
-  public record DetectorConfiguration(String cameraId, String surveillanceId) {}
-
-  public record NodeConfiguration(
-    List<DetectorConfiguration> detectors,
-    List<String> surveillanceIds
-  ) {}
-
   private static NodeConfiguration nodeConfiguration = null;
 
   public static ConfigurationStatus initConfig(ActorContext<?> context, String configPath) {
@@ -26,7 +14,7 @@ public class Configuration {
       try {
         ObjectMapper mapper = new ObjectMapper();
         nodeConfiguration = mapper.readValue(new File(configPath), NodeConfiguration.class);
-        context.getLog().info("Configuration loaded successfully:");
+        context.getLog().info("actors.Configuration loaded successfully:");
         nodeConfiguration.detectors.forEach(detector -> {
           context
             .getLog()
@@ -51,4 +39,19 @@ public class Configuration {
   public static NodeConfiguration getNodeConfiguration() {
     return nodeConfiguration;
   }
+
+  public enum ConfigurationStatus {
+    Success,
+    Failure
+  }
+
+  public record DetectorConfiguration(
+          String detectorId,
+          String cameraId,
+          String surveillanceId) {}
+
+  public record NodeConfiguration(
+    List<DetectorConfiguration> detectors,
+    List<String> surveillanceIds
+  ) {}
 }

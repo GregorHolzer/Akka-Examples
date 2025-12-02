@@ -4,9 +4,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
-import actors.Detector.Detector;
-import actors.Surveillance.Surveillance;
-import actors.global_commands.GlobalCommands;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestProbe;
@@ -47,7 +44,7 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestNoAlarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceServices)
+      Surveillance.create(surveillanceServices, "test")
     );
 
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
@@ -58,7 +55,7 @@ public class SurveillanceTest {
     LoggingTestKit.info("")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        surveillance.tell(new Surveillance.Analyzed(new Surveillance.ImageWrapper(new byte[0])));
+        surveillance.tell(new Surveillance.Analyzed(new byte[0], false));
         return null;
       });
   }
@@ -66,7 +63,7 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestAlarmManualDisarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceServices)
+      Surveillance.create(surveillanceServices, "test")
     );
 
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
@@ -74,16 +71,15 @@ public class SurveillanceTest {
       return null;
     });
 
-    LoggingTestKit.info("")
+    LoggingTestKit.info("analyze")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        Surveillance.ImageWrapper wrapper = new Surveillance.ImageWrapper(new byte[0]);
-        wrapper.hasThread = true;
-        surveillance.tell(new Surveillance.Analyzed(wrapper));
+        surveillance.tell(new Surveillance.Analyzed(new byte[0], true));
         return null;
       });
     detector.expectMessageClass(GlobalCommands.Alarm.class);
-    LoggingTestKit.info("")
+
+    LoggingTestKit.info("analyze")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         surveillance.tell(new GlobalCommands.Disarm());
@@ -98,10 +94,10 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestAlarmTimeoutDisarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceServices)
+      Surveillance.create(surveillanceServices, "test")
     );
 
-    LoggingTestKit.info("")
+    LoggingTestKit.info("analyze")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         surveillance.tell(new GlobalCommands.Alarm());

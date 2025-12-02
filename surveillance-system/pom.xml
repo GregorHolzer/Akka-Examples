@@ -104,48 +104,4 @@
             <version>${akka.management.version}</version>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>io.fabric8</groupId>
-                <artifactId>docker-maven-plugin</artifactId>
-                <version>0.34.1</version>
-                <configuration>
-                    <images>
-                        <image>
-                            <name>gregor2323/surveillance-system</name>
-                            <build>
-                                <from>eclipse-temurin:21-jre</from>
-                                <tags>
-                                    <tag>latest</tag>
-                                    <tag>${version.number}</tag>
-                                </tags>
-                                <entryPoint>
-                                    <exec>
-                                        <arg>java</arg>
-                                        <arg>-cp</arg>
-                                        <arg>/maven/*</arg>
-                                        <arg>Main</arg>
-                                    </exec>
-                                </entryPoint>
-                                <assembly>
-                                    <descriptorRef>artifact-with-dependencies</descriptorRef>
-                                </assembly>
-                            </build>
-                        </image>
-                    </images>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>build-docker-image</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>build</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 </project>

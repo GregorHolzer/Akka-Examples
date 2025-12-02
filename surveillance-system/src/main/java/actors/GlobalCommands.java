@@ -1,8 +1,4 @@
-package actors.global_commands;
-
-import actors.Command;
-import actors.Detector.Detector;
-import actors.Surveillance.Surveillance;
+package actors;
 
 public class GlobalCommands {
 
