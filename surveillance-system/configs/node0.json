@@ -1,0 +1,11 @@
+{
+  "detectors": [
+    {
+      "cameraId": "cam01",
+      "surveillanceId": "s1"
+    }
+  ],
+  "surveillanceIds": [
+    "s1"
+  ]
+}

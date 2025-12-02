@@ -2,6 +2,7 @@ import pandas as pd
 import sys
 import json
 import matplotlib.pyplot as plt
+import os
 
 def process_trace_data(input_file, output_file=None):
     df = pd.read_csv(input_file)
@@ -130,8 +131,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     input_file = sys.argv[1]
-    output_file = input_file + "_processed.csv"
+    base = os.path.splitext(input_file)[0]
+    output_file = base + "_processed.csv"
 
     process_trace_data(input_file, output_file)
-    plot_file = input_file + "_plot.pdf"
+    plot_file = base + "_plot.pdf"
     plot_event_rate_to_total_time(output_file, plot_file)

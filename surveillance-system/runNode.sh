@@ -1,0 +1,32 @@
+#!/bin/bash
+
+DEFAULT_PORT_NUM=2551
+DEFAULT_MANAGE_PORT=8558
+NODE_NUM=0
+CONFIG=default.json
+
+while getopts "n:c:?" opt; do
+  case $opt in
+    n)
+      NODE_NUM=${OPTARG}
+      ;;
+    c)
+      CONFIG=${OPTARG}
+      ;;
+    *)
+      echo "Usage: ./runNode -n <number_of_node> -c <pathToConfigFile>"
+      exit
+      ;;
+  esac
+done
+
+PORT_NUM=$((DEFAULT_PORT_NUM + NODE_NUM))
+MANAGE_PORT=$((DEFAULT_MANAGE_PORT + NODE_NUM))
+
+
+echo "Running node $NODE_NUM on port $PORT_NUM, manage via $MANAGE_PORT"
+
+mvn exec:java -Dexec.mainClass=Main \
+  -Dakka.remote.artery.canonical.port=$PORT_NUM \
+  -Dakka.management.http.port=$MANAGE_PORT \
+  -Dexec.args=$CONFIG
