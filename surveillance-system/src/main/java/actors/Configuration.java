@@ -15,18 +15,17 @@ public class Configuration {
         ObjectMapper mapper = new ObjectMapper();
         nodeConfiguration = mapper.readValue(new File(configPath), NodeConfiguration.class);
         context.getLog().info("actors.Configuration loaded successfully:");
-        nodeConfiguration.detectors.forEach(detector -> {
-          context
-            .getLog()
-            .info(
-              "Launching Detector with cameraId: {} responding to Surveillance with id {}",
-              detector.cameraId,
-              detector.surveillanceId
-            );
-        });
-        nodeConfiguration.surveillanceIds.forEach(surveillanceId -> {
-          context.getLog().info("Launched Surveillance with Id: {}", surveillanceId);
-        });
+        nodeConfiguration.detectorsConfigs.forEach(detector ->
+                context.getLog().info("Launching Detector within Group: {} with cameraId: {} responding to SurveillanceId {}",
+            detector.groupId,
+            detector.cameraId,
+            detector.surveillanceId
+          ));
+        nodeConfiguration.surveillanceConfigs.forEach(surveillance ->
+                context.getLog().info("Launched Surveillance within Group: {} with SurveillanceId: {}",
+                surveillance.groupId,
+                surveillance.surveillanceId
+        ));
       } catch (Exception e) {
         context.getLog().error("Error parsing ConfigFile: {}", e.getMessage());
         context.getSystem().terminate();
@@ -46,12 +45,18 @@ public class Configuration {
   }
 
   public record DetectorConfiguration(
+          String groupId,
           String detectorId,
           String cameraId,
           String surveillanceId) {}
 
+  public record SurveillanceConfiguration(
+          String groupId,
+          String surveillanceId
+  ){}
+
   public record NodeConfiguration(
-    List<DetectorConfiguration> detectors,
-    List<String> surveillanceIds
+    List<DetectorConfiguration> detectorsConfigs,
+    List<SurveillanceConfiguration> surveillanceConfigs
   ) {}
 }

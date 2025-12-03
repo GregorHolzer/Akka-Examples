@@ -27,6 +27,6 @@ public class DetectorServices {
     Detector.CapturedImage capturedImage
   ) {
     context.getLog().info("detectPersons: detectedPersons = {}", counter % 2 == 0);
-    context.getSelf().tell(new Detector.DetectedPersons(capturedImage.image, counter % 2 == 0));
+    context.getSelf().tell(new Detector.DetectedPersons(capturedImage.image(), counter % 2 == 0));
   }
 }

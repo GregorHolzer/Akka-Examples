@@ -25,16 +25,16 @@ public class Guardian extends AbstractBehavior<Command> {
   private void setupComponents() {
       SurveillanceServices surveillanceServices = new SurveillanceServices();
       Configuration.NodeConfiguration configuration = Configuration.getNodeConfiguration();
-      configuration.surveillanceIds().forEach(surveillanceId -> {
-          getContext().spawn(Surveillance.create(surveillanceServices, surveillanceId), surveillanceId);
-      });
-      configuration.detectors().forEach(detector -> {
-          getContext().spawn(DetectorSetup.create(
-                  detector.detectorId(),
-                  detector.surveillanceId(),
-                  detector.cameraId()
-                  ), "Setup_" + detector.detectorId());
-      });
+      configuration.surveillanceConfigs().forEach(config -> getContext().spawn(Surveillance.create(
+              surveillanceServices,
+              config.groupId(),
+              config.surveillanceId()), config.surveillanceId()));
+      configuration.detectorsConfigs().forEach(config -> getContext().spawn(DetectorSetup.create(
+              config.groupId(),
+              config.detectorId(),
+              config.surveillanceId(),
+              config.cameraId()
+              ), "Setup_" + config.detectorId()));
   }
 
   @Override

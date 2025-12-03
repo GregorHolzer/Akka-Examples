@@ -1,12 +1,16 @@
 {
-  "detectors": [
+  "detectorsConfigs": [
     {
-      "detectorId": "detector0",
+      "groupId": "group01",
+      "detectorId": "detector01",
       "cameraId": "cam01",
-      "surveillanceId": "s1"
+      "surveillanceId": "surveillance01"
     }
   ],
-  "surveillanceIds": [
-    "s1"
+  "surveillanceConfigs": [
+    {
+      "groupId": "group01",
+      "surveillanceId": "surveillance01"
+    }
   ]
 }

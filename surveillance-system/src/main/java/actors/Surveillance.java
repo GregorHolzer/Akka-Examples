@@ -12,14 +12,15 @@ import java.util.HashSet;
 import java.util.Set;
 import services.SurveillanceServices;
 
-public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceCommand> {
-
-  public static final ServiceKey<SurveillanceCommand> global_surveillance_key =
-    ServiceKey.create(SurveillanceCommand.class, "GLOBAL_SURVEILLANCE_KEY");
+public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceCommand> implements StateMachine<Surveillance.SurveillanceState> {
 
   private static final Object TIMEOUT_KEY = new Object();
 
-    private final TimerScheduler<SurveillanceCommand> timers;
+  private final TimerScheduler<SurveillanceCommand> timers;
+
+  private final ServiceKey<SurveillanceCommand> groupSurveillanceKey;
+
+  private final ServiceKey<Detector.DetectorCommand> groupDetectorKey;
 
   private final SurveillanceServices surveillanceServices;
 
@@ -37,47 +38,50 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
 
   private SurveillanceState surveillanceState = SurveillanceState.Processing;
 
-  private Set<ActorRef<Detector.DetectorCommand>> allDetectorRefs = new HashSet<>();
+  private Set<ActorRef<Detector.DetectorCommand>> groupDetectorRefs = new HashSet<>();
 
-  private Set<ActorRef<SurveillanceCommand>> allSurveillanceRefs = new HashSet<>();
+  private Set<ActorRef<SurveillanceCommand>> groupSurveillanceRefs = new HashSet<>();
 
     private Surveillance(
             ActorContext<Surveillance.SurveillanceCommand> context,
             TimerScheduler<SurveillanceCommand> timers,
             SurveillanceServices surveillanceServices,
+            String groupId,
             String surveillanceId
     ) {
         super(context);
         this.timers = timers;
         this.surveillanceServices = surveillanceServices;
-        ServiceKey<SurveillanceCommand> individual_surveillance_key = ServiceKey.create(SurveillanceCommand.class, surveillanceId);
+        groupSurveillanceKey = ServiceKey.create(SurveillanceCommand.class, groupId);
+        groupDetectorKey = ServiceKey.create(Detector.DetectorCommand.class, groupId);
+        ServiceKey<SurveillanceCommand> individualSurveillanceKey = ServiceKey.create(SurveillanceCommand.class, surveillanceId);
         //Register to be found by DetectorSetup
-        getContext().getSystem().receptionist().tell(Receptionist.register(individual_surveillance_key, getContext().getSelf()));
+        getContext().getSystem().receptionist().tell(Receptionist.register(individualSurveillanceKey, getContext().getSelf()));
         //Adapter to receive Messages from Receptionist
         ActorRef<Receptionist.Listing> receptionistAdapter = getContext().messageAdapter(
                 Receptionist.Listing.class,
                 WrappedListingMessage::new
         );
-        //Register to receive Global Messages from other
+        //Register to receive Global Messages from other Group Members
         getContext()
                 .getSystem()
                 .receptionist()
-                .tell(Receptionist.register(global_surveillance_key, getContext().getSelf()));
+                .tell(Receptionist.register(groupSurveillanceKey, getContext().getSelf()));
         //Subscribe to Receptionist with Detector Key
         getContext()
                 .getSystem()
                 .receptionist()
-                .tell(Receptionist.subscribe(Detector.receptionist_detector_key, receptionistAdapter));
-        //Subscribe to Receptionist with Surveillance Key
+                .tell(Receptionist.subscribe(groupDetectorKey, receptionistAdapter));
+        //Subscribe to Receptionist with Group Surveillance Key
         getContext()
                 .getSystem()
                 .receptionist()
-                .tell(Receptionist.subscribe(global_surveillance_key, receptionistAdapter));
+                .tell(Receptionist.subscribe(groupSurveillanceKey, receptionistAdapter));
     }
 
-  public static Behavior<SurveillanceCommand> create(SurveillanceServices surveillanceServices, String surveillanceId) {
+  public static Behavior<SurveillanceCommand> create(SurveillanceServices surveillanceServices, String groupId, String surveillanceId) {
     return Behaviors.withTimers(timers ->
-      Behaviors.setup(context -> new Surveillance(context, timers, surveillanceServices, surveillanceId))
+      Behaviors.setup(context -> new Surveillance(context, timers, surveillanceServices, groupId, surveillanceId))
     );
   }
 
@@ -98,14 +102,10 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
     if (surveillanceState == SurveillanceState.Processing) {
       if (analyzed.hasThreat) {
         getContext().getSelf().tell(new GlobalCommands.Alarm());
-        //Alarm all DetectorActors
-        allDetectorRefs.forEach(ref -> {
-          ref.tell(new GlobalCommands.Alarm());
-        });
-        //Alarm all SurveillanceActors
-        /*allSurveillanceRefs.forEach(ref -> {
-          ref.tell(new GlobalCommands.Alarm());
-        });*/
+        //Alarm all Group DetectorActors
+        groupDetectorRefs.forEach(ref -> ref.tell(new GlobalCommands.Alarm()));
+        //Alarm all Group SurveillanceActors
+        groupSurveillanceRefs.forEach(ref -> ref.tell(new GlobalCommands.Alarm()));
       }
       return processingBehaviour;
     }
@@ -115,6 +115,7 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
   private Behavior<SurveillanceCommand> onAlarm() {
     if (surveillanceState == SurveillanceState.Processing) {
       surveillanceState = SurveillanceState.Alarm;
+      logState(getContext(), surveillanceState);
       timers.startSingleTimer(new GlobalCommands.Disarm(), Duration.ofMillis(10000));
     }
     return alarmBehaviour;
@@ -123,14 +124,11 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
   private Behavior<SurveillanceCommand> onDisarm() {
     if (surveillanceState == SurveillanceState.Alarm) {
       surveillanceState = SurveillanceState.Processing;
+      logState(getContext(), surveillanceState);
       //Disarm all DetectorActors
-      allDetectorRefs.forEach(ref -> {
-        ref.tell(new GlobalCommands.Disarm());
-      });
+      groupDetectorRefs.forEach(ref -> ref.tell(new GlobalCommands.Disarm()));
       //Disarm all SurveillanceActors
-      /*allSurveillanceRefs.forEach(ref -> {
-        ref.tell(new GlobalCommands.Disarm());
-      });*/
+      groupSurveillanceRefs.forEach(ref -> ref.tell(new GlobalCommands.Disarm()));
       timers.cancel(TIMEOUT_KEY);
       return processingBehaviour;
     }
@@ -139,14 +137,16 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
 
   private Behavior<SurveillanceCommand> onWrappedListing(WrappedListingMessage wrappedListing) {
     Receptionist.Listing listing = wrappedListing.listing;
-    if (listing.isForKey(Detector.receptionist_detector_key)) {
-      this.allDetectorRefs = new HashSet<>(
-        listing.getServiceInstances(Detector.receptionist_detector_key)
+    if (listing.isForKey(groupDetectorKey)) {
+      this.groupDetectorRefs = new HashSet<>(
+        listing.getServiceInstances(groupDetectorKey)
       );
     }
-    if (listing.isForKey(global_surveillance_key)) {
-      this.allSurveillanceRefs = new HashSet<>(
-        listing.getServiceInstances(global_surveillance_key)
+    if (listing.isForKey(groupSurveillanceKey)) {
+      this.groupSurveillanceRefs = new HashSet<>(
+        listing.getServiceInstances(groupSurveillanceKey)
+                .stream()
+                .filter(ref -> !getContext().getSelf().equals(ref)).toList()
       );
     }
     return Behaviors.same();
@@ -169,26 +169,20 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
         }
     }
 
-    public static class Analyzed implements SurveillanceCommand {
+  public record Analyzed(byte[] image, Boolean hasThreat) implements SurveillanceCommand {
 
-        public final byte[] image;
-
-        public final Boolean hasThreat;
-
-        @JsonCreator
-        public Analyzed(@JsonProperty("image") byte[] image, Boolean hasThreat) {
-            this.image = image;
-            this.hasThreat = hasThreat;
-        }
+    @JsonCreator
+    public Analyzed(@JsonProperty("image") byte[] image, Boolean hasThreat) {
+      this.image = image;
+      this.hasThreat = hasThreat;
     }
+  }
 
-    private static class WrappedListingMessage implements SurveillanceCommand {
+  private record WrappedListingMessage(Receptionist.Listing listing) implements SurveillanceCommand {
 
-        public final Receptionist.Listing listing;
-
-        @JsonCreator
-        private WrappedListingMessage(@JsonProperty Receptionist.Listing listing) {
-            this.listing = listing;
-        }
+    @JsonCreator
+    private WrappedListingMessage(@JsonProperty Receptionist.Listing listing) {
+      this.listing = listing;
     }
+  }
 }
