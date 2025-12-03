@@ -4,7 +4,7 @@ import actors.Surveillance;
 import akka.actor.typed.javadsl.ActorContext;
 
 //Dummy Services
-public class SurveillanceServices {
+public class SurveillanceService {
 
   private Integer counter = 0;
 

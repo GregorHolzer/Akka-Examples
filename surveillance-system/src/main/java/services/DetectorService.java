@@ -4,16 +4,20 @@ import actors.Detector;
 import akka.actor.typed.javadsl.ActorContext;
 
 //DummyService
-public class DetectorServices {
+public class DetectorService extends AkkaService{
 
   private Integer counter = 0;
 
-  public void alarmOn(ActorContext<?> context) {
-    context.getLog().info("alarmOn");
+  public DetectorService(String ip, Integer port) {
+    super(ip, port);
   }
 
-  public void alarmOff(ActorContext<?> context) {
-    context.getLog().info("alarmOff");
+  public void alarmOn(ActorContext<Detector.DetectorCommand> context) {
+      sendRequest(context, buildPostRequest("/alarm/on"));
+  }
+
+  public void alarmOff(ActorContext<Detector.DetectorCommand> context) {
+     sendRequest(context, buildPostRequest("/alarm/off"));
   }
 
   public void cameraCapture(ActorContext<Detector.DetectorCommand> context, String cameraId) {

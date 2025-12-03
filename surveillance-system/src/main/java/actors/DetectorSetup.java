@@ -8,7 +8,7 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import akka.actor.typed.receptionist.Receptionist;
 import akka.actor.typed.receptionist.ServiceKey;
-import services.DetectorServices;
+import services.DetectorService;
 
 import java.util.List;
 
@@ -24,7 +24,7 @@ public class DetectorSetup extends AbstractBehavior<Receptionist.Listing> {
 
     private final String cameraId;
 
-    private final DetectorServices detectorServices;
+    private final DetectorService detectorService;
 
     private DetectorSetup(ActorContext<Receptionist.Listing> context, String groupId, String detectorId, String surveillanceId, String cameraId) {
         super(context);
@@ -34,7 +34,8 @@ public class DetectorSetup extends AbstractBehavior<Receptionist.Listing> {
                 Surveillance.SurveillanceCommand.class, surveillanceId
         );
         this.cameraId = cameraId;
-        detectorServices = new DetectorServices();
+        //maybe read from config?
+        detectorService = new DetectorService("localhost", 8001);
         getContext().getSystem().receptionist().tell(Receptionist.subscribe(individual_surveillance_key, getContext().getSelf()));
     }
 
@@ -54,7 +55,7 @@ public class DetectorSetup extends AbstractBehavior<Receptionist.Listing> {
                 .stream().toList();
         if(detector == null && !availableSurveillance.isEmpty()) {
             getContext().getLog().info("Registered detector with id {}", detectorId);
-            detector = getContext().spawn(Detector.create(groupId, cameraId, availableSurveillance.getFirst(), detectorServices), detectorId);
+            detector = getContext().spawn(Detector.create(groupId, cameraId, availableSurveillance.getFirst(), detectorService), detectorId);
         }
         return Behaviors.same();
     }

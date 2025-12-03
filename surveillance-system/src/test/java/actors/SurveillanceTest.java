@@ -15,7 +15,7 @@ import java.time.Duration;
 import akka.actor.typed.receptionist.ServiceKey;
 import org.junit.Before;
 import org.junit.Test;
-import services.SurveillanceServices;
+import services.SurveillanceService;
 
 public class SurveillanceTest {
 
@@ -27,7 +27,7 @@ public class SurveillanceTest {
 
   private static final ServiceKey<Detector.DetectorCommand> groupDetectorKey3 = ServiceKey.create(Detector.DetectorCommand.class, groupId + "03");
 
-  private final SurveillanceServices surveillanceServices = mock(SurveillanceServices.class);
+  private final SurveillanceService surveillanceService = mock(SurveillanceService.class);
 
   static final ActorTestKit testKit = ActorTestKit.create();
 
@@ -42,7 +42,7 @@ public class SurveillanceTest {
       context.getLog().info("analyze");
       return null;
     })
-      .when(surveillanceServices)
+      .when(surveillanceService)
       .analyze(any(), any());
     testKit
       .system()
@@ -61,7 +61,7 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestNoAlarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceServices, groupId + "01", "test1"), "test1"
+      Surveillance.create(surveillanceService, groupId + "01", "test1"), "test1"
     );
 
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
@@ -80,7 +80,7 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestAlarmManualDisarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceServices, groupId + "02", "test2"), "test2"
+      Surveillance.create(surveillanceService, groupId + "02", "test2"), "test2"
     );
 
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
@@ -109,7 +109,7 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestAlarmTimeoutDisarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceServices, groupId + "03",  "test3"), "test3"
+      Surveillance.create(surveillanceService, groupId + "03",  "test3"), "test3"
     );
 
     LoggingTestKit.info("in state Alarm")

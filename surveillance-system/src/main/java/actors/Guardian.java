@@ -5,7 +5,7 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
-import services.SurveillanceServices;
+import services.SurveillanceService;
 
 public class Guardian extends AbstractBehavior<Command> {
 
@@ -23,10 +23,10 @@ public class Guardian extends AbstractBehavior<Command> {
   }
 
   private void setupComponents() {
-      SurveillanceServices surveillanceServices = new SurveillanceServices();
+      SurveillanceService surveillanceService = new SurveillanceService();
       Configuration.NodeConfiguration configuration = Configuration.getNodeConfiguration();
       configuration.surveillanceConfigs().forEach(config -> getContext().spawn(Surveillance.create(
-              surveillanceServices,
+              surveillanceService,
               config.groupId(),
               config.surveillanceId()), config.surveillanceId()));
       configuration.detectorsConfigs().forEach(config -> getContext().spawn(DetectorSetup.create(

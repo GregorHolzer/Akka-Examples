@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
-import services.SurveillanceServices;
+import services.SurveillanceService;
 
 public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceCommand> implements StateMachine<Surveillance.SurveillanceState> {
 
@@ -22,7 +22,7 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
 
   private final ServiceKey<Detector.DetectorCommand> groupDetectorKey;
 
-  private final SurveillanceServices surveillanceServices;
+  private final SurveillanceService surveillanceService;
 
   private final Receive<SurveillanceCommand> processingBehaviour = newReceiveBuilder()
     .onMessage(FoundPersons.class, this::onFoundPersons)
@@ -45,13 +45,13 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
     private Surveillance(
             ActorContext<Surveillance.SurveillanceCommand> context,
             TimerScheduler<SurveillanceCommand> timers,
-            SurveillanceServices surveillanceServices,
+            SurveillanceService surveillanceService,
             String groupId,
             String surveillanceId
     ) {
         super(context);
         this.timers = timers;
-        this.surveillanceServices = surveillanceServices;
+        this.surveillanceService = surveillanceService;
         groupSurveillanceKey = ServiceKey.create(SurveillanceCommand.class, groupId);
         groupDetectorKey = ServiceKey.create(Detector.DetectorCommand.class, groupId);
         ServiceKey<SurveillanceCommand> individualSurveillanceKey = ServiceKey.create(SurveillanceCommand.class, surveillanceId);
@@ -79,9 +79,9 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
                 .tell(Receptionist.subscribe(groupSurveillanceKey, receptionistAdapter));
     }
 
-  public static Behavior<SurveillanceCommand> create(SurveillanceServices surveillanceServices, String groupId, String surveillanceId) {
+  public static Behavior<SurveillanceCommand> create(SurveillanceService surveillanceService, String groupId, String surveillanceId) {
     return Behaviors.withTimers(timers ->
-      Behaviors.setup(context -> new Surveillance(context, timers, surveillanceServices, groupId, surveillanceId))
+      Behaviors.setup(context -> new Surveillance(context, timers, surveillanceService, groupId, surveillanceId))
     );
   }
 
@@ -92,7 +92,7 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
 
   private Behavior<SurveillanceCommand> onFoundPersons(FoundPersons persons) {
     if (surveillanceState == SurveillanceState.Processing) {
-      surveillanceServices.analyze(getContext(), persons);
+      surveillanceService.analyze(getContext(), persons);
       return processingBehaviour;
     }
     return Behaviors.same();
