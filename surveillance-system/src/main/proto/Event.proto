@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package exchange;
+
+import "ContextVariable.proto";
+
+option java_multiple_files = false;
+option java_package = "exchange";
+option java_outer_classname = "EventProtos";
+
+message Event {
+  enum Channel {
+    INTERNAL = 0;
+    EXTERNAL = 1;
+    GLOBAL = 2;
+    PERIPHERAL = 3;
+  }
+
+  double createdTime = 1;
+  string id = 2;
+  string name = 3;
+  Channel channel = 4;
+  repeated ContextVariable data = 5;
+}

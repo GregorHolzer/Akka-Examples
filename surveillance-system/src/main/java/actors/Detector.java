@@ -10,12 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Duration;
 import services.DetectorServices;
 
-public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
-
-  public static final ServiceKey<DetectorCommand> receptionist_detector_key = ServiceKey.create(
-    DetectorCommand.class,
-    "GLOBAL_DETECTOR_KEY"
-  );
+public class Detector extends AbstractBehavior<Detector.DetectorCommand> implements StateMachine<Detector.DetectorState>{
 
   private static final Object TIMEOUT_KEY = new Object();
 
@@ -47,6 +42,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
     ActorContext<DetectorCommand> context,
     TimerScheduler<DetectorCommand> timers,
     DetectorServices detectorServices,
+    String groupId,
     String cameraId,
     ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef
   ) {
@@ -55,22 +51,25 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
     this.detectorServices = detectorServices;
     this.cameraId = cameraId;
     this.surveillanceActorRef = surveillanceActorRef;
-    //register to receive global messages like Alarm or Disarm
+    ServiceKey<DetectorCommand> groupDetectorKey = ServiceKey.create(DetectorCommand.class, groupId);
+    //register to receive group messages like Alarm or Disarm
     getContext()
       .getSystem()
       .receptionist()
-      .tell(Receptionist.register(receptionist_detector_key, getContext().getSelf()));
+      .tell(Receptionist.register(groupDetectorKey, getContext().getSelf()));
+    //Start Initial Invocation
       detectorServices.cameraCapture(getContext(), cameraId);
   }
 
   public static Behavior<DetectorCommand> create(
+          String groupId,
     String cameraId,
     ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef,
     DetectorServices detectorServices
   ) {
     return Behaviors.withTimers(timer ->
       Behaviors.setup(context ->
-        new Detector(context, timer, detectorServices, cameraId, surveillanceActorRef)
+        new Detector(context, timer, detectorServices, groupId,cameraId, surveillanceActorRef)
       )
     );
   }
@@ -83,6 +82,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
   private Behavior<DetectorCommand> onCapturedImage(CapturedImage capturedImage) {
     if (detectorState == DetectorState.Capturing) {
       detectorState = DetectorState.Processing;
+        logState(getContext(), detectorState);
       detectorServices.detectPersons(getContext(), capturedImage);
       timers.startSingleTimer(TIMEOUT_KEY, new Timeout(), Duration.ofMillis(500));
       return processingBehaviour;
@@ -103,6 +103,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
   private Behavior<DetectorCommand> onTimeout() {
     if (detectorState == DetectorState.Processing) {
       detectorState = DetectorState.Capturing;
+        logState(getContext(), detectorState);
       detectorServices.cameraCapture(getContext(), cameraId);
       return capturingBehaviour;
     }
@@ -113,6 +114,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
     if (detectorState == DetectorState.Processing) {
       timers.cancel(TIMEOUT_KEY);
       detectorState = DetectorState.Alarm;
+        logState(getContext(), detectorState);
       detectorServices.alarmOn(getContext());
       return alarmBehaviour;
     }
@@ -122,6 +124,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
   private Behavior<DetectorCommand> onDisarm() {
     if (detectorState == DetectorState.Alarm) {
       detectorState = DetectorState.Capturing;
+      logState(getContext(), detectorState);
       detectorServices.alarmOff(getContext());
       detectorServices.cameraCapture(getContext(), cameraId);
       return capturingBehaviour;
@@ -137,31 +140,25 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> {
 
   public interface DetectorCommand extends Command {}
 
-  public static class CapturedImage implements DetectorCommand {
+  public record CapturedImage(byte[] image) implements DetectorCommand {
 
-    public final byte[] image;
-
-    @JsonCreator
-    public CapturedImage(@JsonProperty("image") byte[] image) {
-      this.image = image;
+      @JsonCreator
+      public CapturedImage(@JsonProperty("image") byte[] image) {
+        this.image = image;
+      }
     }
-  }
 
-  public static class DetectedPersons implements DetectorCommand {
+  public record DetectedPersons(byte[] image, Boolean hasDetectedPersons) implements DetectorCommand {
 
-    public final byte[] image;
-
-    public final Boolean hasDetectedPersons;
-
-    @JsonCreator
-    public DetectedPersons(
-      @JsonProperty("image") byte[] image,
-      @JsonProperty("hasDetectedPersons") Boolean hasDetectedPersons
-    ) {
-      this.image = image;
-      this.hasDetectedPersons = hasDetectedPersons;
+      @JsonCreator
+      public DetectedPersons(
+              @JsonProperty("image") byte[] image,
+              @JsonProperty("hasDetectedPersons") Boolean hasDetectedPersons
+      ) {
+        this.image = image;
+        this.hasDetectedPersons = hasDetectedPersons;
+      }
     }
-  }
 
   public static class Timeout implements DetectorCommand {}
 }

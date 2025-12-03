@@ -18,63 +18,30 @@ public class DetectorTest {
 
   static final ActorTestKit testKit = ActorTestKit.create();
 
-  private static final String cameraId = "c0";
+  private static final String groupId = "group01";
+
+  private static final String cameraId = "cam0";
 
   private final TestProbe<Surveillance.SurveillanceCommand> surveillance = testKit.createTestProbe(
     Surveillance.SurveillanceCommand.class
   );
 
-  @Before
-  public void setup() {
-    doAnswer(invocationOnMock -> {
-      ActorContext<Detector.DetectorCommand> context = invocationOnMock.getArgument(0);
-      context.getLog().info("alarmOn");
-      return null;
-    })
-      .when(detectorServices)
-      .alarmOn(any());
-
-    doAnswer(invocationOnMock -> {
-      ActorContext<Detector.DetectorCommand> context = invocationOnMock.getArgument(0);
-      context.getLog().info("alarmOff");
-      return null;
-    })
-      .when(detectorServices)
-      .alarmOff(any());
-
-    doAnswer(invocationOnMock -> {
-      ActorContext<Detector.DetectorCommand> context = invocationOnMock.getArgument(0);
-      context.getLog().info("captureCamera");
-      return null;
-    })
-      .when(detectorServices)
-      .cameraCapture(any(), any());
-
-    doAnswer(invocationOnMock -> {
-      ActorContext<Detector.DetectorCommand> context = invocationOnMock.getArgument(0);
-      context.getLog().info("detectPersons");
-      return null;
-    })
-      .when(detectorServices)
-      .detectPersons(any(), any());
-  }
-
   @Test
   public void detectorAlarmTest() {
     ActorRef<Detector.DetectorCommand> detector = testKit.spawn(
-      Detector.create(cameraId, surveillance.getRef(), detectorServices)
+      Detector.create(groupId, cameraId, surveillance.getRef(), detectorServices)
     );
 
-    LoggingTestKit.info("detectPersons").expect(testKit.system(), () -> {
+    LoggingTestKit.info("in state Processing").expect(testKit.system(), () -> {
       detector.tell(new Detector.CapturedImage(new byte[0]));
       return null;
     });
     verify(detectorServices, times(1)).cameraCapture(any(), any());
-    LoggingTestKit.info("alarmOn").expect(testKit.system(), () -> {
+    LoggingTestKit.info("in state Alarm").expect(testKit.system(), () -> {
       detector.tell(new GlobalCommands.Alarm());
       return null;
     });
-    LoggingTestKit.info("alarmOff").expect(testKit.system(), () -> {
+    LoggingTestKit.info("in state Capturing").expect(testKit.system(), () -> {
       detector.tell(new GlobalCommands.Disarm());
       return null;
     });
@@ -84,17 +51,17 @@ public class DetectorTest {
   @Test
   public void detectorTimeoutTest() {
     ActorRef<Detector.DetectorCommand> detector = testKit.spawn(
-      Detector.create(cameraId, surveillance.getRef(), detectorServices)
+      Detector.create(groupId, cameraId, surveillance.getRef(), detectorServices)
     );
 
-    LoggingTestKit.info("detectPersons").expect(testKit.system(), () -> {
+    LoggingTestKit.info("in state Processing").expect(testKit.system(), () -> {
       detector.tell(new Detector.CapturedImage(new byte[0]));
       return null;
     });
     verify(detectorServices, times(1)).cameraCapture(any(), any());
 
-    LoggingTestKit.info("captureCamera").expect(testKit.system(), () -> {
-      //Wait for Timeout
+    LoggingTestKit.info("in state Capturing").expect(testKit.system(), () -> {
+      //Wait for Timeout (500ms)
       return null;
     });
   }
