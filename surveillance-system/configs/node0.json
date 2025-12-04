@@ -3,7 +3,7 @@
     {
       "groupId": "group01",
       "detectorId": "detector01",
-      "cameraId": "cam01",
+      "cameraId": 1,
       "surveillanceId": "surveillance01"
     }
   ],

@@ -8,7 +8,7 @@ import akka.actor.typed.receptionist.ServiceKey;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Duration;
-import services.DetectorServices;
+import services.DetectorService;
 
 public class Detector extends AbstractBehavior<Detector.DetectorCommand> implements StateMachine<Detector.DetectorState>{
 
@@ -16,7 +16,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
 
   private final TimerScheduler<DetectorCommand> timers;
 
-  private final DetectorServices detectorServices;
+  private final DetectorService detectorService;
 
   private final Receive<DetectorCommand> capturingBehaviour = newReceiveBuilder()
     .onMessage(CapturedImage.class, this::onCapturedImage)
@@ -32,7 +32,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
     .onMessage(GlobalCommands.Disarm.class, msg -> onDisarm())
     .build();
 
-  private final String cameraId;
+  private final Integer cameraId;
 
   private final ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef;
 
@@ -41,14 +41,14 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
   public Detector(
     ActorContext<DetectorCommand> context,
     TimerScheduler<DetectorCommand> timers,
-    DetectorServices detectorServices,
+    DetectorService detectorService,
     String groupId,
-    String cameraId,
+    Integer cameraId,
     ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef
   ) {
     super(context);
     this.timers = timers;
-    this.detectorServices = detectorServices;
+    this.detectorService = detectorService;
     this.cameraId = cameraId;
     this.surveillanceActorRef = surveillanceActorRef;
     ServiceKey<DetectorCommand> groupDetectorKey = ServiceKey.create(DetectorCommand.class, groupId);
@@ -58,18 +58,18 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
       .receptionist()
       .tell(Receptionist.register(groupDetectorKey, getContext().getSelf()));
     //Start Initial Invocation
-      detectorServices.cameraCapture(getContext(), cameraId);
+      detectorService.cameraCapture(getContext(), cameraId);
   }
 
   public static Behavior<DetectorCommand> create(
           String groupId,
-    String cameraId,
+          Integer cameraId,
     ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef,
-    DetectorServices detectorServices
+    DetectorService detectorService
   ) {
     return Behaviors.withTimers(timer ->
       Behaviors.setup(context ->
-        new Detector(context, timer, detectorServices, groupId,cameraId, surveillanceActorRef)
+        new Detector(context, timer, detectorService, groupId, cameraId, surveillanceActorRef)
       )
     );
   }
@@ -83,7 +83,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
     if (detectorState == DetectorState.Capturing) {
       detectorState = DetectorState.Processing;
         logState(getContext(), detectorState);
-      detectorServices.detectPersons(getContext(), capturedImage);
+      detectorService.detectPersons(getContext(), capturedImage);
       timers.startSingleTimer(TIMEOUT_KEY, new Timeout(), Duration.ofMillis(500));
       return processingBehaviour;
     }
@@ -104,7 +104,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
     if (detectorState == DetectorState.Processing) {
       detectorState = DetectorState.Capturing;
         logState(getContext(), detectorState);
-      detectorServices.cameraCapture(getContext(), cameraId);
+      detectorService.cameraCapture(getContext(), cameraId);
       return capturingBehaviour;
     }
     return Behaviors.same();
@@ -115,7 +115,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
       timers.cancel(TIMEOUT_KEY);
       detectorState = DetectorState.Alarm;
         logState(getContext(), detectorState);
-      detectorServices.alarmOn(getContext());
+      detectorService.alarmOn(getContext());
       return alarmBehaviour;
     }
     return Behaviors.same();
@@ -125,8 +125,8 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
     if (detectorState == DetectorState.Alarm) {
       detectorState = DetectorState.Capturing;
       logState(getContext(), detectorState);
-      detectorServices.alarmOff(getContext());
-      detectorServices.cameraCapture(getContext(), cameraId);
+      detectorService.alarmOff(getContext());
+      detectorService.cameraCapture(getContext(), cameraId);
       return capturingBehaviour;
     }
     return Behaviors.same();
