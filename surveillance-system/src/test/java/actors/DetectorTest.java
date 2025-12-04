@@ -18,7 +18,7 @@ public class DetectorTest {
 
   private static final String groupId = "group01";
 
-  private static final String cameraId = "cam0";
+  private static final Integer cameraId = 1;
 
   private final TestProbe<Surveillance.SurveillanceCommand> surveillance = testKit.createTestProbe(
     Surveillance.SurveillanceCommand.class

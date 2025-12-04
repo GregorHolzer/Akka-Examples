@@ -32,7 +32,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
     .onMessage(GlobalCommands.Disarm.class, msg -> onDisarm())
     .build();
 
-  private final String cameraId;
+  private final Integer cameraId;
 
   private final ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef;
 
@@ -43,7 +43,7 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
     TimerScheduler<DetectorCommand> timers,
     DetectorService detectorService,
     String groupId,
-    String cameraId,
+    Integer cameraId,
     ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef
   ) {
     super(context);
@@ -63,13 +63,13 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
 
   public static Behavior<DetectorCommand> create(
           String groupId,
-    String cameraId,
+          Integer cameraId,
     ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef,
     DetectorService detectorService
   ) {
     return Behaviors.withTimers(timer ->
       Behaviors.setup(context ->
-        new Detector(context, timer, detectorService, groupId,cameraId, surveillanceActorRef)
+        new Detector(context, timer, detectorService, groupId, cameraId, surveillanceActorRef)
       )
     );
   }

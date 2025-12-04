@@ -44,18 +44,6 @@ public class SurveillanceTest {
     })
       .when(surveillanceService)
       .analyze(any(), any());
-    testKit
-      .system()
-      .receptionist()
-      .tell(Receptionist.register(groupDetectorKey1, detector.getRef()));
-    testKit
-            .system()
-            .receptionist()
-            .tell(Receptionist.register(groupDetectorKey2, detector.getRef()));
-    testKit
-            .system()
-            .receptionist()
-            .tell(Receptionist.register(groupDetectorKey3, detector.getRef()));
   }
 
   @Test
@@ -63,7 +51,10 @@ public class SurveillanceTest {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
       Surveillance.create(surveillanceService, groupId + "01", "test1"), "test1"
     );
-
+    testKit
+            .system()
+            .receptionist()
+            .tell(Receptionist.register(groupDetectorKey1, detector.getRef()));
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
       surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
       return null;
@@ -82,7 +73,10 @@ public class SurveillanceTest {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
       Surveillance.create(surveillanceService, groupId + "02", "test2"), "test2"
     );
-
+    testKit
+            .system()
+            .receptionist()
+            .tell(Receptionist.register(groupDetectorKey2, detector.getRef()));
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
       surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
       return null;
@@ -111,7 +105,10 @@ public class SurveillanceTest {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
       Surveillance.create(surveillanceService, groupId + "03",  "test3"), "test3"
     );
-
+    testKit
+            .system()
+            .receptionist()
+            .tell(Receptionist.register(groupDetectorKey3, detector.getRef()));
     LoggingTestKit.info("in state Alarm")
       .expect(testKit.system(), () -> {
         surveillance.tell(new GlobalCommands.Alarm());

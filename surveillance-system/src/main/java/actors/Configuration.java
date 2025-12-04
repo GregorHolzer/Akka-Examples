@@ -47,7 +47,7 @@ public class Configuration {
   public record DetectorConfiguration(
           String groupId,
           String detectorId,
-          String cameraId,
+          Integer cameraId,
           String surveillanceId) {}
 
   public record SurveillanceConfiguration(

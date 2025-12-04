@@ -22,11 +22,11 @@ public class DetectorSetup extends AbstractBehavior<Receptionist.Listing> {
 
     private final String detectorId;
 
-    private final String cameraId;
+    private final Integer cameraId;
 
     private final DetectorService detectorService;
 
-    private DetectorSetup(ActorContext<Receptionist.Listing> context, String groupId, String detectorId, String surveillanceId, String cameraId) {
+    private DetectorSetup(ActorContext<Receptionist.Listing> context, String groupId, String detectorId, String surveillanceId, Integer cameraId) {
         super(context);
         this.groupId = groupId;
         this.detectorId = detectorId;
@@ -35,11 +35,11 @@ public class DetectorSetup extends AbstractBehavior<Receptionist.Listing> {
         );
         this.cameraId = cameraId;
         //maybe read from config?
-        detectorService = new DetectorService("localhost", 8001);
+        detectorService = new DetectorService();
         getContext().getSystem().receptionist().tell(Receptionist.subscribe(individual_surveillance_key, getContext().getSelf()));
     }
 
-    public static Behavior<Receptionist.Listing> create(String groupId, String detectorId, String surveillanceId, String cameraId) {
+    public static Behavior<Receptionist.Listing> create(String groupId, String detectorId, String surveillanceId, Integer cameraId) {
         return Behaviors.setup(context -> new DetectorSetup(context, groupId, detectorId, surveillanceId, cameraId));
     }
 
