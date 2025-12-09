@@ -3,6 +3,8 @@ package actors;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.*;
+import akka.actor.typed.pubsub.PubSub;
+import akka.actor.typed.pubsub.Topic;
 import akka.actor.typed.receptionist.Receptionist;
 import akka.actor.typed.receptionist.ServiceKey;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -21,6 +23,10 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
   private final ServiceKey<SurveillanceCommand> groupSurveillanceKey;
 
   private final ServiceKey<Detector.DetectorCommand> groupDetectorKey;
+
+  private final ActorRef<Topic.Command<SurveillanceCommand>> surveillanceTopic;
+
+  private final ActorRef<Topic.Command<Detector.DetectorCommand>> detectorTopic;
 
   private final SurveillanceService surveillanceService;
 
@@ -62,6 +68,11 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
                 Receptionist.Listing.class,
                 WrappedListingMessage::new
         );
+        PubSub pubSub = PubSub.get(context.getSystem());
+        surveillanceTopic = pubSub.topic(SurveillanceCommand.class, "global-surveillance-commands");
+        surveillanceTopic.tell(Topic.subscribe(getContext().getSelf()));
+        detectorTopic = pubSub.topic(Detector.DetectorCommand.class, "global-detector-commands");
+        /*
         //Register to receive Global Messages from other Group Members
         getContext()
                 .getSystem()
@@ -76,7 +87,7 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
         getContext()
                 .getSystem()
                 .receptionist()
-                .tell(Receptionist.subscribe(groupSurveillanceKey, receptionistAdapter));
+                .tell(Receptionist.subscribe(groupSurveillanceKey, receptionistAdapter));*/
     }
 
   public static Behavior<SurveillanceCommand> create(SurveillanceService surveillanceService, String groupId, String surveillanceId) {
@@ -102,10 +113,12 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
     if (surveillanceState == SurveillanceState.Processing) {
       if (analyzed.hasThreat) {
         getContext().getSelf().tell(new GlobalCommands.Alarm());
+        surveillanceTopic.tell(Topic.publish(new GlobalCommands.Alarm()));
+        detectorTopic.tell(Topic.publish(new GlobalCommands.Alarm()));
         //Alarm all Group DetectorActors
-        groupDetectorRefs.forEach(ref -> ref.tell(new GlobalCommands.Alarm()));
+        //groupDetectorRefs.forEach(ref -> ref.tell(new GlobalCommands.Alarm()));
         //Alarm all Group SurveillanceActors
-        groupSurveillanceRefs.forEach(ref -> ref.tell(new GlobalCommands.Alarm()));
+        //groupSurveillanceRefs.forEach(ref -> ref.tell(new GlobalCommands.Alarm()));
       }
       return processingBehaviour;
     }
@@ -125,10 +138,12 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
     if (surveillanceState == SurveillanceState.Alarm) {
       surveillanceState = SurveillanceState.Processing;
       logState(getContext(), surveillanceState);
-      //Disarm all DetectorActors
+      surveillanceTopic.tell(Topic.publish(new GlobalCommands.Disarm()));
+      detectorTopic.tell(Topic.publish(new GlobalCommands.Disarm()));
+      /*//Disarm all DetectorActors
       groupDetectorRefs.forEach(ref -> ref.tell(new GlobalCommands.Disarm()));
       //Disarm all SurveillanceActors
-      groupSurveillanceRefs.forEach(ref -> ref.tell(new GlobalCommands.Disarm()));
+      groupSurveillanceRefs.forEach(ref -> ref.tell(new GlobalCommands.Disarm()));*/
       timers.cancel(TIMEOUT_KEY);
       return processingBehaviour;
     }

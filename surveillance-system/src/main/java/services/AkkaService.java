@@ -1,9 +1,10 @@
 package services;
 
-import actors.Detector;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.model.*;
+import akka.stream.Materializer;
+import akka.stream.javadsl.Source;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import exchange.ContextVariableProtos;
@@ -22,7 +23,6 @@ public interface AkkaService {
   }
 
   default HttpRequest buildPostRequest(String host, Integer port, String path, byte[] body) {
-    System.out.println("send to " + host + ":" + port + path);
     return HttpRequest.POST(getUrl(host, port, path))
             .withEntity(
                     HttpEntities.create(ContentTypes.APPLICATION_OCTET_STREAM, akka.util.ByteString.fromArray(body))
@@ -54,8 +54,7 @@ public interface AkkaService {
               try {
                 return ContextVariableProtos.ContextVariables.parseFrom(bytes.toArray());
               } catch (InvalidProtocolBufferException e) {
-                context.getLog().error("Error parsing response: {}", e.getMessage());
-                return null;
+                return ContextVariableProtos.ContextVariables.newBuilder().build();
               }
             });
   }

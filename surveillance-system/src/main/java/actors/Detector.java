@@ -3,6 +3,8 @@ package actors;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.*;
+import akka.actor.typed.pubsub.PubSub;
+import akka.actor.typed.pubsub.Topic;
 import akka.actor.typed.receptionist.Receptionist;
 import akka.actor.typed.receptionist.ServiceKey;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -18,18 +20,23 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
 
   private final DetectorService detectorService;
 
+  private final ActorRef<Topic.Command<DetectorCommand>> detectorTopic;
+
   private final Receive<DetectorCommand> capturingBehaviour = newReceiveBuilder()
     .onMessage(CapturedImage.class, this::onCapturedImage)
+          .onMessage(GlobalCommands.InvocationFailure.class, this::onInvocationFailure)
     .build();
 
   private final Receive<DetectorCommand> processingBehaviour = newReceiveBuilder()
     .onMessage(DetectedPersons.class, this::onDetectedPersons)
     .onMessage(Timeout.class, msg -> onTimeout())
     .onMessage(GlobalCommands.Alarm.class, msg -> onAlarm())
+          .onMessage(GlobalCommands.InvocationFailure.class, this::onInvocationFailure)
     .build();
 
   private final Receive<DetectorCommand> alarmBehaviour = newReceiveBuilder()
     .onMessage(GlobalCommands.Disarm.class, msg -> onDisarm())
+          .onMessage(GlobalCommands.InvocationFailure.class, this::onInvocationFailure)
     .build();
 
   private final Integer cameraId;
@@ -51,6 +58,8 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
     this.detectorService = detectorService;
     this.cameraId = cameraId;
     this.surveillanceActorRef = surveillanceActorRef;
+    PubSub pubSub = PubSub.get(getContext().getSystem());
+    detectorTopic = pubSub.topic(Detector.DetectorCommand.class, "global-detector-commands");
     ServiceKey<DetectorCommand> groupDetectorKey = ServiceKey.create(DetectorCommand.class, groupId);
     //register to receive group messages like Alarm or Disarm
     getContext()
@@ -129,6 +138,11 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
       detectorService.cameraCapture(getContext(), cameraId);
       return capturingBehaviour;
     }
+    return Behaviors.same();
+  }
+
+  private Behavior<DetectorCommand> onInvocationFailure(GlobalCommands.InvocationFailure invocationFailure) {
+    getContext().getLog().error("Service Invocation of service {} failed", invocationFailure.serviceName());
     return Behaviors.same();
   }
 
