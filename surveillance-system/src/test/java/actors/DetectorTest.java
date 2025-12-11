@@ -3,6 +3,7 @@ package actors;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import actors.common.GlobalCommands;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestProbe;
@@ -16,8 +17,6 @@ public class DetectorTest {
 
   static final ActorTestKit testKit = ActorTestKit.create();
 
-  private static final String groupId = "group01";
-
   private static final Integer cameraId = 1;
 
   private final TestProbe<Surveillance.SurveillanceCommand> surveillance = testKit.createTestProbe(
@@ -27,7 +26,7 @@ public class DetectorTest {
   @Test
   public void detectorAlarmTest() {
     ActorRef<Detector.DetectorCommand> detector = testKit.spawn(
-      Detector.create(groupId, cameraId, surveillance.getRef(), detectorService)
+      Detector.create(cameraId, surveillance.getRef(), detectorService)
     );
 
     LoggingTestKit.info("in state Processing").expect(testKit.system(), () -> {
@@ -49,7 +48,7 @@ public class DetectorTest {
   @Test
   public void detectorTimeoutTest() {
     ActorRef<Detector.DetectorCommand> detector = testKit.spawn(
-      Detector.create(groupId, cameraId, surveillance.getRef(), detectorService)
+      Detector.create(cameraId, surveillance.getRef(), detectorService)
     );
 
     LoggingTestKit.info("in state Processing").expect(testKit.system(), () -> {

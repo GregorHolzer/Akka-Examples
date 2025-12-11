@@ -1,11 +1,11 @@
 package actors.setup;
 
-import static nats.NatsMessage.getNatsMessage;
+import static actors.common.NatsMessage.getNatsMessage;
 
-import actors.NodeConfig;
-import actors.controller.Controller;
-import actors.gate.Gate;
-import actors.light_machine.LightMachine;
+import actors.common.NodeConfig;
+import actors.Controller;
+import actors.Gate;
+import actors.LightMachine;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -22,7 +22,7 @@ import io.nats.client.Dispatcher;
 import io.nats.client.Message;
 import io.nats.client.Nats;
 import java.util.List;
-import nats.NatsMessage;
+import actors.common.NatsMessage;
 
 public class ControllerSetup
   extends AbstractBehavior<Receptionist.Listing>

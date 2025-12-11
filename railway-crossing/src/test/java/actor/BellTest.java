@@ -3,12 +3,12 @@ package actor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import actors.NodeConfig;
-import actors.bell.Bell;
+import actors.common.NodeConfig;
+import actors.Bell;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.typed.ActorRef;
-import open_telemetry.Telemetry;
+import actors.common.Telemetry;
 import org.junit.AfterClass;
 import org.junit.Test;
 import service.RailwayService;

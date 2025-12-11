@@ -4,28 +4,21 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
+import actors.common.GlobalCommands;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.receptionist.Receptionist;
+import akka.actor.typed.pubsub.PubSub;
+import akka.actor.typed.pubsub.Topic;
 import java.time.Duration;
-
-import akka.actor.typed.receptionist.ServiceKey;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import services.SurveillanceService;
 
 public class SurveillanceTest {
-
-  private static final String groupId = "group";
-
-  private static final ServiceKey<Detector.DetectorCommand> groupDetectorKey1 = ServiceKey.create(Detector.DetectorCommand.class, groupId + "01");
-
-  private static final ServiceKey<Detector.DetectorCommand> groupDetectorKey2 = ServiceKey.create(Detector.DetectorCommand.class, groupId + "02");
-
-  private static final ServiceKey<Detector.DetectorCommand> groupDetectorKey3 = ServiceKey.create(Detector.DetectorCommand.class, groupId + "03");
 
   private final SurveillanceService surveillanceService = mock(SurveillanceService.class);
 
@@ -44,17 +37,17 @@ public class SurveillanceTest {
     })
       .when(surveillanceService)
       .analyze(any(), any());
+    PubSub pubSub = PubSub.get(testKit.system());
+    ActorRef<Topic.Command<Detector.DetectorCommand>> detectorTopic = pubSub.topic(Detector.DetectorCommand.class, "global-detector-commands");
+    detectorTopic.tell(Topic.subscribe(detector.getRef()));
   }
 
   @Test
   public void surveillanceTestNoAlarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceService, groupId + "01", "test1"), "test1"
+      Surveillance.create(surveillanceService, "test1"), "test1"
     );
-    testKit
-            .system()
-            .receptionist()
-            .tell(Receptionist.register(groupDetectorKey1, detector.getRef()));
+
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
       surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
       return null;
@@ -66,27 +59,25 @@ public class SurveillanceTest {
         surveillance.tell(new Surveillance.Analyzed(new byte[0], false));
         return null;
       });
+    testKit.stop(surveillance);
   }
 
   @Test
   public void surveillanceTestAlarmManualDisarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceService, groupId + "02", "test2"), "test2"
+      Surveillance.create(surveillanceService,  "test2"), "test2"
     );
-    testKit
-            .system()
-            .receptionist()
-            .tell(Receptionist.register(groupDetectorKey2, detector.getRef()));
+
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
       surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
       return null;
     });
 
     LoggingTestKit.info("in state Alarm")
-      .expect(testKit.system(), () -> {
-        surveillance.tell(new Surveillance.Analyzed(new byte[0], true));
-        return null;
-      });
+            .expect(testKit.system(), () -> {
+              surveillance.tell(new Surveillance.Analyzed(new byte[0], true));
+              return null;
+            });
     detector.expectMessageClass(GlobalCommands.Alarm.class);
 
     LoggingTestKit.info("in state Processing")
@@ -98,17 +89,14 @@ public class SurveillanceTest {
       surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
       return null;
     });
+    testKit.stop(surveillance);
   }
 
   @Test
   public void surveillanceTestAlarmTimeoutDisarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceService, groupId + "03",  "test3"), "test3"
+      Surveillance.create(surveillanceService,   "test3"), "test3"
     );
-    testKit
-            .system()
-            .receptionist()
-            .tell(Receptionist.register(groupDetectorKey3, detector.getRef()));
     LoggingTestKit.info("in state Alarm")
       .expect(testKit.system(), () -> {
         surveillance.tell(new GlobalCommands.Alarm());
@@ -126,5 +114,11 @@ public class SurveillanceTest {
       surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
       return null;
     });
+    testKit.stop(surveillance);
+  }
+
+  @AfterClass
+  public static void cleanUp() {
+    testKit.shutdownTestKit();
   }
 }

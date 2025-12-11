@@ -1,7 +1,7 @@
 package actors.setup;
 
-import actors.bell.Bell;
-import actors.gate.Gate;
+import actors.Bell;
+import actors.Gate;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;

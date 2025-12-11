@@ -1,4 +1,4 @@
-package actors;
+package actors.common;
 
 import akka.serialization.jackson.CborSerializable;
 

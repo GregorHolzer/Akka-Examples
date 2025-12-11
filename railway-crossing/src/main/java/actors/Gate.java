@@ -1,8 +1,7 @@
-package actors.gate;
+package actors;
 
-import actors.Command;
-import actors.StateMachine;
-import actors.bell.Bell;
+import actors.common.Command;
+import actors.common.StateMachine;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;

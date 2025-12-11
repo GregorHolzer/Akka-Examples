@@ -1,7 +1,5 @@
-package actors.guardian;
+package actors.common;
 
-import actors.Command;
-import actors.NodeConfig;
 import actors.setup.BellSetup;
 import actors.setup.ControllerSetup;
 import actors.setup.GateSetup;
@@ -15,7 +13,7 @@ import akka.discovery.Discovery;
 import akka.discovery.ServiceDiscovery;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
-import open_telemetry.Telemetry;
+
 import service.RailwayService;
 
 public class Guardian extends AbstractBehavior<Command> {

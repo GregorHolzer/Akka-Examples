@@ -1,5 +1,5 @@
-import actors.Command;
-import actors.guardian.Guardian;
+import actors.common.Command;
+import actors.common.Guardian;
 import akka.actor.typed.ActorSystem;
 import akka.cluster.Cluster;
 import akka.management.javadsl.AkkaManagement;
@@ -14,7 +14,5 @@ public class Main {
     ActorSystem<Command> system = ActorSystem.create(Guardian.create(args[0]), "railway-crossing");
     Cluster.get(system);
     AkkaManagement.get(system).start();
-    //Currently working with Seed-Nodes
-    //ClusterBootstrap.get(system).start();
   }
 }

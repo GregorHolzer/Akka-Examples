@@ -1,9 +1,8 @@
 package service;
 
-import actors.Command;
-import actors.NodeConfig;
-import actors.bell.Bell;
-import akka.actor.Actor;
+import actors.common.Command;
+import actors.common.NodeConfig;
+import actors.Bell;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.discovery.ServiceDiscovery;
@@ -16,7 +15,6 @@ import exchange.ContextVariableProtos.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 public class RailwayService {

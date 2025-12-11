@@ -1,7 +1,7 @@
 package services;
 
 
-import actors.GlobalCommands;
+import actors.common.GlobalCommands;
 import actors.Surveillance;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.http.javadsl.model.HttpResponse;

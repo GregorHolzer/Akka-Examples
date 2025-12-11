@@ -1,7 +1,7 @@
 package services;
 
 import actors.Detector;
-import actors.GlobalCommands;
+import actors.common.GlobalCommands;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;

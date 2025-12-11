@@ -1,5 +1,7 @@
-package actors;
+package actors.common;
 
+import actors.DetectorSetup;
+import actors.Surveillance;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
@@ -27,10 +29,8 @@ public class Guardian extends AbstractBehavior<Command> {
       Configuration.NodeConfiguration configuration = Configuration.getNodeConfiguration();
       configuration.surveillanceConfigs().forEach(config -> getContext().spawn(Surveillance.create(
               surveillanceService,
-              config.groupId(),
               config.surveillanceId()), config.surveillanceId()));
       configuration.detectorsConfigs().forEach(config -> getContext().spawn(DetectorSetup.create(
-              config.groupId(),
               config.detectorId(),
               config.surveillanceId(),
               config.cameraId()

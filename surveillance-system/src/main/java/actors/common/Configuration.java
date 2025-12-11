@@ -1,4 +1,4 @@
-package actors;
+package actors.common;
 
 import akka.actor.typed.javadsl.ActorContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,7 +14,7 @@ public class Configuration {
       try {
         ObjectMapper mapper = new ObjectMapper();
         nodeConfiguration = mapper.readValue(new File(configPath), NodeConfiguration.class);
-        context.getLog().info("actors.Configuration loaded successfully:");
+        context.getLog().info("actors.common.Configuration loaded successfully:");
         nodeConfiguration.detectorsConfigs.forEach(detector ->
                 context.getLog().info("Launching Detector within Group: {} with cameraId: {} responding to SurveillanceId {}",
             detector.groupId,

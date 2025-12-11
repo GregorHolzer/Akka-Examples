@@ -3,7 +3,7 @@ package actor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import actors.light_machine.LightMachine;
+import actors.LightMachine;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.typed.ActorRef;

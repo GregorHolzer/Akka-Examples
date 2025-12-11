@@ -8,8 +8,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
-        <akka.version>2.10.9</akka.version>
         <scala.binary.version>2.13</scala.binary.version>
+        <akka.version>2.10.9</akka.version>
+        <akka.http.version>10.7.3</akka.http.version>
         <akka.management.version>1.6.3</akka.management.version>
         <protobuf.version>3.25.8</protobuf.version>
         <version.number>1</version.number>
@@ -55,6 +56,11 @@
             <artifactId>akka-serialization-jackson_${scala.binary.version}</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-http-jackson_${scala.binary.version}</artifactId>
+            <version>${akka.http.version}</version>
+        </dependency>
+        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.4.11</version>
@@ -83,11 +89,6 @@
         <dependency>
             <groupId>com.lightbend.akka.management</groupId>
             <artifactId>akka-management-cluster-http_${scala.binary.version}</artifactId>
-            <version>${akka.management.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.lightbend.akka.management</groupId>
-            <artifactId>akka-management-cluster-bootstrap_${scala.binary.version}</artifactId>
             <version>${akka.management.version}</version>
         </dependency>
         <dependency>

@@ -1,4 +1,4 @@
-package actors;
+package actors.common;
 
 import java.util.List;
 import service.ServiceLocation;

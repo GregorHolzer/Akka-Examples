@@ -1,43 +1,25 @@
 package actors;
 
+import actors.common.Command;
+import actors.common.GlobalCommands;
+import actors.common.StateMachine;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.*;
 import akka.actor.typed.pubsub.PubSub;
 import akka.actor.typed.pubsub.Topic;
-import akka.actor.typed.receptionist.Receptionist;
-import akka.actor.typed.receptionist.ServiceKey;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Duration;
 import services.DetectorService;
 
-public class Detector extends AbstractBehavior<Detector.DetectorCommand> implements StateMachine<Detector.DetectorState>{
+public class Detector extends AbstractBehavior<Detector.DetectorCommand> implements StateMachine<Detector.DetectorState> {
 
   private static final Object TIMEOUT_KEY = new Object();
 
   private final TimerScheduler<DetectorCommand> timers;
 
   private final DetectorService detectorService;
-
-  private final ActorRef<Topic.Command<DetectorCommand>> detectorTopic;
-
-  private final Receive<DetectorCommand> capturingBehaviour = newReceiveBuilder()
-    .onMessage(CapturedImage.class, this::onCapturedImage)
-          .onMessage(GlobalCommands.InvocationFailure.class, this::onInvocationFailure)
-    .build();
-
-  private final Receive<DetectorCommand> processingBehaviour = newReceiveBuilder()
-    .onMessage(DetectedPersons.class, this::onDetectedPersons)
-    .onMessage(Timeout.class, msg -> onTimeout())
-    .onMessage(GlobalCommands.Alarm.class, msg -> onAlarm())
-          .onMessage(GlobalCommands.InvocationFailure.class, this::onInvocationFailure)
-    .build();
-
-  private final Receive<DetectorCommand> alarmBehaviour = newReceiveBuilder()
-    .onMessage(GlobalCommands.Disarm.class, msg -> onDisarm())
-          .onMessage(GlobalCommands.InvocationFailure.class, this::onInvocationFailure)
-    .build();
 
   private final Integer cameraId;
 
@@ -49,7 +31,6 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
     ActorContext<DetectorCommand> context,
     TimerScheduler<DetectorCommand> timers,
     DetectorService detectorService,
-    String groupId,
     Integer cameraId,
     ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef
   ) {
@@ -59,33 +40,33 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
     this.cameraId = cameraId;
     this.surveillanceActorRef = surveillanceActorRef;
     PubSub pubSub = PubSub.get(getContext().getSystem());
-    detectorTopic = pubSub.topic(Detector.DetectorCommand.class, "global-detector-commands");
-    ServiceKey<DetectorCommand> groupDetectorKey = ServiceKey.create(DetectorCommand.class, groupId);
-    //register to receive group messages like Alarm or Disarm
-    getContext()
-      .getSystem()
-      .receptionist()
-      .tell(Receptionist.register(groupDetectorKey, getContext().getSelf()));
-    //Start Initial Invocation
-      detectorService.cameraCapture(getContext(), cameraId);
+    ActorRef<Topic.Command<DetectorCommand>> detectorTopic = pubSub.topic(DetectorCommand.class, "global-detector-commands");
+    detectorTopic.tell(Topic.subscribe(context.getSelf()));
+    detectorService.cameraCapture(getContext(), cameraId);
   }
 
   public static Behavior<DetectorCommand> create(
-          String groupId,
           Integer cameraId,
     ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef,
     DetectorService detectorService
   ) {
     return Behaviors.withTimers(timer ->
       Behaviors.setup(context ->
-        new Detector(context, timer, detectorService, groupId, cameraId, surveillanceActorRef)
+        new Detector(context, timer, detectorService, cameraId, surveillanceActorRef)
       )
     );
   }
 
   @Override
   public Receive<DetectorCommand> createReceive() {
-    return capturingBehaviour;
+    return newReceiveBuilder()
+            .onMessage(CapturedImage.class, this::onCapturedImage)
+            .onMessage(DetectedPersons.class, this::onDetectedPersons)
+            .onMessage(Timeout.class, msg -> onTimeout())
+            .onMessage(GlobalCommands.Alarm.class, msg -> onAlarm())
+            .onMessage(GlobalCommands.Disarm.class, msg -> onDisarm())
+            .onMessage(GlobalCommands.InvocationFailure.class, this::onInvocationFailure)
+            .build();
   }
 
   private Behavior<DetectorCommand> onCapturedImage(CapturedImage capturedImage) {
@@ -94,7 +75,6 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
         logState(getContext(), detectorState);
       detectorService.detectPersons(getContext(), capturedImage);
       timers.startSingleTimer(TIMEOUT_KEY, new Timeout(), Duration.ofMillis(500));
-      return processingBehaviour;
     }
     return Behaviors.same();
   }
@@ -104,7 +84,6 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
       if (detectedPersons.hasDetectedPersons) {
         surveillanceActorRef.tell(new Surveillance.FoundPersons(detectedPersons.image));
       }
-      return processingBehaviour;
     }
     return Behaviors.same();
   }
@@ -114,7 +93,6 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
       detectorState = DetectorState.Capturing;
         logState(getContext(), detectorState);
       detectorService.cameraCapture(getContext(), cameraId);
-      return capturingBehaviour;
     }
     return Behaviors.same();
   }
@@ -125,7 +103,6 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
       detectorState = DetectorState.Alarm;
         logState(getContext(), detectorState);
       detectorService.alarmOn(getContext());
-      return alarmBehaviour;
     }
     return Behaviors.same();
   }
@@ -136,7 +113,6 @@ public class Detector extends AbstractBehavior<Detector.DetectorCommand> impleme
       logState(getContext(), detectorState);
       detectorService.alarmOff(getContext());
       detectorService.cameraCapture(getContext(), cameraId);
-      return capturingBehaviour;
     }
     return Behaviors.same();
   }

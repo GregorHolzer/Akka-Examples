@@ -1,5 +1,5 @@
-import actors.Command;
-import actors.Guardian;
+import actors.common.Command;
+import actors.common.Guardian;
 import akka.actor.typed.ActorSystem;
 import akka.cluster.Cluster;
 import akka.management.javadsl.AkkaManagement;

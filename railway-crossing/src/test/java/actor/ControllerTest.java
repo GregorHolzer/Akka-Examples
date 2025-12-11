@@ -1,14 +1,14 @@
 package actor;
 
-import actors.NodeConfig;
-import actors.controller.Controller;
-import actors.gate.Gate;
-import actors.light_machine.LightMachine;
+import actors.common.NodeConfig;
+import actors.Controller;
+import actors.Gate;
+import actors.LightMachine;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-import open_telemetry.Telemetry;
+import actors.common.Telemetry;
 import org.junit.AfterClass;
 import org.junit.Test;
 

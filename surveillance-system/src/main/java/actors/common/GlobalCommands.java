@@ -1,5 +1,7 @@
-package actors;
+package actors.common;
 
+import actors.Detector;
+import actors.Surveillance;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 

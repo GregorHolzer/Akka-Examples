@@ -1,6 +1,6 @@
 package actors.setup;
 
-import actors.bell.Bell;
+import actors.Bell;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;

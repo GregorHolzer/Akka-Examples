@@ -1,10 +1,7 @@
-package actors.controller;
+package actors;
 
-import actors.Command;
-import actors.StateMachine;
-import actors.bell.Bell;
-import actors.gate.Gate;
-import actors.light_machine.LightMachine;
+import actors.common.Command;
+import actors.common.StateMachine;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -13,8 +10,6 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.opentelemetry.api.trace.Span;
-import open_telemetry.Telemetry;
 
 public class Controller
   extends AbstractBehavior<Controller.ControllerCommand>

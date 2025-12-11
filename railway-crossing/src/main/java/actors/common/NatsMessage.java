@@ -1,4 +1,4 @@
-package nats;
+package actors.common;
 
 import exchange.ContextVariableProtos;
 import java.util.List;

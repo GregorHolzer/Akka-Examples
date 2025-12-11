@@ -1,7 +1,7 @@
-package actors.light_machine;
+package actors;
 
-import actors.Command;
-import actors.StateMachine;
+import actors.common.Command;
+import actors.common.StateMachine;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
