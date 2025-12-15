@@ -9,71 +9,37 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
-import akka.discovery.Discovery;
-import akka.discovery.ServiceDiscovery;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.File;
 
-import service.RailwayService;
-
+/**
+ * Root guardian actor: loads the configuration and creates actors according to the loaded configuration
+ */
 public class Guardian extends AbstractBehavior<Command> {
 
-  private enum ConfigStatus {
-    Success,
-    Failure
-  }
-
-  private RailwayService railwayService;
-
-  private final String configPath;
-
-  private NodeConfig config;
-
-  public static Behavior<Command> create(String configPath) {
-    return Behaviors.setup(context -> new Guardian(context, configPath));
-  }
-
-  public Guardian(ActorContext<Command> context, String configPath) {
+  private Guardian(ActorContext<Command> context, String configPath) {
     super(context);
-    this.configPath = configPath;
-    if (getNodeConfig() == ConfigStatus.Success) {
-      ServiceDiscovery discovery = Discovery.get(context.getSystem()).discovery();
-      railwayService = new RailwayService(discovery, config);
-      railwayService.setupService(context);
-      Telemetry.setupOpenTelemetry(config);
+    if (Configuration.initConfig(getContext(), configPath) == Configuration.ConfigStatus.Success) {
+      Telemetry.initOpenTelemetry();
       setupComponent();
     }
   }
 
+  /** Creates the Guardian Actor
+   * @param configPath: Path to the ConfigFile
+   * */
+  public static Behavior<Command> create(String configPath) {
+    return Behaviors.setup(context -> new Guardian(context, configPath));
+  }
+
+  /** Defines the Behavior of the Guardian that handles no Messages*/
   @Override
   public Receive<Command> createReceive() {
     return newReceiveBuilder().build();
   }
 
-  private ConfigStatus getNodeConfig() {
-    try {
-      ObjectMapper mapper = new ObjectMapper();
-      config = mapper.readValue(new File(configPath), NodeConfig.class);
-      getContext().getLog().info("Configuration loaded successfully:");
-      config
-        .crossings()
-        .forEach(crossing -> {
-          getContext().getLog().info("Crossing ID: {}", crossing.crossingId());
-          getContext().getLog().info("Components: {}", crossing.components());
-        });
-      getContext().getLog().info("Service Location: {}", config.service_location());
-      getContext().getLog().info("Service Name: {}", config.remote_service_name());
-      getContext().getLog().info("Nats IP: {}", config.nats_server_addr());
-      getContext().getLog().info("Nats Port: {}", config.nats_server_port());
-      return ConfigStatus.Success;
-    } catch (Exception e) {
-      getContext().getLog().error("Error parsing ConfigFile: {}", e.getMessage());
-      getContext().getSystem().terminate();
-      return ConfigStatus.Failure;
-    }
-  }
-
+  /** Creates Setup Actors according to the loaded configuration */
   private void setupComponent() {
+    //Create Setup Actors for each Component of the Railway-Crossings
+    Configuration.NodeConfiguration config = Configuration.getNodeConfiguration();
     config
       .crossings()
       .forEach(crossing ->
@@ -83,28 +49,28 @@ public class Guardian extends AbstractBehavior<Command> {
             switch (type) {
               case Controller -> {
                 getContext().spawn(
-                  ControllerSetup.create(crossing.crossingId(), config),
+                  ControllerSetup.create(crossing.crossingId()),
                   "ControllerSetup" + crossing.crossingId()
                 );
                 getContext().getLog().info("ControllerSetup has been started successfully");
               }
               case LightMachine -> {
                 getContext().spawn(
-                  LightMachineSetup.create(crossing.crossingId(), railwayService),
+                  LightMachineSetup.create(crossing.crossingId()),
                   "LightMachineSetup" + crossing.crossingId()
                 );
                 getContext().getLog().info("LightMachineSetup has been started successfully");
               }
               case Gate -> {
                 getContext().spawn(
-                  GateSetup.create(crossing.crossingId(), railwayService),
+                  GateSetup.create(crossing.crossingId()),
                   "GateSetup" + crossing.crossingId()
                 );
                 getContext().getLog().info("GateSetup has been started successfully");
               }
               case Bell -> {
                 getContext().spawn(
-                  BellSetup.create(crossing.crossingId(), railwayService),
+                  BellSetup.create(crossing.crossingId()),
                   "BellSetup" + crossing.crossingId()
                 );
                 getContext().getLog().info("BellSetup has been started successfully");

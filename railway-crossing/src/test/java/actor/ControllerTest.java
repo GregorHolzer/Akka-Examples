@@ -1,6 +1,6 @@
 package actor;
 
-import actors.common.NodeConfig;
+import actors.common.Configuration;
 import actors.Controller;
 import actors.Gate;
 import actors.LightMachine;
@@ -14,10 +14,10 @@ import org.junit.Test;
 
 public class ControllerTest {
 
-  private static final NodeConfig nodeConfig = new NodeConfig(
+  private static final Configuration.NodeConfiguration nodeConfig = new Configuration.NodeConfiguration(
     null,
     null,
-    null,
+    8000,
     null,
     1,
     "localhost",
@@ -40,7 +40,7 @@ public class ControllerTest {
 
   @Test
   public void initialState() {
-    Telemetry.setupOpenTelemetry(nodeConfig);
+    Telemetry.initOpenTelemetry();
     ActorRef<Controller.ControllerCommand> controller = testKit.spawn(
       Controller.create(gate.getRef(), lightMachine.getRef()),
       "controller"

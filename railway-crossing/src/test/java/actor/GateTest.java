@@ -3,9 +3,9 @@ package actor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import actors.common.NodeConfig;
 import actors.Bell;
 import actors.Gate;
+import actors.common.Configuration;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestProbe;
@@ -13,14 +13,14 @@ import akka.actor.typed.ActorRef;
 import actors.common.Telemetry;
 import org.junit.AfterClass;
 import org.junit.Test;
-import service.RailwayService;
+import actors.common.RailwayService;
 
 public class GateTest {
 
-  private static final NodeConfig nodeConfig = new NodeConfig(
+  private static final Configuration.NodeConfiguration nodeConfig = new Configuration.NodeConfiguration(
     null,
     null,
-    null,
+    8000,
     null,
     1,
     "localhost",
@@ -41,7 +41,7 @@ public class GateTest {
 
   @Test
   public void fullLightMachineTest() {
-    Telemetry.setupOpenTelemetry(nodeConfig);
+    Telemetry.initOpenTelemetry();
     ActorRef<Gate.GateCommand> gate = testKit.spawn(
       Gate.create(bell.getRef(), mockedService),
       "gate"

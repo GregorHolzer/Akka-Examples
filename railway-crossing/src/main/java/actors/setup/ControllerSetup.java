@@ -2,7 +2,7 @@ package actors.setup;
 
 import static actors.common.NatsMessage.getNatsMessage;
 
-import actors.common.NodeConfig;
+import actors.common.Configuration;
 import actors.Controller;
 import actors.Gate;
 import actors.LightMachine;
@@ -24,6 +24,10 @@ import io.nats.client.Nats;
 import java.util.List;
 import actors.common.NatsMessage;
 
+/**
+ * ControllerSetup Actor: Creates the {@link Controller} Actor when the {@link LightMachine} and the {@link Gate} are ready,
+ * receives and forwards messages from NATS to the {@link Controller}
+ */
 public class ControllerSetup
   extends AbstractBehavior<Receptionist.Listing>
   implements ComponentSetup {
@@ -43,8 +47,6 @@ public class ControllerSetup
 
   private final String componentName;
 
-  private final NodeConfig config;
-
   private ActorRef<LightMachine.LightMachineCommand> lightMachine;
 
   private ActorRef<Gate.GateCommand> gate;
@@ -57,14 +59,13 @@ public class ControllerSetup
 
   private Connection nc = null;
 
-  public static Behavior<Receptionist.Listing> create(String crossingId, NodeConfig config) {
-    return Behaviors.setup(context -> new ControllerSetup(context, crossingId, config));
+  public static Behavior<Receptionist.Listing> create(String crossingId) {
+    return Behaviors.setup(context -> new ControllerSetup(context, crossingId));
   }
 
   private ControllerSetup(
     ActorContext<Receptionist.Listing> context,
-    String crossingId,
-    NodeConfig config
+    String crossingId
   ) {
     super(context);
     this.crossingId = crossingId;
@@ -77,7 +78,6 @@ public class ControllerSetup
       LightMachine.LightMachineCommand.class,
       crossingId + LightMachineSetup.componentSuffix
     );
-    this.config = config;
     getContext()
       .getSystem()
       .receptionist()
@@ -138,6 +138,7 @@ public class ControllerSetup
       return NatsSetupStatus.Success;
     }
     try {
+      Configuration.NodeConfiguration config = Configuration.getNodeConfiguration();
       nc = Nats.connect("nats://" + config.nats_server_addr() + ":" + config.nats_server_port());
       Dispatcher dispatcher = nc.createDispatcher(this::NatsDispatcher);
       dispatcher.subscribe(natsTopic);
@@ -153,33 +154,22 @@ public class ControllerSetup
     try {
       EventProtos.Event event = EventProtos.Event.parseFrom(msg.getData());
       List<ContextVariable> dataList = event.getDataList();
-      NatsMessage currentNatsMessage = getNatsMessage(dataList);
-      if (!currentNatsMessage.isValid()) {
-        System.out.println(
-          natsLoggingMessage +
-            String.format(
-              "Message was missing values: SensorValue: %s, TrainSpeed: %s, TraceId: %s, SpanId: %s",
-              currentNatsMessage.sensorValue,
-              currentNatsMessage.trainSpeed,
-              currentNatsMessage.traceId,
-              currentNatsMessage.spanId
-            )
-        );
-      } else {
-        if (currentNatsMessage.sensorValue) {
+      NatsMessage natsMessage = getNatsMessage(dataList);
+      if(natsMessage.isValid()) {
+        if (natsMessage.sensorValue()) {
           controller.tell(
             new Controller.CommandSensorSeen(
-              currentNatsMessage.trainSpeed,
-              currentNatsMessage.traceId,
-              currentNatsMessage.spanId
+                    natsMessage.trainSpeed(),
+                    natsMessage.traceId(),
+                    natsMessage.spanId()
             )
           );
         } else {
           controller.tell(
             new Controller.CommandSensorNotSeen(
-              currentNatsMessage.trainSpeed,
-              currentNatsMessage.traceId,
-              currentNatsMessage.spanId
+                    natsMessage.trainSpeed(),
+                    natsMessage.traceId(),
+                    natsMessage.spanId()
             )
           );
         }

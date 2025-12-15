@@ -4,6 +4,9 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.javadsl.ActorContext;
 import java.util.List;
 
+/**
+ * ComponentSetup: Provides logging function to log the state of actor-discovery and extracts the ActorRef
+ */
 public interface ComponentSetup {
   default <T, C> ActorRef<T> checkInstances(
     ActorContext<C> context,

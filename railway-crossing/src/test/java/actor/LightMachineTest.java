@@ -9,7 +9,7 @@ import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.typed.ActorRef;
 import org.junit.AfterClass;
 import org.junit.Test;
-import service.RailwayService;
+import actors.common.RailwayService;
 
 public class LightMachineTest {
 

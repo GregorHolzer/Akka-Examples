@@ -9,8 +9,11 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import akka.actor.typed.receptionist.Receptionist;
 import akka.actor.typed.receptionist.ServiceKey;
-import service.RailwayService;
+import actors.common.RailwayService;
 
+/**
+ * LightMachineSetup Actor: Creates the {@link LightMachine} Actor and enables Discovery of the {@link LightMachine} Actor
+ */
 public class LightMachineSetup
   extends AbstractBehavior<Receptionist.Listing>
   implements ComponentSetup {
@@ -18,16 +21,14 @@ public class LightMachineSetup
   public static final String componentSuffix = "_LightMachine";
 
   public static Behavior<Receptionist.Listing> create(
-    String crossingId,
-    RailwayService railwayService
+    String crossingId
   ) {
-    return Behaviors.setup(context -> new LightMachineSetup(context, crossingId, railwayService));
+    return Behaviors.setup(context -> new LightMachineSetup(context, crossingId));
   }
 
   private LightMachineSetup(
     ActorContext<Receptionist.Listing> context,
-    String crossingId,
-    RailwayService railwayService
+    String crossingId
   ) {
     super(context);
     String componentName = crossingId + componentSuffix;
@@ -36,7 +37,7 @@ public class LightMachineSetup
       componentName
     );
     ActorRef<LightMachine.LightMachineCommand> lightMachine = getContext().spawn(
-      LightMachine.create(railwayService),
+      LightMachine.create(new RailwayService()),
       String.format("%s", componentName)
     );
     getContext()

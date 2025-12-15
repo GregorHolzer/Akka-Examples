@@ -9,78 +9,29 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import service.RailwayService;
+import actors.common.RailwayService;
 
+/**
+ * Bell Actor: Manages the Bell of a Railway-Crossing, Receives Messages from a {@link Gate}
+ * The actor represents a finite state machine with two states:
+ * - {@link Bell.State#On}
+ * - {@link Bell.State#Off}
+ */
 public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMachine<Bell.State> {
-
-  /**
-   * Defines States of the {@link Bell} actor
-   */
-  public enum State {
-    On,
-    Off
-  }
-
-  /**
-   * Defines the message-type {@link Bell} can receive
-   */
-  public interface BellCommand extends Command {}
-
-  /**
-   * Message that changes the {@link State} to {@link State#On}
-   */
-  public static class CommandBellOn implements BellCommand {
-
-    public Double trainSpeed;
-
-    @JsonCreator
-    public CommandBellOn(@JsonProperty("trainSpeed") Double trainSpeed) {
-      this.trainSpeed = trainSpeed;
-    }
-  }
-
-  /**
-   * Message that changes the {@link State} to {@link State#Off}
-   */
-  public static class CommandBellOff implements BellCommand {
-
-    public String traceId;
-
-    public String spanId;
-
-    @JsonCreator
-    public CommandBellOff(
-      @JsonProperty("traceId") String traceId,
-      @JsonProperty("spanId") String spanId
-    ) {
-      this.traceId = traceId;
-      this.spanId = spanId;
-    }
-  }
 
   private final RailwayService railwayService;
 
   private State state = State.Off;
-
-  /**
-   * Creates a new {@link Bell} actor.
-   *
-   * @param railwayService service that is invoked upon messages @see {@link RailwayService}
-   * @return a new {@link Behavior} instance for the {@link Bell} actor
-   */
-  public static Behavior<BellCommand> create(RailwayService railwayService) {
-    return Behaviors.setup(context -> new Bell(context, railwayService));
-  }
 
   private Bell(ActorContext<Bell.BellCommand> context, RailwayService railwayService) {
     super(context);
     this.railwayService = railwayService;
   }
 
-  /**
-   * Defines how to handle {@link BellCommand}s
-   * @return the initial {@link Behavior} for the {@link Bell} actor
-   */
+  public static Behavior<BellCommand> create(RailwayService railwayService) {
+    return Behaviors.setup(context -> new Bell(context, railwayService));
+  }
+
   @Override
   public Receive<BellCommand> createReceive() {
     return newReceiveBuilder()
@@ -89,10 +40,6 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
       .build();
   }
 
-  /**
-   * Updates the {@link State} and invokes service {@link RailwayService#bellOn(ActorContext, String, Double)}
-   * @return the same {@link Behavior} as before
-   */
   private Behavior<Bell.BellCommand> onTurnOn(Double trainSpeed) {
     if (state == State.Off) {
       state = State.On;
@@ -102,10 +49,6 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
     return Behaviors.same();
   }
 
-  /**
-   * Updates the {@link State} and invokes service {@link RailwayService#bellOff(ActorContext, String, String, String)}
-   * @return the same {@link Behavior} as before
-   */
   private Behavior<Bell.BellCommand> onTurnOff(CommandBellOff cmd) {
     if (state == State.On) {
       /*Span span = TelemetryJaeger.createNewSpan(cmd.traceId, cmd.spanId, "bell", "off");
@@ -133,5 +76,50 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
       logState(getContext(), state);
     }
     return Behaviors.same();
+  }
+
+  /**
+   * Defines States of the Bell actor
+   */
+  public enum State {
+    On,
+    Off
+  }
+
+  /**
+   * Defines the message-type Bell can receive
+   */
+  public interface BellCommand extends Command {}
+
+  /**
+   * Message that changes the Bell to {@link State#On}
+   */
+  public static class CommandBellOn implements BellCommand {
+
+    public Double trainSpeed;
+
+    @JsonCreator
+    public CommandBellOn(@JsonProperty("trainSpeed") Double trainSpeed) {
+      this.trainSpeed = trainSpeed;
+    }
+  }
+
+  /**
+   * Message that changes the Bell to {@link State#Off}
+   */
+  public static class CommandBellOff implements BellCommand {
+
+    public String traceId;
+
+    public String spanId;
+
+    @JsonCreator
+    public CommandBellOff(
+            @JsonProperty("traceId") String traceId,
+            @JsonProperty("spanId") String spanId
+    ) {
+      this.traceId = traceId;
+      this.spanId = spanId;
+    }
   }
 }

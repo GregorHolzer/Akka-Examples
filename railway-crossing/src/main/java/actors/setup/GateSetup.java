@@ -11,8 +11,11 @@ import akka.actor.typed.javadsl.Receive;
 import akka.actor.typed.receptionist.Receptionist;
 import akka.actor.typed.receptionist.ServiceKey;
 import java.util.List;
-import service.RailwayService;
+import actors.common.RailwayService;
 
+/**
+ * GateSetup Actor: Creates the {@link Gate} Actor when the Bell is ready and enables Discovery of the {@link Gate} Actor
+ */
 public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements ComponentSetup {
 
   public static final String componentSuffix = "_Gate";
@@ -28,16 +31,14 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
   private final RailwayService railwayService;
 
   public static Behavior<Receptionist.Listing> create(
-    String crossingId,
-    RailwayService railwayService
+    String crossingId
   ) {
-    return Behaviors.setup(context -> new GateSetup(context, crossingId, railwayService));
+    return Behaviors.setup(context -> new GateSetup(context, crossingId));
   }
 
   private GateSetup(
     ActorContext<Receptionist.Listing> context,
-    String crossingId,
-    RailwayService railwayService
+    String crossingId
   ) {
     super(context);
     this.componentName = crossingId + componentSuffix;
@@ -45,7 +46,7 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
       Bell.BellCommand.class,
       crossingId + BellSetup.componentSuffix
     );
-    this.railwayService = railwayService;
+    this.railwayService = new RailwayService();
     gateServiceKey = ServiceKey.create(Gate.GateCommand.class, componentName);
     getContext()
       .getSystem()

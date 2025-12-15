@@ -4,33 +4,34 @@ import exchange.ContextVariableProtos;
 import java.util.List;
 import java.util.Objects;
 
-public class NatsMessage {
+/**
+ * Represents a received Message from NATS: Stores
+ */
+public record NatsMessage(Boolean sensorValue, Double trainSpeed, String traceId, String spanId) {
 
-  public Boolean sensorValue = null;
-  public Double trainSpeed = null;
-  public String traceId = null;
-  public String spanId = null;
-
-  public NatsMessage() {}
-
+  /** Checks if all fields are initialized */
   public boolean isValid() {
     return sensorValue != null && trainSpeed != null && traceId != null && spanId != null;
   }
 
+  /** Creates a new NatsMessage from the DataList of a ContextVariable */
   public static NatsMessage getNatsMessage(List<ContextVariableProtos.ContextVariable> dataList) {
-    NatsMessage natsMessage = new NatsMessage();
+    Boolean sensorValue = null;
+    Double trainSpeed = null;
+    String traceId = null;
+    String spanId = null;
     for (ContextVariableProtos.ContextVariable contextVariable : dataList) {
       if (contextVariable.getName().equals("value")) {
-        natsMessage.sensorValue = contextVariable.getValue().getBool();
+        sensorValue = contextVariable.getValue().getBool();
       } else if (contextVariable.getName().equals("trainSpeed")) {
-        natsMessage.trainSpeed = contextVariable.getValue().getDouble();
+        trainSpeed = contextVariable.getValue().getDouble();
       } else if (contextVariable.getName().equals("traceId")) {
-        natsMessage.traceId = contextVariable.getValue().getString();
+        traceId = contextVariable.getValue().getString();
       } else if (contextVariable.getName().equals("spanId")) {
-        natsMessage.spanId = contextVariable.getValue().getString();
+        spanId = contextVariable.getValue().getString();
       }
     }
-    return natsMessage;
+    return new NatsMessage(sensorValue, trainSpeed, traceId, spanId);
   }
 
   @Override
@@ -42,17 +43,6 @@ public class NatsMessage {
     return (
       (Objects.equals(sensorValue, that.sensorValue)) &&
       (Objects.equals(trainSpeed, that.trainSpeed))
-    );
-  }
-
-  @Override
-  public String toString() {
-    return String.format(
-      "SensorValue: %s\nTrainSpeed: %s\nTraceId: %s\nSpanId: %s\n",
-      sensorValue,
-      trainSpeed,
-      traceId,
-      spanId
     );
   }
 }

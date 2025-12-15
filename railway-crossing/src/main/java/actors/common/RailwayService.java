@@ -1,105 +1,24 @@
-package service;
+package actors.common;
 
-import actors.common.Command;
-import actors.common.NodeConfig;
 import actors.Bell;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.javadsl.ActorContext;
-import akka.discovery.ServiceDiscovery;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.model.*;
 import akka.util.ByteString;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import exchange.ContextVariableProtos.*;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 
 public class RailwayService {
 
-  public enum InvocationResult {
-    Success,
-    Failure
-  }
+  private final Configuration.NodeConfiguration nodeConfig;
 
-  public static class InvocationResponse implements Command {
-
-    public InvocationResult result;
-
-    @JsonCreator
-    public InvocationResponse(@JsonProperty("result") InvocationResult result) {
-      this.result = result;
-    }
-  }
-
-  public static final Integer port = 8000;
-
-  private static final Duration timeout = Duration.ofSeconds(10);
-
-  private final NodeConfig nodeConfig;
-
-  private final ServiceDiscovery discovery;
-
-  private InetAddress address;
-
-  public RailwayService(ServiceDiscovery discovery, NodeConfig nodeConfig) {
-    this.discovery = discovery;
-    this.nodeConfig = nodeConfig;
-  }
-
-  public void setupService(ActorContext<?> context) {
-    switch (nodeConfig.service_location()) {
-      case Remote -> this.discover(context);
-      case Local -> {
-        try {
-          address = InetAddress.getByName("localhost");
-          context.getLog().info("Using Local Service: address: {}", address);
-        } catch (UnknownHostException e) {
-          context.getLog().error("Unable to get Localhost: {}", e.getMessage());
-          context.getSystem().terminate();
-        }
-      }
-    }
-  }
-
-  public void discover(ActorContext<?> context) {
-    while (true) {
-      try {
-        ServiceDiscovery.Resolved resolved = discovery
-          .lookup(nodeConfig.remote_service_name(), timeout)
-          .toCompletableFuture()
-          .get();
-        if (resolved.getAddresses().isEmpty()) {
-          context.getLog().error("Discovery contains no service, retrying...");
-        } else if (resolved.getAddresses().getFirst().getAddress().isEmpty()) {
-          context.getLog().error("Resolved Service contains no address, retrying...");
-        } else {
-          address = resolved.getAddresses().getFirst().getAddress().get();
-          context.getLog().info("Resolved Service contains address: {}", address);
-          break;
-        }
-      } catch (Exception e) {
-        context
-          .getLog()
-          .error(
-            "Failed to discover service {} after {}, message: {}, retrying...",
-            nodeConfig.remote_service_name(),
-            timeout,
-            e.getMessage()
-          );
-      }
-    }
+  public RailwayService() {
+    this.nodeConfig = Configuration.getNodeConfiguration();
   }
 
   private String getUrl(String path) {
-    String url = "";
-    switch (nodeConfig.service_location()) {
-      case Remote -> url = "http:/" + address + ":" + port + path;
-      case Local -> url = "http://localhost" + ":" + port + path;
-    }
-    return url;
+    return  "http://" + nodeConfig.service_server_addr() + ":" + nodeConfig.service_server_port() + path;
   }
 
   private CompletionStage<HttpResponse> sendRequest(ActorContext<?> context, HttpRequest request) {

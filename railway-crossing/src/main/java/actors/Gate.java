@@ -10,42 +10,15 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import service.RailwayService;
+import actors.common.RailwayService;
 
+/**
+ * Gate Actor: Manages the Gate of a Railway-Crossing, Receives Messages from a {@link Controller}, Sends Messages to a {@link Bell}
+ * The actor represents a finite state machine with two states:
+ * - {@link Gate.State#Open}
+ * - {@link Gate.State#Closed}
+ */
 public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMachine<Gate.State> {
-
-  public enum State {
-    Open,
-    Closed
-  }
-
-  public interface GateCommand extends Command {}
-
-  public static class CommandOpen implements GateCommand {
-
-    public String traceId;
-
-    public String spanId;
-
-    @JsonCreator
-    public CommandOpen(
-      @JsonProperty("traceId") String traceId,
-      @JsonProperty("spanId") String spanId
-    ) {
-      this.traceId = traceId;
-      this.spanId = spanId;
-    }
-  }
-
-  public static class CommandClose implements GateCommand {
-
-    public Double trainSpeed;
-
-    @JsonCreator
-    public CommandClose(@JsonProperty("trainSpeed") Double trainSpeed) {
-      this.trainSpeed = trainSpeed;
-    }
-  }
 
   private final ActorRef<Bell.BellCommand> bell;
 
@@ -53,21 +26,21 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
 
   private State state = State.Open;
 
+  private Gate(
+          ActorContext<GateCommand> context,
+          ActorRef<Bell.BellCommand> bell,
+          RailwayService railwayService
+  ) {
+    super(context);
+    this.bell = bell;
+    this.railwayService = railwayService;
+  }
+
   public static Behavior<GateCommand> create(
     ActorRef<Bell.BellCommand> bell,
     RailwayService railwayService
   ) {
     return Behaviors.setup(context -> new Gate(context, bell, railwayService));
-  }
-
-  private Gate(
-    ActorContext<GateCommand> context,
-    ActorRef<Bell.BellCommand> bell,
-    RailwayService railwayService
-  ) {
-    super(context);
-    this.bell = bell;
-    this.railwayService = railwayService;
   }
 
   public Receive<GateCommand> createReceive() {
@@ -112,5 +85,50 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
       logState(getContext(), state);
     }
     return Behaviors.same();
+  }
+
+  /**
+   * Defines States of the Gate
+   */
+  public enum State {
+    Open,
+    Closed
+  }
+
+  /**
+   * Marker interface for commands accepted by Gate.
+   */
+  public interface GateCommand extends Command {}
+
+  /**
+   * Command to open the Gate.
+   */
+  public static class CommandOpen implements GateCommand {
+
+    public String traceId;
+
+    public String spanId;
+
+    @JsonCreator
+    public CommandOpen(
+            @JsonProperty("traceId") String traceId,
+            @JsonProperty("spanId") String spanId
+    ) {
+      this.traceId = traceId;
+      this.spanId = spanId;
+    }
+  }
+
+  /**
+   * Command to close the Gate.
+   */
+  public static class CommandClose implements GateCommand {
+
+    public Double trainSpeed;
+
+    @JsonCreator
+    public CommandClose(@JsonProperty("trainSpeed") Double trainSpeed) {
+      this.trainSpeed = trainSpeed;
+    }
   }
 }
