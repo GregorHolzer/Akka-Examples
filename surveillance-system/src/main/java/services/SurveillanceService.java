@@ -1,18 +1,19 @@
 package services;
 
 
+import actors.Detector;
 import actors.common.GlobalCommands;
 import actors.Surveillance;
+import akka.actor.typed.ActorRef;
+import akka.actor.typed.ActorSystem;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
 import exchange.ContextVariableProtos;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.CompletionStage;
 
-//Dummy Services
 public class SurveillanceService implements AkkaService {
 
   //TODO: maybe read host and port from config-file
@@ -25,23 +26,32 @@ public class SurveillanceService implements AkkaService {
     Surveillance.FoundPersons foundPersons
   ) {
     HashMap<String, Object> values = new HashMap<>();
-    values.put("image", foundPersons.image);
+    values.put("image", foundPersons.image());
     byte[] body = buildProtoRequestBody(values);
+    ActorRef<Surveillance.SurveillanceCommand> self = context.getSelf();
+    ActorSystem<?> system = context.getSystem();
     CompletionStage<HttpResponse> futureResponse = sendRequest(context, buildPostRequest(host, cloud_port, "/analyze", body));
-    futureResponse.whenComplete((response, throwable) -> {
-      if (throwable == null && response.status() == StatusCodes.OK) {
-        CompletionStage<ContextVariableProtos.ContextVariables> futureVar = extractContextVariable(context, response);
-        context.pipeToSelf(futureVar, (contextVar, throwable1) -> {
-          if(throwable1 == null){
-            List<ContextVariableProtos.ContextVariable> variables = contextVar.getDataList();
-            ContextVariableProtos.ContextVariable hasThreat = variables.stream().filter(v -> v.getName().equals("hasThreat")).findFirst().orElse(null);
-            if(hasThreat != null){
-              return new Surveillance.Analyzed(foundPersons.image, hasThreat.getValue().getBool());
+
+    futureResponse.whenComplete((response, throwableResponse) -> {
+      if (throwableResponse == null && response.status().equals(StatusCodes.OK)) {
+        extractContextVariable(system, response).whenComplete((var, throwableVar) -> {
+          if (throwableVar == null) {
+            ContextVariableProtos.ContextVariable variable = var.getDataList().stream()
+                    .filter(v -> v.getName().equals("hasThreat"))
+                    .findFirst()
+                    .orElse(null);
+            if (variable != null) {
+              self.tell(new Surveillance.Analyzed(foundPersons.image(), variable.getValue().getBool()));
+            } else {
+              self.tell(new GlobalCommands.InvocationFailure("/analyze: no hasThreat-field"));
             }
+          } else {
+            self.tell(new GlobalCommands.InvocationFailure("/analyze: " + throwableVar));
           }
-          return new GlobalCommands.InvocationFailure("analyze");
         });
+      } else {
+        self.tell(new GlobalCommands.InvocationFailure("/analyze: " + throwableResponse));
       }
-      });
+    });
   }
 }

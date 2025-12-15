@@ -29,7 +29,8 @@ public class Guardian extends AbstractBehavior<Command> {
       Configuration.NodeConfiguration configuration = Configuration.getNodeConfiguration();
       configuration.surveillanceConfigs().forEach(config -> getContext().spawn(Surveillance.create(
               surveillanceService,
-              config.surveillanceId()), config.surveillanceId()));
+              config.surveillanceId()),
+              config.surveillanceId()));
       configuration.detectorsConfigs().forEach(config -> getContext().spawn(DetectorSetup.create(
               config.detectorId(),
               config.surveillanceId(),

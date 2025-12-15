@@ -1,5 +1,6 @@
 package services;
 
+import akka.actor.typed.ActorSystem;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.model.*;
@@ -46,8 +47,8 @@ public interface AkkaService {
     return var.build().toByteArray();
   }
 
-  default CompletionStage<ContextVariableProtos.ContextVariables> extractContextVariable(ActorContext<?> context, HttpResponse response) {
-    return response.entity().getDataBytes().runFold(akka.util.ByteString.emptyByteString(), akka.util.ByteString::concat, context.getSystem())
+  default CompletionStage<ContextVariableProtos.ContextVariables> extractContextVariable(ActorSystem<?> system, HttpResponse response) {
+    return response.entity().getDataBytes().runFold(akka.util.ByteString.emptyByteString(), akka.util.ByteString::concat, system)
             .thenApply(bytes -> {
               try {
                 return ContextVariableProtos.ContextVariables.parseFrom(bytes.toArray());

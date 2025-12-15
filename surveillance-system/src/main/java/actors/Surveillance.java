@@ -108,9 +108,7 @@ public class Surveillance extends AbstractBehavior<Surveillance.SurveillanceComm
 
     public interface SurveillanceCommand extends Command {}
 
-    public static class FoundPersons implements SurveillanceCommand {
-
-        public byte[] image;
+    public record FoundPersons(byte[] image) implements SurveillanceCommand {
 
         @JsonCreator
         public FoundPersons(@JsonProperty("image") byte[] image) {

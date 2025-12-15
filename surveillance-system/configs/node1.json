@@ -1,0 +1,11 @@
+{
+  "detectorsConfigs": [],
+  "surveillanceConfigs": [
+    {
+      "surveillanceId": "surveillance01"
+    },
+    {
+      "surveillanceId": "surveillance02"
+    }
+  ]
+}

@@ -16,14 +16,12 @@ public class Configuration {
         nodeConfiguration = mapper.readValue(new File(configPath), NodeConfiguration.class);
         context.getLog().info("actors.common.Configuration loaded successfully:");
         nodeConfiguration.detectorsConfigs.forEach(detector ->
-                context.getLog().info("Launching Detector within Group: {} with cameraId: {} responding to SurveillanceId {}",
-            detector.groupId,
+                context.getLog().info("Launching Detector with cameraId: {} responding to SurveillanceId {}",
             detector.cameraId,
             detector.surveillanceId
           ));
         nodeConfiguration.surveillanceConfigs.forEach(surveillance ->
-                context.getLog().info("Launched Surveillance within Group: {} with SurveillanceId: {}",
-                surveillance.groupId,
+                context.getLog().info("Launched Surveillance with SurveillanceId: {}",
                 surveillance.surveillanceId
         ));
       } catch (Exception e) {
@@ -45,13 +43,11 @@ public class Configuration {
   }
 
   public record DetectorConfiguration(
-          String groupId,
           String detectorId,
           Integer cameraId,
           String surveillanceId) {}
 
   public record SurveillanceConfiguration(
-          String groupId,
           String surveillanceId
   ){}
 
