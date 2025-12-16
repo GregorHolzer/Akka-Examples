@@ -5,16 +5,14 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Represents a received Message from NATS: Stores
+ * Represents a received Message from NATS
  */
 public record NatsMessage(Boolean sensorValue, Double trainSpeed, String traceId, String spanId) {
 
-  /** Checks if all fields are initialized */
-  public boolean isValid() {
-    return sensorValue != null && trainSpeed != null && traceId != null && spanId != null;
-  }
-
-  /** Creates a new NatsMessage from the DataList of a ContextVariable */
+  /** Creates a new NatsMessage from the DataList of a ContextVariable
+   * @param dataList list of {@link exchange.ContextVariableProtos.ContextVariables}
+   *                 that have been received from {@link exchange.EventProtos}
+   */
   public static NatsMessage getNatsMessage(List<ContextVariableProtos.ContextVariable> dataList) {
     Boolean sensorValue = null;
     Double trainSpeed = null;
@@ -32,6 +30,11 @@ public record NatsMessage(Boolean sensorValue, Double trainSpeed, String traceId
       }
     }
     return new NatsMessage(sensorValue, trainSpeed, traceId, spanId);
+  }
+
+  /** Checks if all fields are initialized */
+  public boolean isValid() {
+    return sensorValue != null && trainSpeed != null && traceId != null && spanId != null;
   }
 
   @Override

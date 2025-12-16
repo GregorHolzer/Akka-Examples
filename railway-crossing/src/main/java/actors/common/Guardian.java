@@ -24,13 +24,14 @@ public class Guardian extends AbstractBehavior<Command> {
   }
 
   /** Creates the Guardian Actor
-   * @param configPath: Path to the ConfigFile
+   * @param configPath path to the JSON config file
+   * @return The {@link Behavior} of the created {@link Guardian} Actor
    * */
   public static Behavior<Command> create(String configPath) {
     return Behaviors.setup(context -> new Guardian(context, configPath));
   }
 
-  /** Defines the Behavior of the Guardian that handles no Messages*/
+  /** Defines the Behavior of the Guardian that handles no Messages */
   @Override
   public Receive<Command> createReceive() {
     return newReceiveBuilder().build();

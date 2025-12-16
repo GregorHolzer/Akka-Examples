@@ -25,43 +25,48 @@ import java.util.List;
 import actors.common.NatsMessage;
 
 /**
- * ControllerSetup Actor: Creates the {@link Controller} Actor when the {@link LightMachine} and the {@link Gate} are ready,
- * receives and forwards messages from NATS to the {@link Controller}
+ * ControllerSetup Actor:
+ * <p>
+ * <ul>
+ * <li> Discovers the {@link LightMachine} and {@link Gate} Actors</li>
+ * <li> Creates the {@link Controller} Actor when the {@link LightMachine} and the {@link Gate} are ready </li>
+ * <li> Receives and forwards messages from NATS to the {@link Controller} </li>
+ * </ul>
+ * </p>
  */
 public class ControllerSetup
   extends AbstractBehavior<Receptionist.Listing>
   implements ComponentSetup {
 
-  private enum NatsSetupStatus {
-    Success,
-    Failure
-  }
-
+  //attached to the railway-crossing id to identify the component
   public static final String componentSuffix = "_Controller";
 
+  //Nats topic that emits sensor events
   private static final String natsTopic = "peripheral.sensor";
 
+  //Logging prefix for the NatsDispatcher
   private static final String natsLoggingMessage = "INFO: Nats Dispatcher Message -- ";
 
+  //The railway-crossing-id of the Controller
   public final String crossingId;
 
-  private final String componentName;
-
+  //The ActorRef of the LightMachine
   private ActorRef<LightMachine.LightMachineCommand> lightMachine;
 
+  //The ActorRef of the Gate
   private ActorRef<Gate.GateCommand> gate;
 
+  //The ActorRef of the Controller
   private ActorRef<Controller.ControllerCommand> controller;
 
-  private final ServiceKey<Gate.GateCommand> gateServiceKey;
-
+  //The ServiceKey to discover the lightMachine ActorRef from the Receptionist
   private final ServiceKey<LightMachine.LightMachineCommand> lightMachineServiceKey;
 
-  private Connection nc = null;
+  //The ServiceKey to discover the gate ActorRef from the Receptionist
+  private final ServiceKey<Gate.GateCommand> gateServiceKey;
 
-  public static Behavior<Receptionist.Listing> create(String crossingId) {
-    return Behaviors.setup(context -> new ControllerSetup(context, crossingId));
-  }
+  //Nats Connection
+  private Connection nc = null;
 
   private ControllerSetup(
     ActorContext<Receptionist.Listing> context,
@@ -69,7 +74,7 @@ public class ControllerSetup
   ) {
     super(context);
     this.crossingId = crossingId;
-    this.componentName = crossingId + componentSuffix;
+    //Create the ServiceKeys for the Gate and the LightMachine
     gateServiceKey = ServiceKey.create(
       Gate.GateCommand.class,
       crossingId + GateSetup.componentSuffix
@@ -78,6 +83,7 @@ public class ControllerSetup
       LightMachine.LightMachineCommand.class,
       crossingId + LightMachineSetup.componentSuffix
     );
+    //Subscribe to the Receptionist with the ServiceKeys to discover the Gate and the LightMachine
     getContext()
       .getSystem()
       .receptionist()
@@ -89,6 +95,10 @@ public class ControllerSetup
     context
       .getLog()
       .info("Controller subscribed to ServiceKeys: {}, {}", gateServiceKey, lightMachineServiceKey);
+  }
+
+  public static Behavior<Receptionist.Listing> create(String crossingId) {
+    return Behaviors.setup(context -> new ControllerSetup(context, crossingId));
   }
 
   @Override
@@ -124,7 +134,7 @@ public class ControllerSetup
   private void createController() {
     controller = getContext().spawn(
       Controller.create(gate, lightMachine),
-      String.format("%s", componentName)
+      String.format("%s", crossingId + componentSuffix)
     );
     NatsSetupStatus status = natsSetup();
     while (status.equals(NatsSetupStatus.Failure)) {
@@ -142,7 +152,7 @@ public class ControllerSetup
       nc = Nats.connect("nats://" + config.nats_server_addr() + ":" + config.nats_server_port());
       Dispatcher dispatcher = nc.createDispatcher(this::NatsDispatcher);
       dispatcher.subscribe(natsTopic);
-      getContext().getLog().info("{} subscribed to Topic: {}", componentName, natsTopic);
+      getContext().getLog().info("{} subscribed to Topic: {}", crossingId + componentSuffix, natsTopic);
       return NatsSetupStatus.Success;
     } catch (Exception e) {
       getContext().getLog().error("Could not connect to nats server, error: {}", e.getMessage());
@@ -179,5 +189,10 @@ public class ControllerSetup
         natsLoggingMessage + "Error parsing nats message to event: " + e.getMessage()
       );
     }
+  }
+
+  private enum NatsSetupStatus {
+    Success,
+    Failure
   }
 }

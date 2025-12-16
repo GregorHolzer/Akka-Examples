@@ -17,12 +17,15 @@ import io.opentelemetry.semconv.ServiceAttributes;
 import java.time.Duration;
 
 /**
- * Provides OpenTelemetry to measure detailed execution times
+ * Provides functionality to measure detailed execution times with OpenTelemetry.
  */
 public class Telemetry {
 
   private static OpenTelemetry openTelemetry = null;
 
+  /**
+   * Initializes OpenTelemetry based on the loaded configuration file.
+   */
   public static void initOpenTelemetry() {
     Configuration.NodeConfiguration config = Configuration.getNodeConfiguration();
     if(config != null && openTelemetry == null) {
@@ -47,28 +50,42 @@ public class Telemetry {
     }
   }
 
+  /**
+   * Returns the current OpenTelemetry instance.
+   *
+   * @return the current OpenTelemetry instance.
+   */
   public static OpenTelemetry getOpenTelemetry() {
     return openTelemetry;
   }
 
+  /**
+   * Creates a new {@link Span} to track execution times, using a remote parent span.
+   *
+   * @param prevTraceId the trace ID of the parent span.
+   * @param prevSpanId the span ID of the parent span.
+   * @param scopeName the name of the tracer scope.
+   * @param spanBuilder the name of the new span to be created.
+   * @return a new {@link Span}
+   */
   public static Span createNewSpan(
-    String prevTraceId,
-    String prevSpanId,
-    String scopeName,
-    String spanBuilder
+          String prevTraceId,
+          String prevSpanId,
+          String scopeName,
+          String spanBuilder
   ) {
     SpanContext parentSpanContext = SpanContext.createFromRemoteParent(
-      prevTraceId,
-      prevSpanId,
-      TraceFlags.getSampled(),
-      TraceState.getDefault()
+            prevTraceId,
+            prevSpanId,
+            TraceFlags.getSampled(),
+            TraceState.getDefault()
     );
 
     Context parentContext = Context.root().with(Span.wrap(parentSpanContext));
     return openTelemetry
-      .getTracer(scopeName)
-      .spanBuilder(spanBuilder)
-      .setParent(parentContext)
-      .startSpan();
+            .getTracer(scopeName)
+            .spanBuilder(spanBuilder)
+            .setParent(parentContext)
+            .startSpan();
   }
 }

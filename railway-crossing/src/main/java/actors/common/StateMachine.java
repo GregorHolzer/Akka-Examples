@@ -4,7 +4,7 @@ import akka.actor.typed.javadsl.ActorContext;
 
 /**
  * Interface that provides a default function to log the state of a Finite State Machine
- * @param <S> Class provides states within an enum
+ * @param <S> Class provides states with an enum
  */
 public interface StateMachine<S extends Enum<S>> {
   default void logState(ActorContext<?> context, S state) {

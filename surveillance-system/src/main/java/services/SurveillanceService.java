@@ -1,7 +1,5 @@
 package services;
 
-
-import actors.Detector;
 import actors.common.GlobalCommands;
 import actors.Surveillance;
 import akka.actor.typed.ActorRef;
