@@ -12,17 +12,24 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import actors.common.RailwayService;
 
 /**
- * LightMachine Actor: Manages the Light of a Railway-Crossing, Receives Messages from a {@link Controller}
+ * LightMachine Actor:
+ * <p>
+ * Manages the warning lights of a railway crossing and receives messages from a {@link Controller}.
  * The actor represents a finite state machine with two states:
- * - {@link LightMachine.State#On}
- * - {@link LightMachine.State#Off}
+ * </p>
+ * <ul>
+ *   <li>{@link LightMachine.State#On}</li>
+ *   <li>{@link LightMachine.State#Off}</li>
+ * </ul>
  */
 public class LightMachine
         extends AbstractBehavior<LightMachine.LightMachineCommand>
         implements StateMachine<LightMachine.State> {
 
+  /** Service to turn the LightMachine on or off */
   private final RailwayService railwayService;
 
+  /** Current state of the LightMachine: initial Off */
   private State state = State.Off;
 
   private LightMachine(ActorContext<LightMachineCommand> context, RailwayService railwayService) {
@@ -30,10 +37,22 @@ public class LightMachine
     this.railwayService = railwayService;
   }
 
+  /**
+   * Creates a new {@link LightMachine} Actor.
+   *
+   * @param railwayService the {@link RailwayService} used by the LightMachine Actor
+   * @return the {@link Behavior} of the created {@link LightMachine} Actor
+   */
   public static Behavior<LightMachineCommand> create(RailwayService railwayService) {
     return Behaviors.setup(context -> new LightMachine(context, railwayService));
   }
 
+  /**
+   * Defines the {@link Behavior} of the {@link LightMachine} Actor.
+   * <p>
+   * Handles messages from the {@link Controller}.
+   * </p>
+   */
   @Override
   public Receive<LightMachineCommand> createReceive() {
     return newReceiveBuilder()
@@ -42,6 +61,12 @@ public class LightMachine
             .build();
   }
 
+  /**
+   * Handles the {@link CommandTurnOn} message and turns the LightMachine on.
+   *
+   * @param trainSpeed the speed of the approaching train
+   * @return the current {@link Behavior}
+   */
   private Behavior<LightMachineCommand> onTurnOn(Double trainSpeed) {
     if (state == State.Off) {
       state = State.On;
@@ -52,6 +77,11 @@ public class LightMachine
     return Behaviors.same();
   }
 
+  /**
+   * Handles the {@link CommandTurnOff} message and turns the LightMachine off.
+   *
+   * @return the current {@link Behavior}
+   */
   private Behavior<LightMachineCommand> onTurnOff() {
     if (state == State.On) {
       state = State.Off;
@@ -62,7 +92,7 @@ public class LightMachine
   }
 
   /**
-   * Represents the state of the light machine.
+   * States of the LightMachine Actor
    */
   public enum State {
     On,
@@ -70,12 +100,12 @@ public class LightMachine
   }
 
   /**
-   * Marker interface for commands accepted by LightMachine.
+   * Marker interface for messages that the LightMachine Actor can receive
    */
   public interface LightMachineCommand extends Command {}
 
   /**
-   * Command to turn on the light.
+   * Message to change the LightMachine state to {@link State#On}.
    */
   public static class CommandTurnOn implements LightMachineCommand {
 
@@ -87,5 +117,8 @@ public class LightMachine
     }
   }
 
+  /**
+   * Message to change the LightMachine state to {@link State#Off}.
+   */
   public static class CommandTurnOff implements LightMachineCommand {}
 }

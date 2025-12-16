@@ -9,10 +9,8 @@
       ]
     }
   ],
-  "service_location": "Local",
-  "remote_service_name": "",
   "nats_server_addr": "localhost",
   "nats_server_port": "4222",
-  "jaeger_server_addr": "localhost",
-  "jaeger_server_port": "4317"
+  "export_server_addr": "localhost",
+  "export_server_port": "4317"
 }

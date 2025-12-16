@@ -15,7 +15,6 @@ import akka.actor.typed.javadsl.Receive;
 import akka.actor.typed.receptionist.Receptionist;
 import akka.actor.typed.receptionist.ServiceKey;
 import com.google.protobuf.InvalidProtocolBufferException;
-import exchange.ContextVariableProtos.*;
 import exchange.EventProtos;
 import io.nats.client.Connection;
 import io.nats.client.Dispatcher;
@@ -28,9 +27,9 @@ import actors.common.NatsMessage;
  * ControllerSetup Actor:
  * <p>
  * <ul>
- * <li> Discovers the {@link LightMachine} and {@link Gate} Actors</li>
- * <li> Creates the {@link Controller} Actor when the {@link LightMachine} and the {@link Gate} are ready </li>
- * <li> Receives and forwards messages from NATS to the {@link Controller} </li>
+ * <li> Discovers the {@link LightMachine} and {@link Gate} Actors.</li>
+ * <li> Creates the {@link Controller} Actor when the {@link LightMachine} and the {@link Gate} are ready. </li>
+ * <li> Receives and forwards messages from NATS to the {@link Controller}. </li>
  * </ul>
  * </p>
  */
@@ -38,34 +37,34 @@ public class ControllerSetup
   extends AbstractBehavior<Receptionist.Listing>
   implements ComponentSetup {
 
-  //attached to the railway-crossing id to identify the component
+  /** Attached to the railway-crossing id to identify the component */
   public static final String componentSuffix = "_Controller";
 
-  //Nats topic that emits sensor events
+  /** Nats topic that emits sensor events */
   private static final String natsTopic = "peripheral.sensor";
 
-  //Logging prefix for the NatsDispatcher
+  /** Logging prefix for the NatsDispatcher */
   private static final String natsLoggingMessage = "INFO: Nats Dispatcher Message -- ";
 
-  //The railway-crossing-id of the Controller
+  /** The railway-crossing-id of the Controller */
   public final String crossingId;
 
-  //The ActorRef of the LightMachine
+  /** The ActorRef of the LightMachine */
   private ActorRef<LightMachine.LightMachineCommand> lightMachine;
 
-  //The ActorRef of the Gate
+  /** The ActorRef of the Gate */
   private ActorRef<Gate.GateCommand> gate;
 
-  //The ActorRef of the Controller
+  /** The ActorRef of the Controller */
   private ActorRef<Controller.ControllerCommand> controller;
 
-  //The ServiceKey to discover the lightMachine ActorRef from the Receptionist
+  /** The ServiceKey to discover the lightMachine ActorRef from the Receptionist */
   private final ServiceKey<LightMachine.LightMachineCommand> lightMachineServiceKey;
 
-  //The ServiceKey to discover the gate ActorRef from the Receptionist
+  /** The ServiceKey to discover the gate ActorRef from the Receptionist */
   private final ServiceKey<Gate.GateCommand> gateServiceKey;
 
-  //Nats Connection
+  /** Nats Connection */
   private Connection nc = null;
 
   private ControllerSetup(
@@ -97,21 +96,35 @@ public class ControllerSetup
       .info("Controller subscribed to ServiceKeys: {}, {}", gateServiceKey, lightMachineServiceKey);
   }
 
+  /**
+   * Creates a new {@link ControllerSetup} Actor.
+   *
+   * @param crossingId  the railway-crossing-id of the {@link Controller} Actor.
+   * @return the {@link Behavior} of the created {@link ControllerSetup} Actor.
+   */
   public static Behavior<Receptionist.Listing> create(String crossingId) {
     return Behaviors.setup(context -> new ControllerSetup(context, crossingId));
   }
 
+  /** Defines the  {@link Behavior} of the {@link ControllerSetup} Actor that handles messages from the {@link Receptionist}.*/
   @Override
   public Receive<Receptionist.Listing> createReceive() {
     return newReceiveBuilder().onMessage(Receptionist.Listing.class, this::onListing).build();
   }
 
+  /**
+   * Handles messages of type {@link Receptionist.Listing} from the {@link Receptionist}
+   *
+   * @param listing message of the {@link Receptionist} that contains a list of {@link ActorRef}s
+   */
   private Behavior<Receptionist.Listing> onListing(Receptionist.Listing listing) {
+    //Check for what ServiceKey the message is
     if (listing.isForKey(gateServiceKey)) {
       List<ActorRef<Gate.GateCommand>> availableGates = listing
         .getServiceInstances(gateServiceKey)
         .stream()
         .toList();
+      //Extract Gate ActorRef if available
       gate = checkInstances(getContext(), availableGates, Gate.GateCommand.class);
     }
     if (listing.isForKey(lightMachineServiceKey)) {
@@ -119,30 +132,32 @@ public class ControllerSetup
         .getServiceInstances(lightMachineServiceKey)
         .stream()
         .toList();
-      lightMachine = checkInstances(
-        getContext(),
-        availableLightMachines,
-        LightMachine.LightMachineCommand.class
-      );
+      //Extract LightMachine ActorRef if available
+      lightMachine = checkInstances(getContext(), availableLightMachines, LightMachine.LightMachineCommand.class);
     }
+    //Create the Controller when the LightMachine and Gate are discovered
     if (gate != null && lightMachine != null && controller == null) {
       createController();
     }
     return Behaviors.same();
   }
 
+  /** Creates a new {@link Controller} Actor */
   private void createController() {
     controller = getContext().spawn(
       Controller.create(gate, lightMachine),
       String.format("%s", crossingId + componentSuffix)
     );
     NatsSetupStatus status = natsSetup();
-    while (status.equals(NatsSetupStatus.Failure)) {
-      getContext().getLog().info("Retrying connection to nats server...");
-      status = natsSetup();
+    if (status.equals(NatsSetupStatus.Failure)) {
+      getContext().getLog().error("Failed to connect to NATS-Server");
     }
   }
 
+  /**
+   * Initializes the Nats-Connection
+   * @return {@link NatsSetupStatus#Success} on success, otherwise {@link NatsSetupStatus#Failure}.
+   */
   private NatsSetupStatus natsSetup() {
     if (nc != null) {
       return NatsSetupStatus.Success;
@@ -160,23 +175,29 @@ public class ControllerSetup
     }
   }
 
+  /**
+   * Dispatcher that handles arriving messages from Nats and forwards them to the {@link Controller}
+   * @param msg   a message from Nats containing a sensor value
+   */
   private void NatsDispatcher(Message msg) {
     try {
       EventProtos.Event event = EventProtos.Event.parseFrom(msg.getData());
-      List<ContextVariable> dataList = event.getDataList();
-      NatsMessage natsMessage = getNatsMessage(dataList);
+      //Create a NatsMessage from the Proto message
+      NatsMessage natsMessage = getNatsMessage(event.getDataList());
       if(natsMessage.isValid()) {
         if (natsMessage.sensorValue()) {
+          //Send a new TrainSeen Message to the Controller
           controller.tell(
-            new Controller.CommandSensorSeen(
+            new Controller.CommandTrainSeen(
                     natsMessage.trainSpeed(),
                     natsMessage.traceId(),
                     natsMessage.spanId()
             )
           );
         } else {
+          //Send a new TrainNotSeen Message to the Controller
           controller.tell(
-            new Controller.CommandSensorNotSeen(
+            new Controller.CommandTrainNotSeen(
                     natsMessage.trainSpeed(),
                     natsMessage.traceId(),
                     natsMessage.spanId()
@@ -191,6 +212,7 @@ public class ControllerSetup
     }
   }
 
+  /** Status of the Nats Initialization */
   private enum NatsSetupStatus {
     Success,
     Failure

@@ -13,17 +13,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import actors.common.RailwayService;
 
 /**
- * Gate Actor: Manages the Gate of a Railway-Crossing, Receives Messages from a {@link Controller}, Sends Messages to a {@link Bell}
+ * Gate Actor:
+ * <p>
+ * Manages the gate of a railway crossing, receives messages from a {@link Controller}, and sends messages to a {@link Bell}.
  * The actor represents a finite state machine with two states:
- * - {@link Gate.State#Open}
- * - {@link Gate.State#Closed}
+ * </p>
+ * <ul>
+ *   <li>{@link Gate.State#Open}</li>
+ *   <li>{@link Gate.State#Closed}</li>
+ * </ul>
  */
 public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMachine<Gate.State> {
 
+  /** Reference to the Bell actor */
   private final ActorRef<Bell.BellCommand> bell;
 
+  /** Service to open or close the Gate */
   private final RailwayService railwayService;
 
+  /** Current state of the Gate: initial Open */
   private State state = State.Open;
 
   private Gate(
@@ -36,20 +44,38 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
     this.railwayService = railwayService;
   }
 
+  /**
+   * Creates a new {@link Gate} Actor.
+   *
+   * @param bell the {@link Bell} actor reference
+   * @param railwayService the {@link RailwayService} used by the Gate Actor
+   * @return the {@link Behavior} of the created {@link Gate} Actor
+   */
   public static Behavior<GateCommand> create(
-    ActorRef<Bell.BellCommand> bell,
-    RailwayService railwayService
+          ActorRef<Bell.BellCommand> bell,
+          RailwayService railwayService
   ) {
     return Behaviors.setup(context -> new Gate(context, bell, railwayService));
   }
 
+  /**
+   * Defines the {@link Behavior} of the {@link Gate} Actor.
+   * <p>
+   * Handles messages from the {@link Controller}.
+   * </p>
+   */
   public Receive<GateCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(CommandOpen.class, this::onGateOpen)
-      .onMessage(CommandClose.class, msg -> onGateClose(msg.trainSpeed))
-      .build();
+            .onMessage(CommandOpen.class, this::onGateOpen)
+            .onMessage(CommandClose.class, msg -> onGateClose(msg.trainSpeed))
+            .build();
   }
 
+  /**
+   * Handles the {@link CommandClose} message and closes the gate.
+   *
+   * @param trainSpeed the speed of the approaching train
+   */
   private Behavior<GateCommand> onGateClose(Double trainSpeed) {
     if (state == State.Open) {
       bell.tell(new Bell.CommandBellOn(trainSpeed));
@@ -60,26 +86,19 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
     return Behaviors.same();
   }
 
+  /**
+   * Handles the {@link CommandOpen} message and opens the gate.
+   *
+   * @param cmd message from the {@link Controller} containing tracing information
+   */
   private Behavior<GateCommand> onGateOpen(CommandOpen cmd) {
     if (state == State.Closed) {
-      /*Span span = Telemetry.createNewSpan(cmd.traceId, cmd.spanId, "gate", "gate-open");
-        try{
-            span.makeCurrent();
-            railwayService.gateUp(getContext(), bell, getContext().getSelf().path().name(), span.getSpanContext().getTraceId(), span.getSpanContext().getSpanId());
-            state = State.Open;
-            logState(getContext(), state);
-            timesGateOpened++;
-            getContext().getLog().info("Number gate was opend: {}", timesGateOpened);
-        }
-        finally {
-            span.end();
-        }*/
       railwayService.gateUp(
-        getContext(),
-        bell,
-        getContext().getSelf().path().name(),
-        cmd.traceId,
-        cmd.spanId
+              getContext(),
+              bell,
+              getContext().getSelf().path().name(),
+              cmd.traceId,
+              cmd.spanId
       );
       state = State.Open;
       logState(getContext(), state);
@@ -88,7 +107,7 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
   }
 
   /**
-   * Defines States of the Gate
+   * States of the Gate Actor
    */
   public enum State {
     Open,
@@ -96,12 +115,12 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
   }
 
   /**
-   * Marker interface for commands accepted by Gate.
+   * Marker interface for messages that the Gate Actor can receive
    */
   public interface GateCommand extends Command {}
 
   /**
-   * Command to open the Gate.
+   * Message to change the Gate state to {@link State#Open}.
    */
   public static class CommandOpen implements GateCommand {
 
@@ -120,7 +139,7 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
   }
 
   /**
-   * Command to close the Gate.
+   * Message to change the Gate state to {@link State#Closed}.
    */
   public static class CommandClose implements GateCommand {
 

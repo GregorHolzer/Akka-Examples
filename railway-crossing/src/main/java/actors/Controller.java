@@ -12,23 +12,31 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Controller Actor: Handles the Sensor-Events of a Railway-Crossing, Sens Messages to a {@link LightMachine} and a {@link Gate}
+ * Controller Actor:
+ * <p>
+ * Handles the sensor events of a railway crossing and sends messages to a {@link LightMachine} and a {@link Gate}.
  * The actor represents a finite state machine with six states:
- * - {@link Controller.State#Away}
- * - {@link Controller.State#Approaching}
- * - {@link Controller.State#Close}
- * - {@link Controller.State#Present}
- * - {@link Controller.State#Leaving}
- * - {@link Controller.State#Left}
+ * </p>
+ * <ul>
+ *   <li>{@link Controller.State#Away}</li>
+ *   <li>{@link Controller.State#Approaching}</li>
+ *   <li>{@link Controller.State#Close}</li>
+ *   <li>{@link Controller.State#Present}</li>
+ *   <li>{@link Controller.State#Leaving}</li>
+ *   <li>{@link Controller.State#Left}</li>
+ * </ul>
  */
 public class Controller
-  extends AbstractBehavior<Controller.ControllerCommand>
-  implements StateMachine<Controller.State> {
+        extends AbstractBehavior<Controller.ControllerCommand>
+        implements StateMachine<Controller.State> {
 
+  /** Reference to the LightMachine actor */
   private final ActorRef<LightMachine.LightMachineCommand> lightMachine;
 
+  /** Reference to the Gate actor */
   private final ActorRef<Gate.GateCommand> gate;
 
+  /** Current state of the Controller: initial Away */
   private State state = State.Away;
 
   private Controller(
@@ -41,21 +49,39 @@ public class Controller
     this.gate = gate;
   }
 
+  /**
+   * Creates a new {@link Controller} Actor.
+   *
+   * @param gate the {@link Gate} actor reference
+   * @param lightMachine the {@link LightMachine} actor reference
+   * @return the {@link Behavior} of the created {@link Controller} Actor
+   */
   public static Behavior<ControllerCommand> create(
-    ActorRef<Gate.GateCommand> gate,
-    ActorRef<LightMachine.LightMachineCommand> lightMachine
+          ActorRef<Gate.GateCommand> gate,
+          ActorRef<LightMachine.LightMachineCommand> lightMachine
   ) {
     return Behaviors.setup(context -> new Controller(context, lightMachine, gate));
   }
 
+  /**
+   * Defines the {@link Behavior} of the {@link Controller} Actor.
+   * <p>
+   * Handles sensor messages of the railway crossing
+   * </p>
+   */
   @Override
   public Receive<ControllerCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(CommandSensorSeen.class, cmd -> onTrainSeen())
-      .onMessage(CommandSensorNotSeen.class, this::onTrainNotSeen)
-      .build();
+            .onMessage(CommandTrainSeen.class, cmd -> onTrainSeen())
+            .onMessage(CommandTrainNotSeen.class, this::onTrainNotSeen)
+            .build();
   }
 
+  /**
+   * Handles the {@link CommandTrainSeen} message and updates the state when a train is detected.
+   *
+   * @return the current {@link Behavior}
+   */
   private Behavior<ControllerCommand> onTrainSeen() {
     switch (state) {
       case Away -> {
@@ -74,7 +100,16 @@ public class Controller
     return Behaviors.same();
   }
 
-  private Behavior<ControllerCommand> onTrainNotSeen(CommandSensorNotSeen cmd) {
+  /**
+   * Handles the {@link CommandTrainNotSeen} message and updates the state when a train is no longer detected.
+   * <p>
+   * Sends appropriate commands to the {@link LightMachine} and {@link Gate} actors based on the current state.
+   * </p>
+   *
+   * @param cmd message containing train speed and tracing information
+   * @return the current {@link Behavior}
+   */
+  private Behavior<ControllerCommand> onTrainNotSeen(CommandTrainNotSeen cmd) {
     switch (state) {
       case Approaching -> {
         getContext().getLog().info("Passed on TrainSpeed: {}", cmd.trainSpeed);
@@ -84,19 +119,6 @@ public class Controller
         logState(getContext(), state);
       }
       case Present -> {
-        /*
-          Span span = Telemetry.createNewSpan(cmd.traceId, cmd.spanId, "controller", "train-leaving");
-          try {
-              span.makeCurrent();
-              lightMachine.tell(new LightMachine.CommandTurnOff());
-              gate.tell(new Gate.CommandOpen(span.getSpanContext().getTraceId(), span.getSpanContext().getSpanId()));
-              state = State.Leaving;
-              numberOfLeaving++;
-              getContext().getLog().info("Number of Leaving: {}", numberOfLeaving);
-              //logState(getContext(), state);
-          } finally {
-              span.end();
-          }*/
         lightMachine.tell(new LightMachine.CommandTurnOff());
         gate.tell(new Gate.CommandOpen(cmd.traceId, cmd.spanId));
         state = State.Leaving;
@@ -111,7 +133,7 @@ public class Controller
   }
 
   /**
-   * Defines States of the Controller actor
+   * States of the Controller Actor
    */
   public enum State {
     Away,
@@ -123,12 +145,12 @@ public class Controller
   }
 
   /**
-   * Defines the message-type Controller can receive
+   * Marker interface for messages that the Controller Actor can receive
    */
   public interface ControllerCommand extends Command {}
 
   /**
-   * Defines an Event received from a Sensor
+   * Abstract base class for sensor event messages.
    */
   public abstract static class SensorCommand implements ControllerCommand {
 
@@ -151,23 +173,23 @@ public class Controller
   }
 
   /**
-   * Message that indicates that a sensor detects a train
+   * Message indicating that a sensor detects a train.
    */
-  public static class CommandSensorSeen extends SensorCommand {
+  public static class CommandTrainSeen extends SensorCommand {
 
     @JsonCreator
-    public CommandSensorSeen(Double trainSpeed, String traceId, String spanId) {
+    public CommandTrainSeen(Double trainSpeed, String traceId, String spanId) {
       super(trainSpeed, traceId, spanId);
     }
   }
 
   /**
-   * Message that indicates that a sensor no longer detects a train
+   * Message indicating that a sensor no longer detects a train.
    */
-  public static class CommandSensorNotSeen extends SensorCommand {
+  public static class CommandTrainNotSeen extends SensorCommand {
 
     @JsonCreator
-    public CommandSensorNotSeen(Double trainSpeed, String traceId, String spanId) {
+    public CommandTrainNotSeen(Double trainSpeed, String traceId, String spanId) {
       super(trainSpeed, traceId, spanId);
     }
   }

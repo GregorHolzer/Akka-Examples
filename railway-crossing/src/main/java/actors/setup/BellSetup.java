@@ -16,7 +16,7 @@ import actors.common.RailwayService;
  */
 public class BellSetup extends AbstractBehavior<Receptionist.Listing> {
 
-  //attached to the railway-crossing id to identify the component
+  /** Attached to the railway-crossing id to identify the component */
   public static final String componentSuffix = "_Bell";
 
   private BellSetup(
