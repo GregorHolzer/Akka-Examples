@@ -1,54 +1,30 @@
 # Akka Railway-Crossing Use Case
 
-### Test local example:
+## Configuration
 
-Build the project:
+The application is expecting a file path as argument to load the configuration form a JSON file.
 
-```bash
-    mvn clean install
-```
+### JSON Configuration Structure
 
-Create the Nats Server and the Railway-Crossing Service:
+The is to be structured as follows:
 
-```bash
-    docker compose up -d 
-```
+- `crossings` - A list of Railway-Crossings that are relevant to this node. Each list element is structured:
 
-An Akka-Node can be launched with:
+    - `crossingId` - The unique identifier for this Railway-Crossing
+    - `components` - A list of Components that will be created for the Railway-Crossing. Available Components:
+    
+        - `Controller`
+        - `LightMachine`
+        - `Gate`
+        - `Bell`
+- `service_server_addr` - The host of the Railway-Service
+- `service_server_port` - The port of the Railway-Service
+- `nats_server_addr` - The host of the Nats-Server
+- `nats_server_port` - The port of the Nats-Server
+- `export_server_addr` - The host of the Service that collects the OpenTelemetry metrics (currently not used)
+- `export_server_port` - The port of the Service that collects the OpenTelemetry metrics (currently not used)
 
-```bash
-    mvn exec:java -Dexec.mainClass=Main \
-  -Dakka.remote.artery.canonical.port=<port> \
-  -Dakka.management.http.port=<management_port> \
-  -Dexec.args=<path_to_config>
-```
-
-There is also a script to launch nodes:
-
-```bash
-    ./runNode.sh -n <number_of_node> -c <path_to_config>
-```
-
-To run two nodes with an example configuration:
-
-```bash
-    ./runNode.sh -c ./configs/node0.json
-```
-
-```bash
-    ./runNode.sh -n 1 -c ./configs/node1.json
-```
-
-Start the simulate-sensor service:
-
-```bash
-    cd ./services/simulate_sensors/
-    docker compose up -d
-```
-
-[See the Status](http://localhost:8000/status)
-
-### Example Config
+## Local Example
 
 ```json
 {
@@ -56,34 +32,22 @@ Start the simulate-sensor service:
     {
       "crossingId": "crossing0",
       "components": [
-          "Bell",
-          "LightMachine",
-          "Gate"
+        "Controller"
       ]
     },
     {
       "crossingId": "crossing1",
       "components": [
-        "Bell",
         "LightMachine",
         "Gate"
       ]
     }
   ],
-  "service_location": "Local",
-  "remote_service_name": "",
+  "service_server_addr": "localhost",
+  "service_server_port": 8000,
   "nats_server_addr": "localhost",
-  "nats_server_port": "4222"
+  "nats_server_port": 4222,
+  "export_server_addr": "localhost",
+  "export_server_port": 4317
 }
 ```
-
-If this config is passed to an Actor-System this system will launch:
-- For Crossing with id `crossing0`:
-    - `Bell`
-    - `LightMachine`
-    - `Bell`
-- For Crossing with id `crossing1`:
-    - `Bell`
-    - `LightMachine`
-    - `Bell`
-
