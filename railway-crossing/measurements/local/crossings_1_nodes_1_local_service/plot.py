@@ -97,22 +97,6 @@ def plot_event_rate_to_total_time(input_file, output_file=None):
     ax1.set_ylim(0, df['total_time'].max() + 50)
     ax1.set_xlim(0, df['event_rate'].max() + 10)
 
-#    ax1.invert_xaxis()
-
-#    x_min = df['event_rate'].min()
-#    x_max = df['event_rate'].max()
-#    print(x_min)
-#    margin = (x_max - x_min) * 0.05
-#    ax1.set_xlim(x_max + margin, x_min - margin)
-
-#    ax2.scatter(df['event_rate'], df['num_of_service_invocations'] / df['number_of_generated_trains'], alpha=0.6, label='Data points')
-
-#     ax2.set_xlabel('Event Intervals')
-#     ax2.set_ylabel('Received Bell-Invocations / Number of Trains')
-#     ax2.set_title('Received Bell-Invocations / Number of Trains')
-#     ax2.grid(True, alpha=0.3, axis='y')
-
-#    ax2.invert_xaxis()
     title = "AKKA Railway UseCase, Events from " + str(df['event_rate'].min()) + " to " + str(df['event_rate'].max()) + " per second"
     fig.suptitle(title, fontsize=16, fontweight='bold')
 
