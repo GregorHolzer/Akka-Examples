@@ -15,9 +15,9 @@ public class Configuration {
   /**
    * Initializes the configuration from the specified JSON file.
    *
-   * @param context {@link ActorContext} used for logging
-   * @param configPath the path to the JSON configuration file
-   * @return {@link ConfigStatus#Success} if the configuration is loaded successfully, {@link ConfigStatus#Failure} otherwise
+   * @param context {@link ActorContext} used for logging.
+   * @param configPath the path to the JSON configuration file.
+   * @return {@link ConfigStatus#Success} if the configuration is loaded successfully, {@link ConfigStatus#Failure} otherwise.
    */
   public static ConfigStatus initConfig(ActorContext<?> context, String configPath) {
     if (nodeConfiguration == null) {
