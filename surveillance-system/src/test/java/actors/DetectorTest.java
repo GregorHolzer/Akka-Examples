@@ -3,7 +3,7 @@ package actors;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import actors.common.GlobalCommands;
+import actors.common.SharedCommands;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestProbe;
@@ -26,7 +26,8 @@ public class DetectorTest {
   @Test
   public void detectorAlarmTest() {
     ActorRef<Detector.DetectorCommand> detector = testKit.spawn(
-      Detector.create(cameraId, surveillance.getRef(), detectorService)
+      Detector.create(cameraId, surveillance.getRef(), detectorService),
+      "detector_alarm"
     );
 
     LoggingTestKit.info("in state Processing").expect(testKit.system(), () -> {
@@ -35,11 +36,11 @@ public class DetectorTest {
     });
     verify(detectorService, times(1)).cameraCapture(any(), any());
     LoggingTestKit.info("in state Alarm").expect(testKit.system(), () -> {
-      detector.tell(new GlobalCommands.Alarm());
+      detector.tell(new SharedCommands.Alarm());
       return null;
     });
     LoggingTestKit.info("in state Capturing").expect(testKit.system(), () -> {
-      detector.tell(new GlobalCommands.Disarm());
+      detector.tell(new SharedCommands.Disarm());
       return null;
     });
     verify(detectorService, times(2)).cameraCapture(any(), any());
@@ -48,7 +49,8 @@ public class DetectorTest {
   @Test
   public void detectorTimeoutTest() {
     ActorRef<Detector.DetectorCommand> detector = testKit.spawn(
-      Detector.create(cameraId, surveillance.getRef(), detectorService)
+      Detector.create(cameraId, surveillance.getRef(), detectorService),
+      "detector_timeout"
     );
 
     LoggingTestKit.info("in state Processing").expect(testKit.system(), () -> {

@@ -1,6 +1,6 @@
 # Services
 
-All services required by the video surveillance use case are found in [services](services) sub folder.
+All services required by the video surveillance use case are found in [services]() sub folder.
 - `iotservices`<br>
   Camera service which simulates image capturing. Adds random noise to each image to ensure uniqueness.
 - `edgeservices`<br>

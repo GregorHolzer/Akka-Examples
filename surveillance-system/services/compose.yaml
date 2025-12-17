@@ -1,24 +1,24 @@
 services:
   iotservices:
     build:
-      context: ./services/iotservices
-      dockerfile: Dockerfile
+      context: iotservices
+      dockerfile: iotservices/Dockerfile
     ports:
       - "8001:8000"
     environment:
       - "PROTO=${PROTO:-true}"
   edgeservices:
     build:
-      context: ./services/edgeservices
-      dockerfile: Dockerfile
+      context: edgeservices
+      dockerfile: edgeservices/Dockerfile
     ports:
       - "8002:8000"
     environment:
       - "PROTO=${PROTO:-true}"
   cloudservices:
     build:
-      context: ./services/cloudservices
-      dockerfile: Dockerfile
+      context: cloudservices
+      dockerfile: cloudservices/Dockerfile
     ports:
       - "8003:8000"
     environment:

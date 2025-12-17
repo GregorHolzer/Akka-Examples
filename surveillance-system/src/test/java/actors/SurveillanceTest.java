@@ -4,7 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
-import actors.common.GlobalCommands;
+import actors.common.SharedCommands;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestProbe;
@@ -24,7 +24,8 @@ public class SurveillanceTest {
 
   static final ActorTestKit testKit = ActorTestKit.create();
 
-  private final TestProbe<Detector.DetectorCommand> detector = testKit.createTestProbe("detector",
+  private final TestProbe<Detector.DetectorCommand> detector = testKit.createTestProbe(
+    "detector",
     Detector.DetectorCommand.class
   );
 
@@ -38,14 +39,18 @@ public class SurveillanceTest {
       .when(surveillanceService)
       .analyze(any(), any());
     PubSub pubSub = PubSub.get(testKit.system());
-    ActorRef<Topic.Command<Detector.DetectorCommand>> detectorTopic = pubSub.topic(Detector.DetectorCommand.class, "global-detector-commands");
+    ActorRef<Topic.Command<Detector.DetectorCommand>> detectorTopic = pubSub.topic(
+      Detector.DetectorCommand.class,
+      "global-detector-commands"
+    );
     detectorTopic.tell(Topic.subscribe(detector.getRef()));
   }
 
   @Test
   public void surveillanceTestNoAlarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceService, "test1"), "test1"
+      Surveillance.create(surveillanceService, "test1"),
+      "test1"
     );
 
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
@@ -65,7 +70,8 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestAlarmManualDisarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceService,  "test2"), "test2"
+      Surveillance.create(surveillanceService, "test2"),
+      "test2"
     );
 
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
@@ -73,18 +79,16 @@ public class SurveillanceTest {
       return null;
     });
 
-    LoggingTestKit.info("in state Alarm")
-            .expect(testKit.system(), () -> {
-              surveillance.tell(new Surveillance.Analyzed(new byte[0], true));
-              return null;
-            });
-    detector.expectMessageClass(GlobalCommands.Alarm.class);
+    LoggingTestKit.info("in state Alarm").expect(testKit.system(), () -> {
+      surveillance.tell(new Surveillance.Analyzed(new byte[0], true));
+      return null;
+    });
+    detector.expectMessageClass(SharedCommands.Alarm.class);
 
-    LoggingTestKit.info("in state Processing")
-      .expect(testKit.system(), () -> {
-        surveillance.tell(new GlobalCommands.Disarm());
-        return null;
-      });
+    LoggingTestKit.info("in state Processing").expect(testKit.system(), () -> {
+      surveillance.tell(new SharedCommands.Disarm());
+      return null;
+    });
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
       surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
       return null;
@@ -95,13 +99,13 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestAlarmTimeoutDisarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceService,   "test3"), "test3"
+      Surveillance.create(surveillanceService, "test3"),
+      "test3"
     );
-    LoggingTestKit.info("in state Alarm")
-      .expect(testKit.system(), () -> {
-        surveillance.tell(new GlobalCommands.Alarm());
-        return null;
-      });
+    LoggingTestKit.info("in state Alarm").expect(testKit.system(), () -> {
+      surveillance.tell(new SharedCommands.Alarm());
+      return null;
+    });
     LoggingTestKit.info("analyze")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
@@ -109,7 +113,7 @@ public class SurveillanceTest {
         return null;
       });
     //Wait Timeout
-    detector.expectMessageClass(GlobalCommands.Disarm.class, Duration.ofSeconds(11));
+    detector.expectMessageClass(SharedCommands.Disarm.class, Duration.ofSeconds(11));
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
       surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
       return null;
