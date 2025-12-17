@@ -1,6 +1,7 @@
 package services;
 
 import actors.Surveillance;
+import actors.common.Configuration;
 import actors.common.SharedCommands;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.ActorSystem;
@@ -17,12 +18,16 @@ import java.util.concurrent.CompletionStage;
 public class SurveillanceService implements AkkaService {
 
   /** Hostname of the cloud analysis service. */
-  //TODO: read from configs
-  private static final String host = "localhost";
+  private final String host;
 
   /** Port of the cloud analysis service. */
-  //TODO: read from configs
-  private static final int cloud_port = 8003;
+  private final int cloud_port;
+
+  public SurveillanceService() {
+    Configuration.NodeConfiguration config = Configuration.getNodeConfiguration();
+    this.host = config.cloud_service_addr();
+    this.cloud_port = config.cloud_service_port();
+  }
 
   /**
    * Sends the image from a {@link Surveillance.FoundPersons} event

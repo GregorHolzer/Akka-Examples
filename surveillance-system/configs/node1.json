@@ -7,5 +7,11 @@
     {
       "surveillanceId": "surveillance02"
     }
-  ]
+  ],
+  "cloud_service_addr": "localhost",
+  "cloud_service_port": 8003,
+  "edge_service_addr": "localhost",
+  "edge_service_port": 8002,
+  "iot_service_addr": "localhost",
+  "iot_service_port": 8001
 }

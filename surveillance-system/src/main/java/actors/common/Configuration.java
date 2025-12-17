@@ -39,6 +39,24 @@ public class Configuration {
             .getLog()
             .info("Launched Surveillance with SurveillanceId: {}", surveillance.surveillanceId)
         );
+        context
+          .getLog()
+          .info("Configured Cloud-Service Address: {}", nodeConfiguration.cloud_service_addr);
+        context
+          .getLog()
+          .info("Configured Cloud-Service Port: {}", nodeConfiguration.cloud_service_port);
+        context
+          .getLog()
+          .info("Configured Edge-Service Address: {}", nodeConfiguration.edge_service_addr);
+        context
+          .getLog()
+          .info("Configured Edge-Service Port: {}", nodeConfiguration.edge_service_port);
+        context
+          .getLog()
+          .info("Configured IoT-Service Address: {}", nodeConfiguration.iot_service_addr);
+        context
+          .getLog()
+          .info("Configured IoT-Service Port: {}", nodeConfiguration.iot_service_port);
       } catch (Exception e) {
         context.getLog().error("Error parsing ConfigFile: {}", e.getMessage());
         context.getSystem().terminate();
@@ -68,6 +86,12 @@ public class Configuration {
   /** Node Configuration holding multiple {@link DetectorConfiguration}s and {@link SurveillanceConfiguration}s. */
   public record NodeConfiguration(
     List<DetectorConfiguration> detectorsConfigs,
-    List<SurveillanceConfiguration> surveillanceConfigs
+    List<SurveillanceConfiguration> surveillanceConfigs,
+    String cloud_service_addr,
+    Integer cloud_service_port,
+    String edge_service_addr,
+    Integer edge_service_port,
+    String iot_service_addr,
+    Integer iot_service_port
   ) {}
 }

@@ -1,6 +1,7 @@
 package services;
 
 import actors.Detector;
+import actors.common.Configuration;
 import actors.common.SharedCommands;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.ActorSystem;
@@ -16,17 +17,25 @@ import java.util.concurrent.CompletionStage;
  */
 public class DetectorService implements AkkaService {
 
-  /** Hostname for IoT and edge services. */
-  //TODO: read from configs
-  private static final String host = "localhost";
+  /** Hostname for IoT services. */
+  private final String iot_addr;
+
+  /** Hostname for Edge services. */
+  private final String edge_addr;
 
   /** Port used by the IoT service. */
-  //TODO: read from configs
-  private static final int iot_port = 8001;
+  private final int iot_port;
 
   /** Port used by the edge detection service. */
-  //TODO: read from configs
-  private static final Integer edge_port = 8002;
+  private final Integer edge_port;
+
+  public DetectorService() {
+    Configuration.NodeConfiguration config = Configuration.getNodeConfiguration();
+    iot_addr = config.iot_service_addr();
+    iot_port = config.iot_service_port();
+    edge_addr = config.edge_service_addr();
+    edge_port = config.edge_service_port();
+  }
 
   /**
    * Sends an HTTP request with a Protobuf body and handles the response.
@@ -45,6 +54,7 @@ public class DetectorService implements AkkaService {
   private void sendRequestAndHandle(
     ActorContext<Detector.DetectorCommand> context,
     byte[] body,
+    String host,
     Integer port,
     String url,
     String variableName,
@@ -95,7 +105,7 @@ public class DetectorService implements AkkaService {
    * @param context the detector actor context
    */
   public void alarmOn(ActorContext<Detector.DetectorCommand> context) {
-    sendRequest(context, buildPostRequest(host, iot_port, "/alarm/on"));
+    sendRequest(context, buildPostRequest(iot_addr, iot_port, "/alarm/on"));
   }
 
   /**
@@ -104,7 +114,7 @@ public class DetectorService implements AkkaService {
    * @param context the detector actor context
    */
   public void alarmOff(ActorContext<Detector.DetectorCommand> context) {
-    sendRequest(context, buildPostRequest(host, iot_port, "/alarm/off"));
+    sendRequest(context, buildPostRequest(iot_addr, iot_port, "/alarm/off"));
   }
 
   /**
@@ -122,7 +132,7 @@ public class DetectorService implements AkkaService {
 
     byte[] body = buildProtoRequestBody(values);
 
-    sendRequestAndHandle(context, body, iot_port, "/capture", "image", (self, imageVar) ->
+    sendRequestAndHandle(context, body, iot_addr, iot_port, "/capture", "image", (self, imageVar) ->
       self.tell(new Detector.CapturedImage(imageVar.getValue().getBytes().toByteArray()))
     );
   }
@@ -148,6 +158,7 @@ public class DetectorService implements AkkaService {
     sendRequestAndHandle(
       context,
       body,
+      edge_addr,
       edge_port,
       "/detect",
       "hasDetectedPersons",

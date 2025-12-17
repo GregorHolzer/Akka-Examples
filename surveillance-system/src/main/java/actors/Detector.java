@@ -221,5 +221,6 @@ public class Detector
     }
   }
 
+  /** Timeout message */
   public static class Timeout implements DetectorCommand {}
 }
