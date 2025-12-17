@@ -28,25 +28,25 @@ public class Telemetry {
    */
   public static void initOpenTelemetry() {
     Configuration.NodeConfiguration config = Configuration.getNodeConfiguration();
-    if(config != null && openTelemetry == null) {
+    if (config != null && openTelemetry == null) {
       Resource resource = Resource.getDefault().merge(
-              Resource.builder().put(ServiceAttributes.SERVICE_NAME, "akka-actors").build()
+        Resource.builder().put(ServiceAttributes.SERVICE_NAME, "akka-actors").build()
       );
 
       OtlpGrpcSpanExporter exporter = OtlpGrpcSpanExporter.builder()
-              .setEndpoint("http://" + config.export_server_addr() + ":" + config.export_server_port())
-              .setTimeout(Duration.ofSeconds(10))
-              .build();
+        .setEndpoint("http://" + config.export_server_addr() + ":" + config.export_server_port())
+        .setTimeout(Duration.ofSeconds(10))
+        .build();
 
       SdkTracerProvider tracerProvider = SdkTracerProvider.builder()
-              .setResource(resource)
-              .addSpanProcessor(SimpleSpanProcessor.builder(exporter).build())
-              .build();
+        .setResource(resource)
+        .addSpanProcessor(SimpleSpanProcessor.builder(exporter).build())
+        .build();
 
       openTelemetry = OpenTelemetrySdk.builder()
-              .setTracerProvider(tracerProvider)
-              .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
-              .buildAndRegisterGlobal();
+        .setTracerProvider(tracerProvider)
+        .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
+        .buildAndRegisterGlobal();
     }
   }
 
@@ -69,23 +69,23 @@ public class Telemetry {
    * @return a new {@link Span}
    */
   public static Span createNewSpan(
-          String prevTraceId,
-          String prevSpanId,
-          String scopeName,
-          String spanBuilder
+    String prevTraceId,
+    String prevSpanId,
+    String scopeName,
+    String spanBuilder
   ) {
     SpanContext parentSpanContext = SpanContext.createFromRemoteParent(
-            prevTraceId,
-            prevSpanId,
-            TraceFlags.getSampled(),
-            TraceState.getDefault()
+      prevTraceId,
+      prevSpanId,
+      TraceFlags.getSampled(),
+      TraceState.getDefault()
     );
 
     Context parentContext = Context.root().with(Span.wrap(parentSpanContext));
     return openTelemetry
-            .getTracer(scopeName)
-            .spanBuilder(spanBuilder)
-            .setParent(parentContext)
-            .startSpan();
+      .getTracer(scopeName)
+      .spanBuilder(spanBuilder)
+      .setParent(parentContext)
+      .startSpan();
   }
 }

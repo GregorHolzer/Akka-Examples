@@ -1,6 +1,7 @@
 package actors;
 
 import actors.common.Command;
+import actors.common.RailwayService;
 import actors.common.StateMachine;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
@@ -10,7 +11,6 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import actors.common.RailwayService;
 
 /**
  * Gate Actor:
@@ -35,9 +35,9 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
   private State state = State.Open;
 
   private Gate(
-          ActorContext<GateCommand> context,
-          ActorRef<Bell.BellCommand> bell,
-          RailwayService railwayService
+    ActorContext<GateCommand> context,
+    ActorRef<Bell.BellCommand> bell,
+    RailwayService railwayService
   ) {
     super(context);
     this.bell = bell;
@@ -52,8 +52,8 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
    * @return the {@link Behavior} of the created {@link Gate} Actor
    */
   public static Behavior<GateCommand> create(
-          ActorRef<Bell.BellCommand> bell,
-          RailwayService railwayService
+    ActorRef<Bell.BellCommand> bell,
+    RailwayService railwayService
   ) {
     return Behaviors.setup(context -> new Gate(context, bell, railwayService));
   }
@@ -66,9 +66,9 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
    */
   public Receive<GateCommand> createReceive() {
     return newReceiveBuilder()
-            .onMessage(CommandOpen.class, this::onGateOpen)
-            .onMessage(CommandClose.class, msg -> onGateClose(msg.trainSpeed))
-            .build();
+      .onMessage(CommandOpen.class, this::onGateOpen)
+      .onMessage(CommandClose.class, msg -> onGateClose(msg.trainSpeed))
+      .build();
   }
 
   /**
@@ -94,11 +94,11 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
   private Behavior<GateCommand> onGateOpen(CommandOpen cmd) {
     if (state == State.Closed) {
       railwayService.gateUp(
-              getContext(),
-              bell,
-              getContext().getSelf().path().name(),
-              cmd.traceId,
-              cmd.spanId
+        getContext(),
+        bell,
+        getContext().getSelf().path().name(),
+        cmd.traceId,
+        cmd.spanId
       );
       state = State.Open;
       logState(getContext(), state);
@@ -130,8 +130,8 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
 
     @JsonCreator
     public CommandOpen(
-            @JsonProperty("traceId") String traceId,
-            @JsonProperty("spanId") String spanId
+      @JsonProperty("traceId") String traceId,
+      @JsonProperty("spanId") String spanId
     ) {
       this.traceId = traceId;
       this.spanId = spanId;

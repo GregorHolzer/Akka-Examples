@@ -2,6 +2,7 @@ package actors.setup;
 
 import actors.Bell;
 import actors.Gate;
+import actors.common.RailwayService;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -11,7 +12,6 @@ import akka.actor.typed.javadsl.Receive;
 import akka.actor.typed.receptionist.Receptionist;
 import akka.actor.typed.receptionist.ServiceKey;
 import java.util.List;
-import actors.common.RailwayService;
 
 /**
  * GateSetup Actor:
@@ -23,9 +23,7 @@ import actors.common.RailwayService;
  * </ul>
  * </p>
  */
-public class GateSetup
-        extends AbstractBehavior<Receptionist.Listing>
-        implements ComponentSetup {
+public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements ComponentSetup {
 
   /** Attached to the railway-crossing id to identify the component */
   public static final String componentSuffix = "_Gate";
@@ -55,35 +53,25 @@ public class GateSetup
     return Behaviors.setup(context -> new GateSetup(context, crossingId));
   }
 
-  private GateSetup(
-          ActorContext<Receptionist.Listing> context,
-          String crossingId
-  ) {
+  private GateSetup(ActorContext<Receptionist.Listing> context, String crossingId) {
     super(context);
-
     this.crossingId = crossingId;
     this.railwayService = new RailwayService();
 
     // Create ServiceKeys for Bell discovery and Gate registration
     bellServiceKey = ServiceKey.create(
-            Bell.BellCommand.class,
-            crossingId + BellSetup.componentSuffix
+      Bell.BellCommand.class,
+      crossingId + BellSetup.componentSuffix
     );
-    gateServiceKey = ServiceKey.create(
-            Gate.GateCommand.class,
-            crossingId + componentSuffix
-    );
+    gateServiceKey = ServiceKey.create(Gate.GateCommand.class, crossingId + componentSuffix);
 
     // Subscribe to the Receptionist to discover the Bell Actor
     getContext()
-            .getSystem()
-            .receptionist()
-            .tell(Receptionist.subscribe(bellServiceKey, context.getSelf()));
+      .getSystem()
+      .receptionist()
+      .tell(Receptionist.subscribe(bellServiceKey, context.getSelf()));
 
-    context.getLog().info(
-            "Gate subscribed to ServiceKeys: {}",
-            bellServiceKey
-    );
+    context.getLog().info("Gate subscribed to ServiceKeys: {}", bellServiceKey);
   }
 
   /**
@@ -92,9 +80,7 @@ public class GateSetup
    */
   @Override
   public Receive<Receptionist.Listing> createReceive() {
-    return newReceiveBuilder()
-            .onMessage(Receptionist.Listing.class, this::onListing)
-            .build();
+    return newReceiveBuilder().onMessage(Receptionist.Listing.class, this::onListing).build();
   }
 
   /**
@@ -107,33 +93,27 @@ public class GateSetup
    */
   private Behavior<Receptionist.Listing> onListing(Receptionist.Listing listing) {
     List<ActorRef<Bell.BellCommand>> availableBells = listing
-            .getServiceInstances(bellServiceKey)
-            .stream()
-            .toList();
+      .getServiceInstances(bellServiceKey)
+      .stream()
+      .toList();
 
     // Extract Bell ActorRef if available
     ActorRef<Bell.BellCommand> bell = checkInstances(
-            getContext(),
-            availableBells,
-            Bell.BellCommand.class
+      getContext(),
+      availableBells,
+      Bell.BellCommand.class
     );
 
     // Create and register the Gate once the Bell is discovered
     if (bell != null && gate == null) {
       gate = getContext().spawn(
-              Gate.create(bell, railwayService),
-              String.format("%s", crossingId + componentSuffix)
+        Gate.create(bell, railwayService),
+        String.format("%s", crossingId + componentSuffix)
       );
 
-      getContext()
-              .getSystem()
-              .receptionist()
-              .tell(Receptionist.register(gateServiceKey, gate));
+      getContext().getSystem().receptionist().tell(Receptionist.register(gateServiceKey, gate));
 
-      getContext().getLog().info(
-              "Gate registered with ServiceKey: {}",
-              gateServiceKey
-      );
+      getContext().getLog().info("Gate registered with ServiceKey: {}", gateServiceKey);
     }
 
     return Behaviors.same();

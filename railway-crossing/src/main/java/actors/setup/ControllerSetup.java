@@ -2,10 +2,11 @@ package actors.setup;
 
 import static actors.common.NatsMessage.getNatsMessage;
 
-import actors.common.Configuration;
 import actors.Controller;
 import actors.Gate;
 import actors.LightMachine;
+import actors.common.Configuration;
+import actors.common.NatsMessage;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -21,7 +22,6 @@ import io.nats.client.Dispatcher;
 import io.nats.client.Message;
 import io.nats.client.Nats;
 import java.util.List;
-import actors.common.NatsMessage;
 
 /**
  * ControllerSetup Actor:
@@ -67,10 +67,7 @@ public class ControllerSetup
   /** Nats Connection */
   private Connection nc = null;
 
-  private ControllerSetup(
-    ActorContext<Receptionist.Listing> context,
-    String crossingId
-  ) {
+  private ControllerSetup(ActorContext<Receptionist.Listing> context, String crossingId) {
     super(context);
     this.crossingId = crossingId;
     //Create the ServiceKeys for the Gate and the LightMachine
@@ -133,7 +130,11 @@ public class ControllerSetup
         .stream()
         .toList();
       //Extract LightMachine ActorRef if available
-      lightMachine = checkInstances(getContext(), availableLightMachines, LightMachine.LightMachineCommand.class);
+      lightMachine = checkInstances(
+        getContext(),
+        availableLightMachines,
+        LightMachine.LightMachineCommand.class
+      );
     }
     //Create the Controller when the LightMachine and Gate are discovered
     if (gate != null && lightMachine != null && controller == null) {
@@ -167,7 +168,9 @@ public class ControllerSetup
       nc = Nats.connect("nats://" + config.nats_server_addr() + ":" + config.nats_server_port());
       Dispatcher dispatcher = nc.createDispatcher(this::NatsDispatcher);
       dispatcher.subscribe(natsTopic);
-      getContext().getLog().info("{} subscribed to Topic: {}", crossingId + componentSuffix, natsTopic);
+      getContext()
+        .getLog()
+        .info("{} subscribed to Topic: {}", crossingId + componentSuffix, natsTopic);
       return NatsSetupStatus.Success;
     } catch (Exception e) {
       getContext().getLog().error("Could not connect to nats server, error: {}", e.getMessage());
@@ -184,23 +187,23 @@ public class ControllerSetup
       EventProtos.Event event = EventProtos.Event.parseFrom(msg.getData());
       //Create a NatsMessage from the Proto message
       NatsMessage natsMessage = getNatsMessage(event.getDataList());
-      if(natsMessage.isValid()) {
+      if (natsMessage.isValid()) {
         if (natsMessage.sensorValue()) {
           //Send a new TrainSeen Message to the Controller
           controller.tell(
             new Controller.CommandTrainSeen(
-                    natsMessage.trainSpeed(),
-                    natsMessage.traceId(),
-                    natsMessage.spanId()
+              natsMessage.trainSpeed(),
+              natsMessage.traceId(),
+              natsMessage.spanId()
             )
           );
         } else {
           //Send a new TrainNotSeen Message to the Controller
           controller.tell(
             new Controller.CommandTrainNotSeen(
-                    natsMessage.trainSpeed(),
-                    natsMessage.traceId(),
-                    natsMessage.spanId()
+              natsMessage.trainSpeed(),
+              natsMessage.traceId(),
+              natsMessage.spanId()
             )
           );
         }

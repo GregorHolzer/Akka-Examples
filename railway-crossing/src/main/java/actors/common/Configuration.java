@@ -2,7 +2,6 @@ package actors.common;
 
 import akka.actor.typed.javadsl.ActorContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.File;
 import java.util.List;
 
@@ -16,25 +15,36 @@ public class Configuration {
   /**
    * Initializes the configuration from the specified JSON file.
    *
-   * @param context an {@link ActorContext} used for logging
+   * @param context {@link ActorContext} used for logging
    * @param configPath the path to the JSON configuration file
-   * @return {@link ConfigStatus#Success} if the configuration is loaded successfully;
-   *         {@link ConfigStatus#Failure} otherwise
+   * @return {@link ConfigStatus#Success} if the configuration is loaded successfully, {@link ConfigStatus#Failure} otherwise
    */
-  public static ConfigStatus initConfig(ActorContext<?> context, String configPath){
-    if(nodeConfiguration == null){
+  public static ConfigStatus initConfig(ActorContext<?> context, String configPath) {
+    if (nodeConfiguration == null) {
       try {
         ObjectMapper mapper = new ObjectMapper();
         nodeConfiguration = mapper.readValue(new File(configPath), NodeConfiguration.class);
         context.getLog().info("Configuration loaded successfully:");
         nodeConfiguration
-                .crossings()
-                .forEach(crossing -> {
-                  context.getLog().info("Crossing ID: {}", crossing.crossingId());
-                  context.getLog().info("Components: {}", crossing.components());
-                });
-        context.getLog().info("Service at: {}:{}", nodeConfiguration.service_server_addr(), nodeConfiguration.service_server_port());
-        context.getLog().info("Nats at: {}:{}", nodeConfiguration.nats_server_addr(),nodeConfiguration.nats_server_port());
+          .crossings()
+          .forEach(crossing -> {
+            context.getLog().info("Crossing ID: {}", crossing.crossingId());
+            context.getLog().info("Components: {}", crossing.components());
+          });
+        context
+          .getLog()
+          .info(
+            "Service at: {}:{}",
+            nodeConfiguration.service_server_addr(),
+            nodeConfiguration.service_server_port()
+          );
+        context
+          .getLog()
+          .info(
+            "Nats at: {}:{}",
+            nodeConfiguration.nats_server_addr(),
+            nodeConfiguration.nats_server_port()
+          );
       } catch (Exception e) {
         context.getLog().error("Error parsing ConfigFile: {}", e.getMessage());
         context.getSystem().terminate();
@@ -70,12 +80,12 @@ public class Configuration {
 
   /** Specifies the Railway-Crossings, Location of Railway-Service, Location of NATS, Location of Telegraf */
   public record NodeConfiguration(
-          List<CrossingConfiguration> crossings,
-          String service_server_addr,
-          int service_server_port,
-          String nats_server_addr,
-          int nats_server_port,
-          String export_server_addr,
-          int export_server_port
+    List<CrossingConfiguration> crossings,
+    String service_server_addr,
+    int service_server_port,
+    String nats_server_addr,
+    int nats_server_port,
+    String export_server_addr,
+    int export_server_port
   ) {}
 }

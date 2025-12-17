@@ -3,27 +3,18 @@ package actor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import actors.common.Configuration;
 import actors.Bell;
+import actors.common.RailwayService;
+import actors.common.Telemetry;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.typed.ActorRef;
-import actors.common.Telemetry;
 import org.junit.AfterClass;
 import org.junit.Test;
-import actors.common.RailwayService;
 
 public class BellTest {
 
-  private static final Configuration.NodeConfiguration nodeConfig = new Configuration.NodeConfiguration(
-    null,
-    null,
-    8000,
-    null,
-    1,
-    "localhost",
-    4317
-  );
+  private static final String ANY_LOG = "in state";
 
   private static final Double trainSpeed = 50.0;
 
@@ -54,7 +45,7 @@ public class BellTest {
   @Test
   public void duplicateCommands() {
     ActorRef<Bell.BellCommand> bell = testKit.spawn(Bell.create(mockedService), "bell1");
-    LoggingTestKit.info("bell1 in state")
+    LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         bell.tell(new Bell.CommandBellOff(traceId, spanId));
@@ -68,7 +59,7 @@ public class BellTest {
     });
     verify(mockedService, times(1)).bellOn(any(), any(), any());
     verify(mockedService, times(0)).bellOff(any(), any(), any(), any());
-    LoggingTestKit.info("bell1 in state")
+    LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         bell.tell(new Bell.CommandBellOn(trainSpeed));

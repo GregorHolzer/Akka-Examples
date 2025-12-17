@@ -27,8 +27,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * </ul>
  */
 public class Controller
-        extends AbstractBehavior<Controller.ControllerCommand>
-        implements StateMachine<Controller.State> {
+  extends AbstractBehavior<Controller.ControllerCommand>
+  implements StateMachine<Controller.State> {
 
   /** Reference to the LightMachine actor */
   private final ActorRef<LightMachine.LightMachineCommand> lightMachine;
@@ -40,9 +40,9 @@ public class Controller
   private State state = State.Away;
 
   private Controller(
-          ActorContext<ControllerCommand> context,
-          ActorRef<LightMachine.LightMachineCommand> lightMachine,
-          ActorRef<Gate.GateCommand> gate
+    ActorContext<ControllerCommand> context,
+    ActorRef<LightMachine.LightMachineCommand> lightMachine,
+    ActorRef<Gate.GateCommand> gate
   ) {
     super(context);
     this.lightMachine = lightMachine;
@@ -57,8 +57,8 @@ public class Controller
    * @return the {@link Behavior} of the created {@link Controller} Actor
    */
   public static Behavior<ControllerCommand> create(
-          ActorRef<Gate.GateCommand> gate,
-          ActorRef<LightMachine.LightMachineCommand> lightMachine
+    ActorRef<Gate.GateCommand> gate,
+    ActorRef<LightMachine.LightMachineCommand> lightMachine
   ) {
     return Behaviors.setup(context -> new Controller(context, lightMachine, gate));
   }
@@ -72,9 +72,9 @@ public class Controller
   @Override
   public Receive<ControllerCommand> createReceive() {
     return newReceiveBuilder()
-            .onMessage(CommandTrainSeen.class, cmd -> onTrainSeen())
-            .onMessage(CommandTrainNotSeen.class, this::onTrainNotSeen)
-            .build();
+      .onMessage(CommandTrainSeen.class, cmd -> onTrainSeen())
+      .onMessage(CommandTrainNotSeen.class, this::onTrainNotSeen)
+      .build();
   }
 
   /**
@@ -162,9 +162,9 @@ public class Controller
 
     @JsonCreator
     public SensorCommand(
-            @JsonProperty("trainSpeed") Double trainSpeed,
-            @JsonProperty("traceId") String traceId,
-            @JsonProperty("spanId") String spanId
+      @JsonProperty("trainSpeed") Double trainSpeed,
+      @JsonProperty("traceId") String traceId,
+      @JsonProperty("spanId") String spanId
     ) {
       this.trainSpeed = trainSpeed;
       this.traceId = traceId;

@@ -1,6 +1,7 @@
 package actors;
 
 import actors.common.Command;
+import actors.common.RailwayService;
 import actors.common.StateMachine;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -9,7 +10,6 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import actors.common.RailwayService;
 
 /**
  * Bell Actor:
@@ -54,9 +54,9 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
   @Override
   public Receive<BellCommand> createReceive() {
     return newReceiveBuilder()
-            .onMessage(CommandBellOn.class, msg -> onTurnOn(msg.trainSpeed))
-            .onMessage(CommandBellOff.class, this::onTurnOff)
-            .build();
+      .onMessage(CommandBellOn.class, msg -> onTurnOn(msg.trainSpeed))
+      .onMessage(CommandBellOff.class, this::onTurnOff)
+      .build();
   }
 
   /**
@@ -82,10 +82,10 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
     if (state == State.On) {
       state = State.Off;
       railwayService.bellOff(
-              getContext(),
-              getContext().getSelf().path().name(),
-              cmd.traceId,
-              cmd.spanId
+        getContext(),
+        getContext().getSelf().path().name(),
+        cmd.traceId,
+        cmd.spanId
       );
       logState(getContext(), state);
     }
@@ -129,8 +129,8 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
 
     @JsonCreator
     public CommandBellOff(
-            @JsonProperty("traceId") String traceId,
-            @JsonProperty("spanId") String spanId
+      @JsonProperty("traceId") String traceId,
+      @JsonProperty("spanId") String spanId
     ) {
       this.traceId = traceId;
       this.spanId = spanId;

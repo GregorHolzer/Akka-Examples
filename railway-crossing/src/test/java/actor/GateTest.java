@@ -5,27 +5,18 @@ import static org.mockito.Mockito.*;
 
 import actors.Bell;
 import actors.Gate;
-import actors.common.Configuration;
+import actors.common.RailwayService;
+import actors.common.Telemetry;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-import actors.common.Telemetry;
 import org.junit.AfterClass;
 import org.junit.Test;
-import actors.common.RailwayService;
 
 public class GateTest {
 
-  private static final Configuration.NodeConfiguration nodeConfig = new Configuration.NodeConfiguration(
-    null,
-    null,
-    8000,
-    null,
-    1,
-    "localhost",
-    4317
-  );
+  private static final String ANY_LOG = "in state";
 
   private static final Double trainSpeed = 50.0;
 
@@ -67,7 +58,7 @@ public class GateTest {
       Gate.create(bell.getRef(), mockedService),
       "gate1"
     );
-    LoggingTestKit.info("gate1 in state ")
+    LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         gate.tell(new Gate.CommandOpen(traceId, spanId));
@@ -75,14 +66,14 @@ public class GateTest {
       });
     verify(mockedService, times(0)).gateDown(any(), any(), any());
     verify(mockedService, times(0)).gateUp(any(), any(), any(), any(), any());
-    LoggingTestKit.info("gate1 in state ").expect(testKit.system(), () -> {
+    LoggingTestKit.info("gate1 in state Closed").expect(testKit.system(), () -> {
       gate.tell(new Gate.CommandClose(trainSpeed));
       return null;
     });
     bell.expectMessageClass(Bell.CommandBellOn.class);
     verify(mockedService).gateDown(any(), any(), any());
     verify(mockedService, times(0)).gateUp(any(), any(), any(), any(), any());
-    LoggingTestKit.info("gate1 in state ")
+    LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         gate.tell(new Gate.CommandClose(trainSpeed));

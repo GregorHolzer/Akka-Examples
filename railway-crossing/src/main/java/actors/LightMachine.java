@@ -1,6 +1,7 @@
 package actors;
 
 import actors.common.Command;
+import actors.common.RailwayService;
 import actors.common.StateMachine;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -9,7 +10,6 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import actors.common.RailwayService;
 
 /**
  * LightMachine Actor:
@@ -23,8 +23,8 @@ import actors.common.RailwayService;
  * </ul>
  */
 public class LightMachine
-        extends AbstractBehavior<LightMachine.LightMachineCommand>
-        implements StateMachine<LightMachine.State> {
+  extends AbstractBehavior<LightMachine.LightMachineCommand>
+  implements StateMachine<LightMachine.State> {
 
   /** Service to turn the LightMachine on or off */
   private final RailwayService railwayService;
@@ -56,9 +56,9 @@ public class LightMachine
   @Override
   public Receive<LightMachineCommand> createReceive() {
     return newReceiveBuilder()
-            .onMessage(CommandTurnOn.class, msg -> onTurnOn(msg.trainSpeed))
-            .onMessage(CommandTurnOff.class, msg -> onTurnOff())
-            .build();
+      .onMessage(CommandTurnOn.class, msg -> onTurnOn(msg.trainSpeed))
+      .onMessage(CommandTurnOff.class, msg -> onTurnOff())
+      .build();
   }
 
   /**

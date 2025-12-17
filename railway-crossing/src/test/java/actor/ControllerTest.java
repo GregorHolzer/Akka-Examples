@@ -1,28 +1,19 @@
 package actor;
 
-import actors.common.Configuration;
 import actors.Controller;
 import actors.Gate;
 import actors.LightMachine;
+import actors.common.Telemetry;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-import actors.common.Telemetry;
 import org.junit.AfterClass;
 import org.junit.Test;
 
 public class ControllerTest {
 
-  private static final Configuration.NodeConfiguration nodeConfig = new Configuration.NodeConfiguration(
-    null,
-    null,
-    8000,
-    null,
-    1,
-    "localhost",
-    4317
-  );
+  private static final String ANY_LOG = "in state";
 
   private static final Double trainSpeed = 50.0;
 
@@ -81,7 +72,7 @@ public class ControllerTest {
       Controller.create(gate.getRef(), lightMachine.getRef()),
       "controller1"
     );
-    LoggingTestKit.info("controller1 in state ")
+    LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         controller.tell(new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId));
@@ -91,7 +82,7 @@ public class ControllerTest {
       controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
       return null;
     });
-    LoggingTestKit.info("controller1 in state ")
+    LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
@@ -101,7 +92,7 @@ public class ControllerTest {
       controller.tell(new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId));
       return null;
     });
-    LoggingTestKit.info("controller1 in state ")
+    LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         controller.tell(new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId));
@@ -111,7 +102,7 @@ public class ControllerTest {
       controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
       return null;
     });
-    LoggingTestKit.info("controller1 in state ")
+    LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
@@ -121,7 +112,7 @@ public class ControllerTest {
       controller.tell(new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId));
       return null;
     });
-    LoggingTestKit.info("controller1 in state ")
+    LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         controller.tell(new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId));
@@ -131,7 +122,7 @@ public class ControllerTest {
       controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
       return null;
     });
-    LoggingTestKit.info("controller1 in state ")
+    LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));

@@ -7,7 +7,6 @@ import akka.http.javadsl.Http;
 import akka.http.javadsl.model.*;
 import akka.util.ByteString;
 import exchange.ContextVariableProtos.*;
-
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -34,9 +33,9 @@ public class RailwayService {
    * @return the full service URL constructed from the configuration and path.
    */
   private String getUrl(String path) {
-    return "http://" + nodeConfig.service_server_addr()
-            + ":" + nodeConfig.service_server_port()
-            + path;
+    return (
+      "http://" + nodeConfig.service_server_addr() + ":" + nodeConfig.service_server_port() + path
+    );
   }
 
   /**
@@ -46,10 +45,7 @@ public class RailwayService {
    * @param request the HTTP request to send.
    * @return a {@link CompletionStage} containing the HTTP response.
    */
-  private CompletionStage<HttpResponse> sendRequest(
-          ActorContext<?> context,
-          HttpRequest request
-  ) {
+  private CompletionStage<HttpResponse> sendRequest(ActorContext<?> context, HttpRequest request) {
     return Http.get(context.getSystem()).singleRequest(request);
   }
 
@@ -62,8 +58,7 @@ public class RailwayService {
    */
   private HttpRequest buildRequest(String path, String crossingId) {
     String url = getUrl(path);
-    return HttpRequest.POST(url)
-            .addHeader(HttpHeader.parse("Cirrina-Sender-ID", crossingId));
+    return HttpRequest.POST(url).addHeader(HttpHeader.parse("Cirrina-Sender-ID", crossingId));
   }
 
   /**
@@ -77,13 +72,10 @@ public class RailwayService {
   private HttpRequest buildRequest(String path, String crossingId, byte[] body) {
     String url = getUrl(path);
     return HttpRequest.POST(url)
-            .addHeader(HttpHeader.parse("Cirrina-Sender-ID", crossingId))
-            .withEntity(
-                    HttpEntities.create(
-                            ContentTypes.APPLICATION_OCTET_STREAM,
-                            ByteString.fromArray(body)
-                    )
-            );
+      .addHeader(HttpHeader.parse("Cirrina-Sender-ID", crossingId))
+      .withEntity(
+        HttpEntities.create(ContentTypes.APPLICATION_OCTET_STREAM, ByteString.fromArray(body))
+      );
   }
 
   /**
@@ -95,10 +87,10 @@ public class RailwayService {
   private byte[] buildRequestBody(Double trainSpeed) {
     ContextVariables.Builder var = ContextVariables.newBuilder();
     var.addData(
-            ContextVariable.newBuilder()
-                    .setName("approachingSpeed")
-                    .setValue(Value.newBuilder().setDouble(trainSpeed).build())
-                    .build()
+      ContextVariable.newBuilder()
+        .setName("approachingSpeed")
+        .setValue(Value.newBuilder().setDouble(trainSpeed).build())
+        .build()
     );
     return var.build().toByteArray();
   }
@@ -113,14 +105,14 @@ public class RailwayService {
   private byte[] buildRequestBody(String traceId, String spanId) {
     ContextVariables.Builder var = ContextVariables.newBuilder();
     var.addData(
-            ContextVariable.newBuilder()
-                    .setName("traceId")
-                    .setValue(Value.newBuilder().setString(traceId).build())
+      ContextVariable.newBuilder()
+        .setName("traceId")
+        .setValue(Value.newBuilder().setString(traceId).build())
     );
     var.addData(
-            ContextVariable.newBuilder()
-                    .setName("spanId")
-                    .setValue(Value.newBuilder().setString(spanId).build())
+      ContextVariable.newBuilder()
+        .setName("spanId")
+        .setValue(Value.newBuilder().setString(spanId).build())
     );
     return var.build().toByteArray();
   }
@@ -132,11 +124,7 @@ public class RailwayService {
    * @param crossingId the railway crossing ID of the bell.
    * @param trainSpeed the train speed.
    */
-  public void bellOn(
-          ActorContext<?> context,
-          String crossingId,
-          Double trainSpeed
-  ) {
+  public void bellOn(ActorContext<?> context, String crossingId, Double trainSpeed) {
     byte[] body = buildRequestBody(trainSpeed);
     HttpRequest request = buildRequest("/bell/on", crossingId, body);
     sendRequest(context, request);
@@ -150,12 +138,7 @@ public class RailwayService {
    * @param traceId    the trace identifier.
    * @param spanId     the span identifier.
    */
-  public void bellOff(
-          ActorContext<?> context,
-          String crossingId,
-          String traceId,
-          String spanId
-  ) {
+  public void bellOff(ActorContext<?> context, String crossingId, String traceId, String spanId) {
     byte[] body = buildRequestBody(traceId, spanId);
     HttpRequest request = buildRequest("/bell/off", crossingId, body);
     sendRequest(context, request);
@@ -171,11 +154,11 @@ public class RailwayService {
    * @param spanId     the span identifier.
    */
   public void gateUp(
-          ActorContext<?> context,
-          ActorRef<Bell.BellCommand> bell,
-          String crossingId,
-          String traceId,
-          String spanId
+    ActorContext<?> context,
+    ActorRef<Bell.BellCommand> bell,
+    String crossingId,
+    String traceId,
+    String spanId
   ) {
     HttpRequest request = buildRequest("/gate/up", crossingId);
     sendRequest(context, request).whenComplete((httpResponse, throwable) -> {
@@ -192,11 +175,7 @@ public class RailwayService {
    * @param crossingId the railway crossing ID of the gate.
    * @param trainSpeed the approaching train speed
    */
-  public void gateDown(
-          ActorContext<?> context,
-          String crossingId,
-          Double trainSpeed
-  ) {
+  public void gateDown(ActorContext<?> context, String crossingId, Double trainSpeed) {
     byte[] body = buildRequestBody(trainSpeed);
     HttpRequest request = buildRequest("/gate/down", crossingId, body);
     sendRequest(context, request);
@@ -209,11 +188,7 @@ public class RailwayService {
    * @param crossingId the railway crossing ID of the LightMachine.
    * @param trainSpeed the approaching train speed
    */
-  public void lightOn(
-          ActorContext<?> context,
-          String crossingId,
-          Double trainSpeed
-  ) {
+  public void lightOn(ActorContext<?> context, String crossingId, Double trainSpeed) {
     byte[] body = buildRequestBody(trainSpeed);
     HttpRequest request = buildRequest("/light/on", crossingId, body);
     sendRequest(context, request);
@@ -236,10 +211,7 @@ public class RailwayService {
    * @param context    the {@link ActorContext} of the calling actor.
    * @param crossingId the railway crossing ID of the LightMachine.
    */
-  public void lightEarlyWarning(
-          ActorContext<?> context,
-          String crossingId
-  ) {
+  public void lightEarlyWarning(ActorContext<?> context, String crossingId) {
     HttpRequest request = buildRequest("/light/earlyWarning", crossingId);
     sendRequest(context, request);
   }

@@ -1,6 +1,7 @@
 package actors.setup;
 
 import actors.LightMachine;
+import actors.common.RailwayService;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -9,7 +10,6 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import akka.actor.typed.receptionist.Receptionist;
 import akka.actor.typed.receptionist.ServiceKey;
-import actors.common.RailwayService;
 
 /**
  * LightMachineSetup Actor:
@@ -21,8 +21,8 @@ import actors.common.RailwayService;
  * </p>
  */
 public class LightMachineSetup
-        extends AbstractBehavior<Receptionist.Listing>
-        implements ComponentSetup {
+  extends AbstractBehavior<Receptionist.Listing>
+  implements ComponentSetup {
 
   /** Attached to the railway-crossing id to identify the component */
   public static final String componentSuffix = "_LightMachine";
@@ -37,35 +37,31 @@ public class LightMachineSetup
     return Behaviors.setup(context -> new LightMachineSetup(context, crossingId));
   }
 
-  private LightMachineSetup(
-          ActorContext<Receptionist.Listing> context,
-          String crossingId
-  ) {
+  private LightMachineSetup(ActorContext<Receptionist.Listing> context, String crossingId) {
     super(context);
-
     String componentName = crossingId + componentSuffix;
 
     // Create the ServiceKey for the LightMachine Actor
     ServiceKey<LightMachine.LightMachineCommand> lightMachineServiceKey = ServiceKey.create(
-            LightMachine.LightMachineCommand.class,
-            componentName
+      LightMachine.LightMachineCommand.class,
+      componentName
     );
 
     // Spawn the LightMachine Actor
     ActorRef<LightMachine.LightMachineCommand> lightMachine = getContext().spawn(
-            LightMachine.create(new RailwayService()),
-            String.format("%s", componentName)
+      LightMachine.create(new RailwayService()),
+      String.format("%s", componentName)
     );
 
     // Register the LightMachine Actor with the Receptionist
     getContext()
-            .getSystem()
-            .receptionist()
-            .tell(Receptionist.register(lightMachineServiceKey, lightMachine));
+      .getSystem()
+      .receptionist()
+      .tell(Receptionist.register(lightMachineServiceKey, lightMachine));
 
     getContext()
-            .getLog()
-            .info("LightMachine registered with ServiceKey: {}", lightMachineServiceKey);
+      .getLog()
+      .info("LightMachine registered with ServiceKey: {}", lightMachineServiceKey);
   }
 
   /**

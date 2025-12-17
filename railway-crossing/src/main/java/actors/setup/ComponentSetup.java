@@ -9,7 +9,6 @@ import java.util.List;
  * and for extracting {@link ActorRef} instances from a list.
  */
 public interface ComponentSetup {
-
   /**
    * Extracts an {@link ActorRef} from a list of actor references, if possible.
    * <p>
@@ -28,9 +27,9 @@ public interface ComponentSetup {
    * @return the first {@link ActorRef} from the list if available, or {@code null} if the list is empty
    */
   default <T, C> ActorRef<T> checkInstances(
-          ActorContext<C> context,
-          List<ActorRef<T>> list,
-          Class<T> clazz
+    ActorContext<C> context,
+    List<ActorRef<T>> list,
+    Class<T> clazz
   ) {
     if (list.isEmpty()) {
       context.getLog().info("For class {} no instances found", clazz.toString());
@@ -40,12 +39,14 @@ public interface ComponentSetup {
       context.getLog().info("For class {} exactly one instance found", clazz.toString());
       return list.getFirst();
     }
-    context.getLog().info(
-            "For class {} multiple instances found: {}\nReturning first: {}",
-            clazz.toString(),
-            list,
-            list.getFirst()
-    );
+    context
+      .getLog()
+      .info(
+        "For class {} multiple instances found: {}\nReturning first: {}",
+        clazz.toString(),
+        list,
+        list.getFirst()
+      );
     return list.getFirst();
   }
 }

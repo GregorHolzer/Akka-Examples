@@ -4,14 +4,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import actors.LightMachine;
+import actors.common.RailwayService;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.typed.ActorRef;
 import org.junit.AfterClass;
 import org.junit.Test;
-import actors.common.RailwayService;
 
 public class LightMachineTest {
+
+  private static final String ANY_LOG = "in state";
 
   private static final Double trainSpeed = 50.0;
 
@@ -43,7 +45,7 @@ public class LightMachineTest {
       LightMachine.create(mockedService),
       "lightMachine1"
     );
-    LoggingTestKit.info("lightMachine1 in state ")
+    LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         lightMachine.tell(new LightMachine.CommandTurnOff());
@@ -57,7 +59,7 @@ public class LightMachineTest {
     });
     verify(mockedService).lightOn(any(), any(), any());
     verify(mockedService, times(0)).lightOff(any(), any());
-    LoggingTestKit.info("lightMachine1 in state ")
+    LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
         lightMachine.tell(new LightMachine.CommandTurnOn(trainSpeed));
