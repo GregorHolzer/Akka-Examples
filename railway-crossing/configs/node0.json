@@ -5,13 +5,6 @@
       "components": [
         "Controller"
       ]
-    },
-    {
-      "crossingId": "crossing1",
-      "components": [
-        "LightMachine",
-        "Gate"
-      ]
     }
   ],
   "service_server_addr": "localhost",

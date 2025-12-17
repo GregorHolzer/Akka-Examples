@@ -6,12 +6,6 @@
         "LightMachine",
         "Gate"
       ]
-    },
-    {
-      "crossingId": "crossing1",
-      "components": [
-        "Bell"
-      ]
     }
   ],
   "service_server_addr": "localhost",

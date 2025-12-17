@@ -5,12 +5,6 @@
       "components": [
         "Bell"
       ]
-    },
-    {
-      "crossingId": "crossing1",
-      "components": [
-        "Controller"
-      ]
     }
   ],
   "service_server_addr": "localhost",

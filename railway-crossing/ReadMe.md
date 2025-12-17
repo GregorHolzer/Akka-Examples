@@ -8,23 +8,25 @@ The application is expecting a file path as argument to load the configuration f
 
 The is to be structured as follows:
 
-- `crossings` - A list of Railway-Crossings that are relevant to this node. Each list element is structured:
 
-    - `crossingId` - The unique identifier for this Railway-Crossing
-    - `components` - A list of Components that will be created for the Railway-Crossing. Available Components:
+
+- crossings - A list of Railway-Crossings that are relevant to this node. Each list element is structured:
+
+    - *crossingId* - The unique identifier for this Railway-Crossing
+    - *components* - A list of Components that will be created for the Railway-Crossing. Available Components:
     
-        - `Controller`
-        - `LightMachine`
-        - `Gate`
-        - `Bell`
-- `service_server_addr` - The host of the Railway-Service
-- `service_server_port` - The port of the Railway-Service
-- `nats_server_addr` - The host of the Nats-Server
-- `nats_server_port` - The port of the Nats-Server
-- `export_server_addr` - The host of the Service that collects the OpenTelemetry metrics (currently not used)
-- `export_server_port` - The port of the Service that collects the OpenTelemetry metrics (currently not used)
+        - *Controller*
+        - *LightMachine*
+        - *Gate*
+        - *Bell*
+- *service_server_addr* - The host of the Railway-Service
+- *service_server_port* - The port of the Railway-Service
+- *nats_server_addr* - The host of the Nats-Server
+- *nats_server_port* - The port of the Nats-Server
+- *export_server_addr* - The host of the Service that collects the OpenTelemetry metrics (currently not used)
+- *export_server_port* - The port of the Service that collects the OpenTelemetry metrics (currently not used)
 
-## Local Example
+### Example
 
 ```json
 {
@@ -51,3 +53,133 @@ The is to be structured as follows:
   "export_server_port": 4317
 }
 ```
+
+If the application is started with this configuration file it will behave as follows:
+
+- Create the *Controller* component for the crossing with id *crossing0* 
+- Create the *Gate* and *LightMachine* components for the crossing with id *crossing1*
+- Send service-invocations to *http://localhost:8000/<some-endpoint>*
+- Connect to the Nats Server at *nats://localhost:4222*
+
+Note that a component will only be launched if all other components it depends on got launched:
+
+- *Gate* depends on *Bell*
+- *Controller* depends on *Gate* and *LightMachine*
+
+## Running locally
+
+### 1. Build the application
+
+```bash
+   mvn clean install
+```
+
+### 2. Run the Nats Server and the Railway Service
+
+```bash
+    docker compose up -d
+```
+
+### 3. Run the Akka-Application
+
+The following script provides an easy way to run the application:
+
+```bash
+    ./runNode.sh -n <number-of-node> -c <path-to-config-file>
+```
+
+or:
+
+```bash
+    mvn exec:java -Dexec.mainClass=Main \
+  -Dakka.remote.artery.canonical.port=<node-port> \
+  -Dakka.management.http.port=<management-port> \
+  -Dexec.args=<path-to-config-file>
+```
+
+Example:
+
+Run node0:
+
+```bash
+    #assumes -n 0
+    ./runNode.sh -c configs/node0.json
+```
+
+The config file *node0.json* creates the *Controller* for *crossing0*. After running the first application 
+you should see the following logs:
+
+```
+# Logs of node0:
+
+WARN actors.setup.ControllerSetup -- For class interface actors.Gate$GateCommand no instances found
+WARN actors.setup.ControllerSetup -- For class interface actors.LightMachine$LightMachineCommand no instances found
+# indicates that for the Controller of crossing0 no Gate and LightMachine has been found
+```
+Run node1:
+
+
+```bash
+    ./runNode.sh -n 1 -c configs/node1.json
+```
+
+The config *node1.json* creates the *LightMachine* and *Gate* for *crossing0*:
+
+```
+# Logs of node1:
+
+INFO actors.setup.LightMachineSetup -- LightMachine registered with ServiceKey: ServiceKey[actors.LightMachine$LightMachineCommand](crossing0_LightMachine)
+# the LightMachine of crossing0 has been created and registered for discovery 
+
+WARN actors.setup.GateSetup -- For class interface actors.Bell$BellCommand no instances found
+# indicates that for the Gate of crossing0 no Bell has been found
+
+# Logs of node0:
+INFO actors.setup.ControllerSetup -- For class interface actors.LightMachine$LightMachineCommand exactly one instance found
+# the LightMachine component on node1 has been discovered by node0
+```
+
+Run node2:
+
+```bash
+    ./runNode.sh -n 2 -c configs/node2.json
+```
+
+The config *node2.json* will create the *Bell* of *crossing0*.
+
+```
+# Logs on node2:
+
+INFO actors.setup.BellSetup -- Bell registered with ServiceKey: ServiceKey[actors.Bell$BellCommand](crossing0_Bell)
+
+# Logs on node1:
+INFO actors.setup.GateSetup -- For class interface actors.Bell$BellCommand exactly one instance found
+INFO actors.setup.GateSetup -- Gate registered with ServiceKey: ServiceKey[actors.Gate$GateCommand](crossing0_Gate)
+
+# Logs on node0:
+
+INFO actors.setup.ControllerSetup -- For class interface actors.Gate$GateCommand exactly one instance found
+INFO actors.setup.ControllerSetup -- crossing0_Controller subscribed to Topic: peripheral.sensor
+# the Controller will receive sensor events from Nats
+```
+
+### 4. Simulate Sensor Events
+
+After the log
+
+```
+INFO actors.setup.ControllerSetup -- <crossingId>_Controller subscribed to Topic: peripheral.sensor
+```
+
+this Controller is listening to the Nats server for sensor-events.
+
+Launch the simulate-sensor container:
+
+```bash
+    cd services/simple_sensors
+    docker compose up -d
+```
+
+The components will log their current state.
+
+
