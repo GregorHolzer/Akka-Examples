@@ -1,31 +1,28 @@
 # Akka Railway-Crossing Use Case
 
+<img src="railway.png" width="600" alt="Railway Diagram" />
+
 ## Configuration
 
-The application is expecting a file path as argument to load the configuration form a JSON file.
+The application is expecting a file path as argument to load the configuration from a JSON file.
 
 ### JSON Configuration Structure
 
-The is to be structured as follows:
+The configuration is structured as follows:
 
-
-
-- crossings - A list of Railway-Crossings that are relevant to this node. Each list element is structured:
-
-    - *crossingId* - The unique identifier for this Railway-Crossing
-    - *components* - A list of Components that will be created for the Railway-Crossing. Available Components:
-    
-        - *Controller*
-        - *LightMachine*
-        - *Gate*
-        - *Bell*
-- *service_server_addr* - The host of the Railway-Service
-- *service_server_port* - The port of the Railway-Service
-- *nats_server_addr* - The host of the Nats-Server
-- *nats_server_port* - The port of the Nats-Server
-- *export_server_addr* - The host of the Service that collects the OpenTelemetry metrics (currently not used)
-- *export_server_port* - The port of the Service that collects the OpenTelemetry metrics (currently not used)
-
+* **crossings**: A list of Railway-Crossings relevant to this node. Each element is structured:
+    * **crossingId**: The unique identifier for this Railway-Crossing.
+    * **components**: A list of components to be created for the Railway-Crossing. Available components:
+        * `Controller`
+        * `LightMachine`
+        * `Gate`
+        * `Bell`
+* **service_server_addr**: The host of the Railway-Service.
+* **service_server_port**: The port of the Railway-Service.
+* **nats_server_addr**: The host of the Nats-Server.
+* **nats_server_port**: The port of the Nats-Server.
+* **export_server_addr**: The host of the service that collects OpenTelemetry metrics (currently unused).
+* **export_server_port**: The port of the service that collects OpenTelemetry metrics (currently unused).
 ### Example
 
 ```json
@@ -54,14 +51,14 @@ The is to be structured as follows:
 }
 ```
 
-If the application is started with this configuration file it will behave as follows:
+If the application is started with this configuration file it will:
 
 - Create the *Controller* component for the crossing with id *crossing0* 
 - Create the *Gate* and *LightMachine* components for the crossing with id *crossing1*
 - Send service-invocations to *http://localhost:8000/<some-endpoint>*
 - Connect to the Nats Server at *nats://localhost:4222*
 
-Note that a component will only be launched if all other components it depends on got launched:
+Note that a component will only be started if all other components it depends on have been started:
 
 - *Gate* depends on *Bell*
 - *Controller* depends on *Gate* and *LightMachine*

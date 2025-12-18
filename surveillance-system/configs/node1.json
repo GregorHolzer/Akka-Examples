@@ -3,9 +3,6 @@
   "surveillanceConfigs": [
     {
       "surveillanceId": "surveillance01"
-    },
-    {
-      "surveillanceId": "surveillance02"
     }
   ],
   "cloud_service_addr": "localhost",

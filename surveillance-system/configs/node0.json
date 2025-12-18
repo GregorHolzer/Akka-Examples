@@ -8,7 +8,7 @@
     {
       "detectorId": "detector02",
       "cameraId": 2,
-      "surveillanceId": "surveillance02"
+      "surveillanceId": "surveillance01"
     }
   ],
   "surveillanceConfigs": [],
