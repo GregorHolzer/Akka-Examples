@@ -100,7 +100,7 @@ Run node0:
 
 ```bash
     #assumes -n 0
-    ./runNode.sh -c configs/node0.json
+    ./runNode.sh -c configs/readMe/node0.json
 ```
 
 The config file *node0.json* creates the *Controller* for *crossing0*. After running the first application 
@@ -117,7 +117,7 @@ Run node1:
 
 
 ```bash
-    ./runNode.sh -n 1 -c configs/node1.json
+    ./runNode.sh -n 1 -c configs/readMe/node1.json
 ```
 
 The config *node1.json* creates the *LightMachine* and *Gate* for *crossing0*:
@@ -139,7 +139,7 @@ INFO actors.setup.ControllerSetup -- For class interface actors.LightMachine$Lig
 Run node2:
 
 ```bash
-    ./runNode.sh -n 2 -c configs/node2.json
+    ./runNode.sh -n 2 -c configs/readMe/node2.json
 ```
 
 The config *node2.json* will create the *Bell* of *crossing0*.
