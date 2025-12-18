@@ -1,8 +1,8 @@
 configs:
   telegraf_config:
     file: ./telegraf.conf
-services:
 
+services:
   influxdb:
     image: "influxdb:2"
     ports:
@@ -14,6 +14,9 @@ services:
       - DOCKER_INFLUXDB_INIT_ORG=org
       - DOCKER_INFLUXDB_INIT_BUCKET=bucket
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=bzO10KmR8x
+    networks:
+      - railway-crossing-net
+
   telegraf:
     image: "telegraf:latest"
     ports:
@@ -21,24 +24,27 @@ services:
     configs:
       - source: telegraf_config
         target: /etc/telegraf/telegraf.conf
-#  jaeger:
-#    image: jaegertracing/all-in-one:1.53
-#    ports:
-#      - "4317:4317"
-#      - "4318:4318"
-#      - "16686:16686"
-#    environment:
-#      - COLLECTOR_OTLP_ENABLED=true
-#      - SAMPLING_TYPE=const
-#      - SAMPLING_PARAM=1
+    networks:
+      - railway-crossing-net
+
   nats-server:
     image: "nats"
     ports:
       - "4222:4222"
+    networks:
+      - railway-crossing-net
+
   akka-railway-service:
-      image: "gregor2323/akka-railway-crossing-service:latest"
-      pull_policy: always
-      ports:
-        - "8000:8000"
-      environment:
-        - OTEL_EXPORTER_OTLP_ENDPOINT=http://telegraf:4317
+    image: "gregor2323/akka-railway-crossing-service:latest"
+    pull_policy: always
+    ports:
+      - "8000:8000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://telegraf:4317
+    networks:
+      - railway-crossing-net
+
+networks:
+  railway-crossing-net:
+    name: railway-crossing-net
+    driver: bridge
