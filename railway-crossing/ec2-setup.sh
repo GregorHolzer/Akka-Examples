@@ -31,15 +31,13 @@ PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254
 
 FINAL_SEED_IP=${SEED_IP:-$PUBLIC_IP}
 
-# Define Java Path
+#force maven to use JAVA 21
 JAVA_PATH="/usr/lib/jvm/java-21-amazon-corretto.x86_64"
-
 export JAVA_HOME=$JAVA_PATH
 export PATH=$JAVA_HOME/bin:$PATH
+
 export AKKA_ARTERY_HOST=$PUBLIC_IP
 export AKKA_CLUSTER_SEED_NODE="akka://railway-crossing@$FINAL_SEED_IP:2551"
-
-echo "export JAVA_HOME=$JAVA_PATH" > ~/.mavenrc
 
 echo "Cloning repo..."
 rm -rf Akka-Examples
