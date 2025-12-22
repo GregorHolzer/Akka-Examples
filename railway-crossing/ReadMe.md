@@ -180,3 +180,51 @@ Launch the simulate-sensor container:
 The components will log their current state.
 
 
+## Running on multiple EC2 instances
+
+Create Instances with image: Amazon Linux 2023 kernel-6.1 AMI
+
+### Adjust Security Rules for EC2 instances
+
+Instances that host *ActorSystems*
+
+| Port | Description | 
+|:----:| ---: |
+ | 2551 | Akka Remoting |
+
+Instances that host services:
+
+| Port | Description |
+| :---: | ---: |
+| 4222 | Nats |
+| 8000 | Railway Service |
+| 4317 | Telegraf |
+| 8086 | IfluxDb |
+
+### Setup EC2 Instance
+
+1. Copy `ex2-setup.sh` to the Instance
+2. Run  `ex2-setup.sh`
+
+```bash
+    #Option -s sets the Seed Node IP of the Akka Cluster, leave empty if this instance is the Seed Node
+    . ex2-setup.sh -s <public_seed_node_ip>
+```
+
+Instances that host services:
+
+```bash
+    docker compose up
+```
+
+Instances that host *ActorSystems*:
+
+* Adjust JSON configuration file to point to correct hosts (public IP of service Instance)
+* Run ActorSystem via:
+
+```bash
+    ./runNode -c <path_to_json_config>
+```
+
+
+
