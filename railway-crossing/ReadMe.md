@@ -201,29 +201,96 @@ Instances that host services:
 | 4317 | Telegraf |
 | 8086 | IfluxDb |
 
-### Setup EC2 Instance
 
-1. Copy `ex2-setup.sh` to the Instance
-2. Run  `ex2-setup.sh`
+### Setup EC2 Instances that host Services:
+
+Install **Docker**_
 
 ```bash
-    #Option -s sets the Seed Node IP of the Akka Cluster, leave empty if this instance is the Seed Node
+  sudo dnf install docker -y
+  sudo systemctl start docker
+  sudo systemctl enable docker
+```
+
+* Nats
+
+```bash
+  sudo docker run -d \
+  --name nats-server \
+  -p 4222:4222 \
+  nats
+```
+* InfluxDB
+
+```bash
+  sudo docker run -d \
+  --name influxdb \
+  -p 8086:8086 \
+  -e DOCKER_INFLUXDB_INIT_MODE=setup \
+  -e DOCKER_INFLUXDB_INIT_USERNAME=admin \
+  -e DOCKER_INFLUXDB_INIT_PASSWORD=adminadmin \
+  -e DOCKER_INFLUXDB_INIT_ORG=org \
+  -e DOCKER_INFLUXDB_INIT_BUCKET=bucket \
+  -e DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=bzO10KmR8x \
+  influxdb:2
+```
+
+* Telegraf
+
+```bash
+  sudo docker run -d \
+  --name telegraf \
+  -p 4317:4317 \
+  -e TELEGRAF_CONFIG_CONTENTS='
+[agent]
+  interval = "10s"
+  flush_interval = "10s"
+
+[[inputs.opentelemetry]]
+
+[[outputs.influxdb_v2]]
+  urls = ["http://<influxdb_public_ip>:8086"]
+  token = "bzO10KmR8x"
+  organization = "org"
+  bucket = "bucket"
+' \
+  telegraf:latest
+```
+
+* Railway-Service
+
+```bash
+  sudo  docker run -d \
+  --name akka-railway-service \
+  -p 8000:8000 \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://<telegraf_public_ip>:4317 \
+  gregor2323/akka-railway-crossing-service:latest
+```
+
+### Setup EC2 Instances that host *ActorSystems*
+
+1. Copy `ex2-setup.sh` to the Instance
+2. Run  `ex2-setup.sh` on the Instance
+
+```bash
+    #Option -s sets the Seed Node IP of the Akka Cluster, leave empty if this instance is the Seed Node 
+    #or if no ActorSystem is hosted
     . ex2-setup.sh -s <public_seed_node_ip>
 ```
 
-Instances that host services:
-
-```bash
-    docker compose up
-```
-
-Instances that host *ActorSystems*:
-
-* Adjust JSON configuration file to point to correct hosts (public IP of service Instance)
+* Adjust JSON configuration file to point to correct hosts
 * Run ActorSystem via:
 
 ```bash
     ./runNode -c <path_to_json_config>
+```
+
+### Start simulating Sensor Events
+
+On the same Instance that runs the Nats-Server and Telegraf:
+
+```bash
+    (cd ./services/simple_sensors && docker compose up -d)
 ```
 
 

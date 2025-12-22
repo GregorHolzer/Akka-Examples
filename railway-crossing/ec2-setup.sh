@@ -1,5 +1,6 @@
 #!/bin/bash
 
+OPTIND=1
 SEED_IP=""
 while getopts "s:" opt; do
   case $opt in
