@@ -15,6 +15,7 @@ resource "aws_security_group" "Railway-Default" {
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "ssh"
   }
 
   ingress {
@@ -22,6 +23,7 @@ resource "aws_security_group" "Railway-Default" {
     to_port = 2551
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Akka Remoting"
   }
 
   ingress {
@@ -29,6 +31,7 @@ resource "aws_security_group" "Railway-Default" {
     to_port = 4222
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Nats"
   }
 
   ingress {
@@ -36,6 +39,7 @@ resource "aws_security_group" "Railway-Default" {
     to_port = 8086
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "InfluxDB"
   }
 
   ingress {
@@ -43,6 +47,7 @@ resource "aws_security_group" "Railway-Default" {
     to_port = 4317
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Telegraf"
   }
 
   ingress {
@@ -50,5 +55,6 @@ resource "aws_security_group" "Railway-Default" {
     to_port = 8000
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Railway Service"
   }
 }
