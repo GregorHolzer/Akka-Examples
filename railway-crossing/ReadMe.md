@@ -180,118 +180,96 @@ Launch the simulate-sensor container:
 The components will log their current state.
 
 
-## Running on multiple EC2 instances
+## Running on multiple EC2 instances with Terraform
 
-Create Instances with image: Amazon Linux 2023 kernel-6.1 AMI
+The current Terraform setup creates and connects the following instances:
 
-### Adjust Security Rules for EC2 instances
+| Number | Instance                  | Applications hosted     | 
+|:-------|:--------------------------|:------------------------|
+| 1      | Nats-Instance             | Nats                    |
+| 1      | OpenTelemetry-Instance    | Telegraf & InfluxDB     |
+| 1      | Railway-Service-Instance  | Railway-Service         |
+| 1      | Akka-Seed-Instance        | ActorSystem (Seed Node) |
+| 2      | Akka-Worker-Instance      | ActorSystem             |
+| 1      | Simulate-Sensors-Instance | Simulate-Sensors        |                  
 
-Instances that host *ActorSystems*
+Within the Akka-Cluster there exists one Crossing with Id *crossing0*:
+* `Controller` at Akka-Seed-Instance
+* `LightMachine` and `Gate` at Akka-Worker-Instance-1
+* `Bell` at Akka-Worker-Instance-1
 
-| Port | Description | 
-|:----:| ---: |
- | 2551 | Akka Remoting |
+### Deploy this Example
 
-Instances that host services:
+1. Install and configure **AWS CLI**
+2. Install **Terraform**
+3. Initialize **Terraform**:
+   ```bash
+    (cd ./terraform && terraform init)
+    ```
+4. Apply **Terraform**:
+    ```bash
+    (cd ./terraform && terraform apply -auto-approve)
+    ```
 
-| Port | Description |
-| :---: | ---: |
-| 4222 | Nats |
-| 8000 | Railway Service |
-| 4317 | Telegraf |
-| 8086 | IfluxDb |
+You may connect via SSH to the created Instances with the created *railway-crossing-key.pem*.
 
+### InfluxDB
 
-### Setup EC2 Instances that host Services:
+* Username: admin
+* Password: adminadmin
 
-Install **Docker**_
+Terraform will output the public dns of the created Instances. You may connect to the InfluxDB to receive metrics:
 
-```bash
-  sudo dnf install docker -y
-  sudo systemctl start docker
-  sudo systemctl enable docker
+```
+<openTelemetry_public_dns>:8086
 ```
 
-* Nats
+### Changing the Example
 
-```bash
-  sudo docker run -d \
-  --name nats-server \
-  -p 4222:4222 \
-  nats
+* Instances: You may change the number of Akka-Instances within the *./terraform/akka-instances.tf* file. Each instance needs its own configuration file that should be created within *./terraform/configs*.
+* Crossings and Components: Can be changed by changing the configurations within *./terraform/configs*.
+* Instances that host a `Controller` Component of a crossing should receive a readyCheck:
 ```
-* InfluxDB
+# Ensures that the Controller of <crossingId> is ready and subscribed to NATS
+resource "null_resource" "wait_for_crossing0" {
+  depends_on = [aws_instance.<Instance>]
 
-```bash
-  sudo docker run -d \
-  --name influxdb \
-  -p 8086:8086 \
-  -e DOCKER_INFLUXDB_INIT_MODE=setup \
-  -e DOCKER_INFLUXDB_INIT_USERNAME=admin \
-  -e DOCKER_INFLUXDB_INIT_PASSWORD=adminadmin \
-  -e DOCKER_INFLUXDB_INIT_ORG=org \
-  -e DOCKER_INFLUXDB_INIT_BUCKET=bucket \
-  -e DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=bzO10KmR8x \
-  influxdb:2
+  provisioner "remote-exec" {
+    inline = [
+      "until grep -q '<crossingId>_Controller subscribed to Topic: peripheral.sensor' /var/log/cloud-init-output.log; do sleep 5; done",
+      "echo '<crossingId> subscribed to Nats'"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = tls_private_key.railway-crossing-key.private_key_pem
+      host        = aws_instance.<Instance>
+    }
+  }
+}
 ```
+And add this as dependency for the **Simple-Sensors** Instance:
 
-* Telegraf
-
-```bash
-  sudo docker run -d \
-  --name telegraf \
-  -p 4317:4317 \
-  -e TELEGRAF_CONFIG_CONTENTS='
-[agent]
-  interval = "10s"
-  flush_interval = "10s"
-
-[[inputs.opentelemetry]]
-
-[[outputs.influxdb_v2]]
-  urls = ["http://<influxdb_public_ip>:8086"]
-  token = "bzO10KmR8x"
-  organization = "org"
-  bucket = "bucket"
-' \
-  telegraf:latest
 ```
+resource "aws_instance" "Simulate_Sensors" {
+  ami                    = "ami-068c0051b15cdb816"
+  instance_type          = "t3.small"
+  key_name               = aws_key_pair.railway-crossing-node.key_name
+  vpc_security_group_ids = [aws_security_group.Railway-Default.id]
 
-* Railway-Service
+  #All ready Check Resources
+  depends_on = [null_resource.wait_for_crossing0]
 
-```bash
-  sudo  docker run -d \
-  --name akka-railway-service \
-  -p 8000:8000 \
-  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://<telegraf_public_ip>:4317 \
-  gregor2323/akka-railway-crossing-service:latest
+  user_data = templatefile("${path.module}/scripts/simulateSensors.sh.tpl", {
+    nats_ip = aws_instance.Nats-Server.public_ip
+    telegraf_ip = aws_instance.OpenTelemetry.public_ip
+  })
+
+  tags = {
+    Name = "Simulate-Sensors"
+  }
+}
 ```
-
-### Setup EC2 Instances that host *ActorSystems*
-
-1. Copy `ex2-setup.sh` to the Instance
-2. Run  `ex2-setup.sh` on the Instance
-
-```bash
-    #Option -s sets the Seed Node IP of the Akka Cluster, leave empty if this instance is the Seed Node 
-    #or if no ActorSystem is hosted
-    . ex2-setup.sh -s <public_seed_node_ip>
-```
-
-* Adjust JSON configuration file to point to correct hosts
-* Run ActorSystem via:
-
-```bash
-    ./runNode -c <path_to_json_config>
-```
-
-### Start simulating Sensor Events
-
-On the same Instance that runs the Nats-Server and Telegraf:
-
-```bash
-    (cd ./services/simple_sensors && docker compose up -d)
-```
-
 
 

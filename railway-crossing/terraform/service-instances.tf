@@ -2,10 +2,10 @@
 resource "aws_instance" "Nats-Server" {
   ami                    = "ami-068c0051b15cdb816"
   instance_type          = "t3.small"
-  key_name               = "Akka_Node"
+  key_name               = aws_key_pair.railway-crossing-node.key_name
   vpc_security_group_ids = [aws_security_group.Railway-Default.id]
 
-  user_data = file("./scripts/nats.sh")
+  user_data = file("${path.module}/scripts/nats.sh")
 
   tags = {
     Name = "Nats"
@@ -15,10 +15,10 @@ resource "aws_instance" "Nats-Server" {
 resource "aws_instance" "Railway-Service" {
   ami                    = "ami-068c0051b15cdb816"
   instance_type          = "t3.small"
-  key_name               = "Akka_Node"
+  key_name               = aws_key_pair.railway-crossing-node.key_name
   vpc_security_group_ids = [aws_security_group.Railway-Default.id]
 
-  user_data = templatefile("./scripts/railway-service.sh.tpl", {
+  user_data = templatefile("${path.module}/scripts/railway-service.sh.tpl", {
     telegraf_ip = aws_instance.OpenTelemetry.public_ip
   })
 
@@ -30,42 +30,31 @@ resource "aws_instance" "Railway-Service" {
 resource "aws_instance" "OpenTelemetry" {
   ami                    = "ami-068c0051b15cdb816"
   instance_type          = "t3.small"
-  key_name               = "Akka_Node"
+  key_name               = aws_key_pair.railway-crossing-node.key_name
   vpc_security_group_ids = [aws_security_group.Railway-Default.id]
 
-  user_data = file("./scripts/openTelemetry.sh")
+  user_data = file("${path.module}/scripts/openTelemetry.sh")
 
   tags = {
     Name = "OpenTelemetry"
   }
 }
 
-resource "aws_instance" "Seed-Node" {
+resource "aws_instance" "Simulate_Sensors" {
   ami                    = "ami-068c0051b15cdb816"
   instance_type          = "t3.small"
-  key_name               = "Akka_Node"
+  key_name               = aws_key_pair.railway-crossing-node.key_name
   vpc_security_group_ids = [aws_security_group.Railway-Default.id]
 
-  user_data = file("./scripts/seed-node.sh")
+  #Add check that each Controller of each Crossing is ready!
+  depends_on = [null_resource.wait_for_crossing0]
 
-  tags = {
-    Name = "Seed-Node"
-  }
-}
-
-resource "aws_instance" "Akka-Worker-0" {
-  ami                    = "ami-068c0051b15cdb816"
-  instance_type          = "t3.small"
-  key_name               = "Akka_Node"
-  vpc_security_group_ids = [aws_security_group.Railway-Default.id]
-
-  user_data = templatefile("./scripts/worker0.sh.tpl", {
-    seed_node_ip = aws_instance.Seed-Node.public_ip
-    railway_service_ip = aws_instance.Railway-Service.public_ip
+  user_data = templatefile("${path.module}/scripts/simulateSensors.sh.tpl", {
     nats_ip = aws_instance.Nats-Server.public_ip
+    telegraf_ip = aws_instance.OpenTelemetry.public_ip
   })
 
   tags = {
-    Name = "Akka-Worker-0"
+    Name = "Simulate-Sensors"
   }
 }
