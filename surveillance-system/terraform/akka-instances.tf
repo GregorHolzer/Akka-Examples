@@ -1,12 +1,13 @@
 #Akka Seed Node (hosts Controller of crossing0)
 resource "aws_instance" "Akka-Seed-Node" {
+  depends_on = [null_resource.wait_for_iot_service]
   ami                    = "ami-068c0051b15cdb816"
   instance_type          = "t3.small"
   key_name               = aws_key_pair.surveillance-system-node.key_name
   vpc_security_group_ids = [aws_security_group.Surveillance-Default.id]
 
   user_data = templatefile("${path.module}/scripts/seed-node.sh.tpl", {
-    config_json = templatefile("${path.module}/configs/node1.json.tpl", {
+    config_json = templatefile("${path.module}/configs/node0.json.tpl", {
       cloud_service_ip = aws_instance.Cloud-Service.public_ip
       iot_service_ip = aws_instance.IoT-Service.public_ip
     })
@@ -19,6 +20,8 @@ resource "aws_instance" "Akka-Seed-Node" {
 
 #Worker 1
 resource "aws_instance" "Akka-Worker-1" {
+  depends_on = [null_resource.wait_for_cloud_service]
+
   ami                    = "ami-068c0051b15cdb816"
   instance_type          = "t3.small"
   key_name               = aws_key_pair.surveillance-system-node.key_name

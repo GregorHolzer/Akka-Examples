@@ -6,13 +6,6 @@ sudo systemctl start docker
 sudo systemctl enable docker
 sudo usermod -aG docker fedora
 
-echo "Starting local Edge-Service..."
-sudo docker run -d \
-  --name edge-service \
-  --restart always \
-  -p 8002:8002 \
-  gregor2323/akka-surveillance-system-edge-service:latest
-
 echo "Installing Java 21, Maven and Git..."
 sudo dnf update -y
 sudo dnf install java-21-amazon-corretto-devel maven -y
@@ -39,6 +32,19 @@ cd Akka-Examples/surveillance-system || exit
 
 echo "Starting Maven Build with Java 21..."
 mvn clean install
+
+cd ./services/edgeservices || exit
+
+docker build -t akka-surveillance-system-edge-service:latest -f Dockerfile .
+
+echo "Starting local Edge-Service..."
+sudo docker run -d \
+  --name edge-service \
+  --restart always \
+  -p 8002:8000 \
+  akka-surveillance-system-edge-service:latest
+
+cd /home/ec2-user/Akka-Examples/surveillance-system || exit
 
 cat > ./config.json << EOF
     ${config_json}
