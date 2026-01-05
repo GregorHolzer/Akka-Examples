@@ -131,3 +131,75 @@ The config *node1.json* creates the *Surveillance* component with id *surveillan
 ```
 
 The components will log their current state.
+
+## Run on EC2
+
+The current Terraform setup creates and connects the following instances:
+
+| Number | Instance                  | Applications hosted                               | 
+|:-------|:--------------------------|:--------------------------------------------------|
+| 1      | Cloud-Service-Instance    | Cloud-Service                                     |
+| 1      | Edge-Service-Instance     | Edge-Service                                      |
+| 1      | Akka-Seed-Instance        | ActorSystem (Seed Node) <br/>  Local Edge-Service |
+| 1      | Akka-Worker-Instance      | ActorSystem <br/>  Local Edge-Service             |
+
+Within the Akka-Cluster there exists:
+* `Surveillance` Actor with id *surveillance01* at the Akka-Worker-Instance
+* `Detector` Actor with id *detector01* at the Akka-Seed-Instance
+* `Detector` Actor with id *detector02* at the Akka-Seed-Instance
+
+### Deploy this Example
+
+
+1. Install and configure **AWS CLI**
+2. Install **Terraform**
+3. Initialize **Terraform**:
+   ```bash
+    (cd ./terraform && terraform init)
+    ```
+4. Apply **Terraform**:
+    ```bash
+    (cd ./terraform && terraform apply -auto-approve)
+    ```
+
+You may connect via SSH to the created Instances with the created *surveillance-system-key.pem*.
+
+Inspect the Akka applications on EC2:
+
+```bash
+    sudo docker logs akka-node
+```
+
+### Extending the Example
+
+The number of Instances with Akka-Cluster Members can simply be changed within *./terraform/akka-instances.tf*:
+
+```terraform
+#Workers
+resource "aws_instance" "Akka-Worker" {
+  depends_on = [null_resource.wait_for_cloud_service, null_resource.wait_for_iot_service]
+
+  ami                    = "ami-068c0051b15cdb816"
+  instance_type          = "t3.medium"
+  key_name               = aws_key_pair.surveillance-system-node.key_name
+  vpc_security_group_ids = [aws_security_group.Surveillance-Default.id]
+
+  count = <number-of-instances>
+
+  user_data = templatefile("${path.module}/scripts/worker.sh.tpl", {
+    seed_node_ip = aws_instance.Akka-Seed-Node.private_ip
+    config_json = templatefile("${path.module}/configs/node${count.index + 1}.json.tpl", {
+      cloud_service_ip = aws_instance.Cloud-Service.public_ip
+      iot_service_ip = aws_instance.IoT-Service.public_ip
+    })
+  })
+
+  tags = {
+    Name = "Akka-Worker-${count.index}"
+  }
+```
+
+For every instance Terraform expects a config.json within *./terraform/configs*:
+
+*node0.json.tpl*: for Seed-Instance
+*node<n>.json.tpl*: for nth Worker Instance

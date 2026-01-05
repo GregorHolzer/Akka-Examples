@@ -116,7 +116,7 @@ public class Detector
       detectorState = DetectorState.Processing;
       logState(getContext(), detectorState);
       detectorService.detectPersons(getContext(), capturedImage);
-      timers.startSingleTimer(TIMEOUT_KEY, new Timeout(), Duration.ofMillis(500));
+      timers.startSingleTimer(TIMEOUT_KEY, new Timeout(), Duration.ofMillis(1000));
     }
     return Behaviors.same();
   }
@@ -147,12 +147,11 @@ public class Detector
 
   /** Handles an Alarm Message and turns the alarm on */
   private Behavior<DetectorCommand> onAlarm() {
-    if (detectorState == DetectorState.Processing) {
-      timers.cancel(TIMEOUT_KEY);
-      detectorState = DetectorState.Alarm;
-      logState(getContext(), detectorState);
-      detectorService.alarmOn(getContext());
-    }
+    //Always move to Alarm-State
+    timers.cancel(TIMEOUT_KEY);
+    detectorState = DetectorState.Alarm;
+    logState(getContext(), detectorState);
+    detectorService.alarmOn(getContext());
     return Behaviors.same();
   }
 

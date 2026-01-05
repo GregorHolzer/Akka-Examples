@@ -1,8 +1,8 @@
-#Akka Seed Node (hosts Controller of crossing0)
+#Akka Seed Node
 resource "aws_instance" "Akka-Seed-Node" {
-  depends_on = [null_resource.wait_for_iot_service]
+  depends_on = [null_resource.wait_for_cloud_service, null_resource.wait_for_iot_service]
   ami                    = "ami-068c0051b15cdb816"
-  instance_type          = "t3.small"
+  instance_type          = "t3.large"
   key_name               = aws_key_pair.surveillance-system-node.key_name
   vpc_security_group_ids = [aws_security_group.Surveillance-Default.id]
 
@@ -18,24 +18,26 @@ resource "aws_instance" "Akka-Seed-Node" {
   }
 }
 
-#Worker 1
-resource "aws_instance" "Akka-Worker-1" {
-  depends_on = [null_resource.wait_for_cloud_service]
+#Workers
+resource "aws_instance" "Akka-Worker" {
+  depends_on = [null_resource.wait_for_cloud_service, null_resource.wait_for_iot_service]
 
   ami                    = "ami-068c0051b15cdb816"
-  instance_type          = "t3.small"
+  instance_type          = "t3.medium"
   key_name               = aws_key_pair.surveillance-system-node.key_name
   vpc_security_group_ids = [aws_security_group.Surveillance-Default.id]
 
+  count = 1
+
   user_data = templatefile("${path.module}/scripts/worker.sh.tpl", {
-    seed_node_ip = aws_instance.Akka-Seed-Node.public_ip
-    config_json = templatefile("${path.module}/configs/node1.json.tpl", {
+    seed_node_ip = aws_instance.Akka-Seed-Node.private_ip
+    config_json = templatefile("${path.module}/configs/node${count.index + 1}.json.tpl", {
       cloud_service_ip = aws_instance.Cloud-Service.public_ip
       iot_service_ip = aws_instance.IoT-Service.public_ip
     })
   })
 
   tags = {
-    Name = "Akka-Worker-1"
+    Name = "Akka-Worker-${count.index}"
   }
 }

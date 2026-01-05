@@ -87,6 +87,8 @@ async def detect(request: Request):
         response_context_variables = ContextVariable_pb2.ContextVariables()
         detections_context_variable = ContextVariable_pb2.ContextVariable(
             name="hasDetectedPersons",
+            #test: always 0
+            #value=ContextVariable_pb2.Value(bool=False),
             value=ContextVariable_pb2.Value(bool=len(regions) > 0),
         )
         response_context_variables.data.append(detections_context_variable)

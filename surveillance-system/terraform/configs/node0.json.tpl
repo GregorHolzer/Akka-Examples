@@ -11,6 +11,7 @@
       "surveillanceId": "surveillance01"
     }
   ],
+  "surveillanceConfigs": [],
   "cloud_service_addr": "${cloud_service_ip}",
   "cloud_service_port": 8003,
   "edge_service_addr": "localhost",

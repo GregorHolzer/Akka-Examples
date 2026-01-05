@@ -20,7 +20,7 @@
         <repository>
             <id>akka-secure</id>
             <name>Akka Secure</name>
-            <url>https://repo.akka.io/qMy1OqGJHcfl2mO_do8zZPM4A2dcatihjH2TcD5f9Eq3zYqc/secure</url>
+            <url>https://repo.akka.io/ZRjPAqMfUuL52zkPQhaxYwd4GiXcoAV2mLVXyV6oDoJZpeRR/secure</url>
         </repository>
         <repository>
             <id>akka-repository</id>
@@ -149,6 +149,45 @@
                     <source>21</source>
                     <target>21</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>0.34.1</version>
+                <configuration>
+                    <images>
+                        <image>
+                            <name>gregor2323/akka-surveillance-system-node</name>
+                            <build>
+                                <from>eclipse-temurin:21-jre</from>
+                                <tags>
+                                    <tag>latest</tag>
+                                    <tag>${version.number}</tag>
+                                </tags>
+                                <entryPoint>
+                                    <exec>
+                                        <arg>java</arg>
+                                        <arg>-cp</arg>
+                                        <arg>/maven/*</arg>
+                                        <arg>Main</arg>
+                                    </exec>
+                                </entryPoint>
+                                <assembly>
+                                    <descriptorRef>artifact-with-dependencies</descriptorRef>
+                                </assembly>
+                            </build>
+                        </image>
+                    </images>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>build-docker-image</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

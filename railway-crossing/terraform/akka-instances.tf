@@ -23,7 +23,7 @@ resource "null_resource" "wait_for_crossing0" {
   depends_on = [aws_instance.Akka-Seed-Node]
   provisioner "remote-exec" {
     inline = [
-      "until grep -q 'crossing0_Controller subscribed to Topic: peripheral.sensor' /var/log/cloud-init-output.log; do sleep 5; done",
+      "until sudo docker logs iot-service 2>&1 | grep -q 'crossing0_Controller subscribed to Topic: peripheral.sensor'; do sleep 5; done",
       "echo 'Crossing0 subscribed to Nats'"
     ]
 

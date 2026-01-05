@@ -116,6 +116,7 @@ public class Surveillance
       .onMessage(Analyzed.class, this::onAnalyzed)
       .onMessage(SharedCommands.Alarm.class, msg -> onAlarm())
       .onMessage(SharedCommands.Disarm.class, msg -> onDisarm())
+            .onMessage(SharedCommands.InvocationFailure.class, this::onInvocationFailure)
       .build();
   }
 
@@ -170,6 +171,20 @@ public class Surveillance
       detectorTopic.tell(Topic.publish(new SharedCommands.Disarm()));
       timers.cancel(TIMEOUT_KEY);
     }
+    return Behaviors.same();
+  }
+
+  /**
+   * Log the Failure of a Service Invocation.
+   *
+   * @param invocationFailure the message that contains the name of the failed service invocation
+   */
+  private Behavior<SurveillanceCommand> onInvocationFailure(
+          SharedCommands.InvocationFailure invocationFailure
+  ) {
+    getContext()
+            .getLog()
+            .error("Service Invocation of service {} failed", invocationFailure.serviceName());
     return Behaviors.same();
   }
 

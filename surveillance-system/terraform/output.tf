@@ -10,6 +10,6 @@ output "Akka-Seed-Node" {
   value = aws_instance.Akka-Seed-Node.public_dns
 }
 
-output "Akka-Worker-1" {
-  value = aws_instance.Akka-Worker-1.public_dns
+output "akka_workers_public_dns" {
+  value = aws_instance.Akka-Worker[*].public_dns
 }

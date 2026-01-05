@@ -94,6 +94,9 @@ public class DetectorService implements AkkaService {
           }
         });
       } else {
+        if (response != null) {
+          response.discardEntityBytes(system);
+        }
         self.tell(new SharedCommands.InvocationFailure(url + ": " + throwableResponse));
       }
     });

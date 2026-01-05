@@ -1,6 +1,6 @@
 resource "aws_instance" "Cloud-Service" {
   ami                    = "ami-068c0051b15cdb816"
-  instance_type          = "t3.small"
+  instance_type          = "t3.medium"
   key_name               = aws_key_pair.surveillance-system-node.key_name
   vpc_security_group_ids = [aws_security_group.Surveillance-Default.id]
 
@@ -31,7 +31,7 @@ resource "null_resource" "wait_for_cloud_service" {
 
 resource "aws_instance" "IoT-Service" {
   ami                    = "ami-068c0051b15cdb816"
-  instance_type          = "t3.small"
+  instance_type          = "t3.medium"
   key_name               = aws_key_pair.surveillance-system-node.key_name
   vpc_security_group_ids = [aws_security_group.Surveillance-Default.id]
 
