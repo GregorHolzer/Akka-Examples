@@ -5,7 +5,7 @@ resource "tls_private_key" "surveillance-system-key" {
 }
 
 resource "aws_key_pair" "surveillance-system-node" {
-  key_name ="railway-crossing-node"
+  key_name ="surveillance-system-node"
   public_key = tls_private_key.surveillance-system-key.public_key_openssh
 }
 

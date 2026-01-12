@@ -3,6 +3,7 @@ package actors.common;
 import akka.actor.typed.javadsl.ActorContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -19,13 +20,13 @@ public class Configuration {
    * @param configPath the path to the JSON configuration file.
    * @return {@link ConfigurationStatus#Success} if the configuration is loaded successfully, {@link ConfigurationStatus#Failure} otherwise.
    */
-  public static ConfigurationStatus initConfig(ActorContext<?> context, String configPath) {
+  public static ConfigurationStatus initConfig(ActorContext<?> context, String configPath, Integer nodeId) {
     if (nodeConfiguration == null) {
       try {
         ObjectMapper mapper = new ObjectMapper();
         nodeConfiguration = mapper.readValue(new File(configPath), NodeConfiguration.class);
         context.getLog().info("actors.common.Configuration loaded successfully:");
-        nodeConfiguration.detectorsConfigs.forEach(detector ->
+        nodeConfiguration.node_configs.get(nodeId).detectorConfigs.forEach(detector ->
           context
             .getLog()
             .info(
@@ -34,7 +35,7 @@ public class Configuration {
               detector.surveillanceId
             )
         );
-        nodeConfiguration.surveillanceConfigs.forEach(surveillance ->
+        nodeConfiguration.node_configs.get(nodeId).surveillanceConfigs.forEach(surveillance ->
           context
             .getLog()
             .info("Launched Surveillance with SurveillanceId: {}", surveillance.surveillanceId)
@@ -83,10 +84,12 @@ public class Configuration {
   /** Surveillance Configuration */
   public record SurveillanceConfiguration(String surveillanceId) {}
 
+  /** Component Configuration */
+  public record ComponentConfiguration(List<DetectorConfiguration> detectorConfigs, List<SurveillanceConfiguration> surveillanceConfigs) {}
+
   /** Node Configuration holding multiple {@link DetectorConfiguration}s and {@link SurveillanceConfiguration}s. */
   public record NodeConfiguration(
-    List<DetectorConfiguration> detectorsConfigs,
-    List<SurveillanceConfiguration> surveillanceConfigs,
+    HashMap<Integer, ComponentConfiguration> node_configs,
     String cloud_service_addr,
     Integer cloud_service_port,
     String edge_service_addr,

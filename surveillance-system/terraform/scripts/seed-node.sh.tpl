@@ -28,6 +28,7 @@ docker run -d \
   --name akka-node \
   --network host \
   -v /home/ec2-user/config.json:/app/config.json \
+  -e NODE_ID=0 \
   -e AKKA_ARTERY_HOST=$PRIVATE_IP \
   -e AKKA_CLUSTER_SEED_NODE=akka://surveillance-system@$PRIVATE_IP:2551 \
   gregor2323/akka-surveillance-system-node:latest \

@@ -14,8 +14,6 @@ services:
       - DOCKER_INFLUXDB_INIT_ORG=org
       - DOCKER_INFLUXDB_INIT_BUCKET=bucket
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=bzO10KmR8x
-    networks:
-      - railway-crossing-net
 
   telegraf:
     image: "telegraf:latest"
@@ -24,15 +22,12 @@ services:
     configs:
       - source: telegraf_config
         target: /etc/telegraf/telegraf.conf
-    networks:
-      - railway-crossing-net
 
   nats-server:
     image: "nats"
     ports:
       - "4222:4222"
-    networks:
-      - railway-crossing-net
+
 
   akka-railway-service:
     image: "gregor2323/akka-railway-crossing-service:latest"
@@ -41,10 +36,60 @@ services:
       - "8000:8000"
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://telegraf:4317
-    networks:
-      - railway-crossing-net
 
-networks:
-  railway-crossing-net:
-    name: railway-crossing-net
-    driver: bridge
+  akka-seed-node:
+    image: gregor2323/akka-railway-crossing-node:latest
+    pull_policy: always
+    environment:
+      - NODE_ID=0
+      - AKKA_ARTERY_HOST=akka-seed-node
+      - AKKA_CLUSTER_SEED_NODE=akka://railway-crossing@akka-seed-node:2551
+    volumes:
+      - ./configs/readMe/config.json:/config.json
+    command:
+      - /config.json
+
+
+  akka-worker-1:
+    image: gregor2323/akka-railway-crossing-node:latest
+    pull_policy: always
+    environment:
+      - NODE_ID=1
+      - AKKA_ARTERY_HOST=akka-worker-1
+      - AKKA_CLUSTER_SEED_NODE=akka://railway-crossing@akka-seed-node:2551
+    volumes:
+      - ./configs/readMe/config.json:/config.json
+    command:
+      - /config.json
+
+  akka-worker-2:
+    image: gregor2323/akka-railway-crossing-node:latest
+    pull_policy: always
+    environment:
+      - NODE_ID=2
+      - AKKA_ARTERY_HOST=akka-worker-2
+      - AKKA_CLUSTER_SEED_NODE=akka://railway-crossing@akka-seed-node:2551
+    volumes:
+      - ./configs/readMe/config.json:/config.json
+    command:
+      - /config.json
+
+
+  akka-worker-3:
+    image: gregor2323/akka-railway-crossing-node:latest
+    pull_policy: always
+    environment:
+      - NODE_ID=3
+      - AKKA_ARTERY_HOST=akka-worker-3
+      - AKKA_CLUSTER_SEED_NODE=akka://railway-crossing@akka-seed-node:2551
+    volumes:
+      - ./configs/readMe/config.json:/config.json
+    command:
+      - /config.json
+
+  simulate-sensors:
+    image: gregor2323/akka-railway-simple-sensors:latest
+    pull_policy: always
+    environment:
+      - NATS_URL=nats-server:4222
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://telegraf:4317

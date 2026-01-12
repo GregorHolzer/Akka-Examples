@@ -15,9 +15,12 @@ import akka.actor.typed.javadsl.Receive;
  */
 public class Guardian extends AbstractBehavior<Command> {
 
+  private final Integer nodeId;
+
   private Guardian(ActorContext<Command> context, String configPath) {
     super(context);
-    if (Configuration.initConfig(getContext(), configPath) == Configuration.ConfigStatus.Success) {
+    this.nodeId = Integer.parseInt(System.getenv("NODE_ID"));
+    if (Configuration.initConfig(getContext(), configPath, nodeId) == Configuration.ConfigStatus.Success) {
       Telemetry.initOpenTelemetry();
       setupComponent();
     }
@@ -42,7 +45,7 @@ public class Guardian extends AbstractBehavior<Command> {
     //Create Setup Actors for each Component of the Railway-Crossings
     Configuration.NodeConfiguration config = Configuration.getNodeConfiguration();
     config
-      .crossings()
+      .crossings().get(nodeId)
       .forEach(crossing ->
         crossing
           .components()

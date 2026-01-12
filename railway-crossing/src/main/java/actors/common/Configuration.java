@@ -3,6 +3,7 @@ package actors.common;
 import akka.actor.typed.javadsl.ActorContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -19,14 +20,14 @@ public class Configuration {
    * @param configPath the path to the JSON configuration file.
    * @return {@link ConfigStatus#Success} if the configuration is loaded successfully, {@link ConfigStatus#Failure} otherwise.
    */
-  public static ConfigStatus initConfig(ActorContext<?> context, String configPath) {
+  public static ConfigStatus initConfig(ActorContext<?> context, String configPath, Integer nodeId) {
     if (nodeConfiguration == null) {
       try {
         ObjectMapper mapper = new ObjectMapper();
         nodeConfiguration = mapper.readValue(new File(configPath), NodeConfiguration.class);
         context.getLog().info("Configuration loaded successfully:");
         nodeConfiguration
-          .crossings()
+          .crossings().get(nodeId)
           .forEach(crossing -> {
             context.getLog().info("Crossing ID: {}", crossing.crossingId());
             context.getLog().info("Components: {}", crossing.components());
@@ -80,7 +81,7 @@ public class Configuration {
 
   /** Specifies the Railway-Crossings, Location of Railway-Service, Location of NATS, Location of Telegraf */
   public record NodeConfiguration(
-    List<CrossingConfiguration> crossings,
+    HashMap<Integer, List<CrossingConfiguration>> crossings,
     String service_server_addr,
     int service_server_port,
     String nats_server_addr,

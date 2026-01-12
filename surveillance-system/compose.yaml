@@ -1,0 +1,38 @@
+services:
+  nats-server:
+    image: "nats"
+    ports:
+      - "4222:4222"
+
+  cloud-service:
+    image: gregor2323/akka-surveillance-system-cloud-service
+
+  edge-service:
+    image: gregor2323/akka-surveillance-system-edge-service
+
+  iot-service:
+    image: gregor2323/akka-surveillance-system-iot-service
+
+  akka-seed-node:
+    image: gregor2323/akka-surveillance-system-node
+    pull_policy: always
+    environment:
+      - NODE_ID=0
+      - AKKA_ARTERY_HOST=akka-seed-node
+      - AKKA_CLUSTER_SEED_NODE=akka://surveillance-system@akka-seed-node:2551
+    volumes:
+      - ./configs/config.json:/config.json
+    command:
+      - /config.json
+
+  akka-worker-1:
+    image: gregor2323/akka-surveillance-system-node
+    pull_policy: always
+    environment:
+      - NODE_ID=1
+      - AKKA_ARTERY_HOST=akka-worker-1
+      - AKKA_CLUSTER_SEED_NODE=akka://surveillance-system@akka-seed-node:2551
+    volumes:
+      - ./configs/config.json:/config.json
+    command:
+      - /config.json

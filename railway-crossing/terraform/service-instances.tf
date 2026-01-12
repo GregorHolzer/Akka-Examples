@@ -46,9 +46,6 @@ resource "aws_instance" "Simulate_Sensors" {
   key_name               = aws_key_pair.railway-crossing-node.key_name
   vpc_security_group_ids = [aws_security_group.Railway-Default.id]
 
-  #Add check that each Controller of each Crossing is ready!
-  depends_on = [null_resource.wait_for_crossing0]
-
   user_data = templatefile("${path.module}/scripts/simulateSensors.sh.tpl", {
     nats_ip = aws_instance.Nats-Server.public_ip
     telegraf_ip = aws_instance.OpenTelemetry.public_ip

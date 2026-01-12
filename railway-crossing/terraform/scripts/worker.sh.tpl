@@ -23,6 +23,7 @@ docker run -d \
   --name akka-node \
   --network host \
   -v /home/ec2-user/config.json:/app/config.json \
+  -e NODE_ID=${node_id} \
   -e AKKA_ARTERY_HOST=$PRIVATE_IP \
   -e AKKA_CLUSTER_SEED_NODE=akka://railway-crossing@$SEED_IP:2551 \
   gregor2323/akka-railway-crossing-node:latest \

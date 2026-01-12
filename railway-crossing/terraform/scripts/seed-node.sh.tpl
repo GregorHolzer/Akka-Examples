@@ -11,16 +11,17 @@ TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
 PRIVATE_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
       http://169.254.169.254/latest/meta-data/local-ipv4)
 
-cd /home/ec2-user/|| exit
+cd /home/ec2-user/ || exit
 
 cat > ./config.json << EOF
-    ${config_json}
+${config_json}
 EOF
 
 docker run -d \
   --name akka-node \
   --network host \
   -v /home/ec2-user/config.json:/app/config.json \
+  -e NODE_ID=0 \
   -e AKKA_ARTERY_HOST=$PRIVATE_IP \
   -e AKKA_CLUSTER_SEED_NODE=akka://railway-crossing@$PRIVATE_IP:2551 \
   gregor2323/akka-railway-crossing-node:latest \

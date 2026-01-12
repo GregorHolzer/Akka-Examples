@@ -1,0 +1,46 @@
+{
+  "crossings": {
+    "0": [
+      {
+        "crossingId": "crossing0",
+        "components": [
+          "Controller"
+        ]
+      }
+    ],
+    "1": [
+      {
+        "crossingId": "crossing0",
+        "components": [
+          "LightMachine",
+          "Gate"
+        ]
+      }
+    ],
+    "2" : [
+      {
+        "crossingId": "crossing0",
+        "components": [
+          "Bell"
+        ]
+      }
+    ],
+    "3": [
+      {
+        "crossingId": "crossing1",
+        "components": [
+          "Controller",
+          "Gate",
+          "LightMachine",
+          "Bell"
+        ]
+      }
+    ]
+  },
+  "service_server_addr": "akka-railway-service",
+  "service_server_port": 8000,
+  "nats_server_addr": "nats-server",
+  "nats_server_port": 4222,
+  "export_server_addr": "telegraf",
+  "export_server_port": 4317
+}

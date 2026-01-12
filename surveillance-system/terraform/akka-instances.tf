@@ -7,7 +7,7 @@ resource "aws_instance" "Akka-Seed-Node" {
   vpc_security_group_ids = [aws_security_group.Surveillance-Default.id]
 
   user_data = templatefile("${path.module}/scripts/seed-node.sh.tpl", {
-    config_json = templatefile("${path.module}/configs/node0.json.tpl", {
+    config_json = templatefile("${path.module}/configs/config.json.tpl", {
       cloud_service_ip = aws_instance.Cloud-Service.public_ip
       iot_service_ip = aws_instance.IoT-Service.public_ip
     })
@@ -31,7 +31,8 @@ resource "aws_instance" "Akka-Worker" {
 
   user_data = templatefile("${path.module}/scripts/worker.sh.tpl", {
     seed_node_ip = aws_instance.Akka-Seed-Node.private_ip
-    config_json = templatefile("${path.module}/configs/node${count.index + 1}.json.tpl", {
+    node_id = count.index + 1
+    config_json = templatefile("${path.module}/configs/config.json.tpl", {
       cloud_service_ip = aws_instance.Cloud-Service.public_ip
       iot_service_ip = aws_instance.IoT-Service.public_ip
     })

@@ -4,7 +4,9 @@ echo "Installing Docker..."
 sudo dnf install docker -y
 sudo systemctl start docker
 sudo systemctl enable docker
-sudo usermod -aG docker fedora
+sudo usermod -aG docker ec2-user
+
+sleep 100
 
 echo "Running simulate-sensors..."
 docker run -d \

@@ -1,0 +1,33 @@
+{
+  "node_configs": {
+    "0": {
+      "detectorConfigs": [
+        {
+          "detectorId": "detector01",
+          "cameraId": 1,
+          "surveillanceId": "surveillance01"
+        },
+        {
+          "detectorId": "detector02",
+          "cameraId": 2,
+          "surveillanceId": "surveillance01"
+        }
+      ],
+      "surveillanceConfigs": []
+    },
+    "1": {
+      "detectorConfigs": [],
+      "surveillanceConfigs": [
+        {
+          "surveillanceId": "surveillance01"
+        }
+      ]
+    }
+  },
+  "cloud_service_addr": "cloud-service",
+  "cloud_service_port": 8000,
+  "edge_service_addr": "edge-service",
+  "edge_service_port": 8000,
+  "iot_service_addr": "iot-service",
+  "iot_service_port": 8000
+}

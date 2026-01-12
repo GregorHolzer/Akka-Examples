@@ -7,6 +7,7 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import scala.Int;
 import services.SurveillanceService;
 
 /**
@@ -18,10 +19,13 @@ import services.SurveillanceService;
  */
 public class Guardian extends AbstractBehavior<Command> {
 
+  private final Integer nodeId;
+
   private Guardian(ActorContext<Command> context, String configPath) {
     super(context);
+    this.nodeId = Integer.parseInt(System.getenv("NODE_ID"));
     if (
-      Configuration.initConfig(context, configPath) == Configuration.ConfigurationStatus.Success
+      Configuration.initConfig(context, configPath, nodeId) == Configuration.ConfigurationStatus.Success
     ) {
       setupComponents();
     }
@@ -52,7 +56,7 @@ public class Guardian extends AbstractBehavior<Command> {
     SurveillanceService surveillanceService = new SurveillanceService();
     Configuration.NodeConfiguration configuration = Configuration.getNodeConfiguration();
     //Create all Surveillance Actors
-    configuration
+    configuration.node_configs().get(nodeId)
       .surveillanceConfigs()
       .forEach(config ->
         getContext().spawn(
@@ -61,8 +65,7 @@ public class Guardian extends AbstractBehavior<Command> {
         )
       );
     //Create all DetectorSetup Actors
-    configuration
-      .detectorsConfigs()
+    configuration.node_configs().get(nodeId).detectorConfigs()
       .forEach(config ->
         getContext().spawn(
           DetectorSetup.create(config.detectorId(), config.surveillanceId(), config.cameraId()),
