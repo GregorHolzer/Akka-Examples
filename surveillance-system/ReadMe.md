@@ -162,3 +162,5 @@ For every instance the configuration has to provide an entry within the *node_co
 
 * Key **0** for Seed-Node
 * Key **n** for nth Worker Node
+
+Note: Decreasing the detector_timeout_ms parameter may overload the Edge-Layer leading to an Exception within Akka: Too Many Open Connections

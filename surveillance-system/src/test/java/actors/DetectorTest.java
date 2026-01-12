@@ -25,7 +25,7 @@ public class DetectorTest {
   @Test
   public void detectorAlarmTest() {
     ActorRef<Detector.DetectorCommand> detector = testKit.spawn(
-      Detector.create(cameraId, surveillance.getRef(), detectorService),
+      Detector.create(cameraId, surveillance.getRef(), detectorService, 1000),
       "detector_alarm"
     );
 
@@ -48,7 +48,7 @@ public class DetectorTest {
   @Test
   public void detectorTimeoutTest() {
     ActorRef<Detector.DetectorCommand> detector = testKit.spawn(
-      Detector.create(cameraId, surveillance.getRef(), detectorService),
+      Detector.create(cameraId, surveillance.getRef(), detectorService, 1500),
       "detector_timeout"
     );
 

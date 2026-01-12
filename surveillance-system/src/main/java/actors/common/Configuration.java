@@ -136,6 +136,8 @@ public class Configuration {
     String edge_service_addr,
     Integer edge_service_port,
     String iot_service_addr,
-    Integer iot_service_port
+    Integer iot_service_port,
+    Integer detector_timeout_ms,
+    Integer alarm_timeout_ms
   ) {}
 }

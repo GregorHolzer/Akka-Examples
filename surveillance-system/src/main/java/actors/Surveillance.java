@@ -1,6 +1,7 @@
 package actors;
 
 import actors.common.Command;
+import actors.common.Configuration;
 import actors.common.SharedCommands;
 import actors.common.StateMachine;
 import akka.actor.typed.ActorRef;
@@ -62,15 +63,20 @@ public class Surveillance
    */
   private SurveillanceState surveillanceState = SurveillanceState.Processing;
 
+  /** Timeout to disarm the system */
+  private final Integer alarmTimeout;
+
   private Surveillance(
     ActorContext<Surveillance.SurveillanceCommand> context,
     TimerScheduler<SurveillanceCommand> timers,
     SurveillanceService surveillanceService,
-    String surveillanceId
+    String surveillanceId,
+    Integer alarmTimeout
   ) {
     super(context);
     this.timers = timers;
     this.surveillanceService = surveillanceService;
+    this.alarmTimeout = alarmTimeout;
     ServiceKey<SurveillanceCommand> individualSurveillanceKey =
       ServiceKey.create(SurveillanceCommand.class, surveillanceId);
     //Register to be found by DetectorSetup
@@ -101,11 +107,18 @@ public class Surveillance
    */
   public static Behavior<SurveillanceCommand> create(
     SurveillanceService surveillanceService,
-    String surveillanceId
+    String surveillanceId,
+    Integer alarmTimeout
   ) {
     return Behaviors.withTimers(timers ->
       Behaviors.setup(context ->
-        new Surveillance(context, timers, surveillanceService, surveillanceId)
+        new Surveillance(
+          context,
+          timers,
+          surveillanceService,
+          surveillanceId,
+          alarmTimeout
+        )
       )
     );
   }
@@ -167,8 +180,9 @@ public class Surveillance
       surveillanceState = SurveillanceState.Alarm;
       logState(getContext(), surveillanceState);
       timers.startSingleTimer(
+        TIMEOUT_KEY,
         new SharedCommands.Disarm(),
-        Duration.ofMillis(10000)
+        Duration.ofMillis(alarmTimeout)
       );
     }
     return Behaviors.same();

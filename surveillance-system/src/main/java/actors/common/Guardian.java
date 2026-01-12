@@ -64,7 +64,11 @@ public class Guardian extends AbstractBehavior<Command> {
       .surveillanceConfigs()
       .forEach(config ->
         getContext().spawn(
-          Surveillance.create(surveillanceService, config.surveillanceId()),
+          Surveillance.create(
+            surveillanceService,
+            config.surveillanceId(),
+            configuration.alarm_timeout_ms()
+          ),
           config.surveillanceId()
         )
       );

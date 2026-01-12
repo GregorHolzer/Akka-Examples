@@ -1,6 +1,7 @@
 package actors;
 
 import actors.common.Command;
+import actors.common.Configuration;
 import actors.common.SharedCommands;
 import actors.common.StateMachine;
 import akka.actor.typed.ActorRef;
@@ -11,6 +12,7 @@ import akka.actor.typed.pubsub.Topic;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Duration;
+import scala.Int;
 import services.DetectorService;
 
 /**
@@ -46,18 +48,23 @@ public class Detector
   /** The current state of the {@link Detector}: initial {@link DetectorState#Capturing} */
   private DetectorState detectorState = DetectorState.Capturing;
 
+  /** Timeout to move back to the processing State */
+  private final Integer detectorTimeout;
+
   public Detector(
     ActorContext<DetectorCommand> context,
     TimerScheduler<DetectorCommand> timers,
     DetectorService detectorService,
     Integer cameraId,
-    ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef
+    ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef,
+    Integer detectorTimeout
   ) {
     super(context);
     this.timers = timers;
     this.detectorService = detectorService;
     this.cameraId = cameraId;
     this.surveillanceActorRef = surveillanceActorRef;
+    this.detectorTimeout = detectorTimeout;
     //Subscribe to the Detector Topic to receive Alarm/Disarm messages
     PubSub pubSub = PubSub.get(getContext().getSystem());
     ActorRef<Topic.Command<DetectorCommand>> detectorTopic = pubSub.topic(
@@ -80,7 +87,8 @@ public class Detector
   public static Behavior<DetectorCommand> create(
     Integer cameraId,
     ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef,
-    DetectorService detectorService
+    DetectorService detectorService,
+    Integer detectorTimeout
   ) {
     return Behaviors.withTimers(timer ->
       Behaviors.setup(context ->
@@ -89,7 +97,8 @@ public class Detector
           timer,
           detectorService,
           cameraId,
-          surveillanceActorRef
+          surveillanceActorRef,
+          detectorTimeout
         )
       )
     );
@@ -130,7 +139,7 @@ public class Detector
       timers.startSingleTimer(
         TIMEOUT_KEY,
         new Timeout(),
-        Duration.ofMillis(1000)
+        Duration.ofMillis(detectorTimeout)
       );
     }
     return Behaviors.same();

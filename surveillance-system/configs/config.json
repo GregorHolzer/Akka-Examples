@@ -29,5 +29,7 @@
   "edge_service_addr": "edge-service",
   "edge_service_port": 8000,
   "iot_service_addr": "iot-service",
-  "iot_service_port": 8000
+  "iot_service_port": 8000,
+  "detector_timeout_ms": 1000,
+  "alarm_timeout_ms": 15000
 }

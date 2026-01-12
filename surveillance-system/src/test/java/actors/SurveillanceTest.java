@@ -48,7 +48,7 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestNoAlarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceService, "test1"),
+      Surveillance.create(surveillanceService, "test1", 1500),
       "test1"
     );
 
@@ -69,7 +69,7 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestAlarmManualDisarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceService, "test2"),
+      Surveillance.create(surveillanceService, "test2", 1500),
       "test2"
     );
 
@@ -98,7 +98,7 @@ public class SurveillanceTest {
   @Test
   public void surveillanceTestAlarmTimeoutDisarm() {
     ActorRef<Surveillance.SurveillanceCommand> surveillance = testKit.spawn(
-      Surveillance.create(surveillanceService, "test3"),
+      Surveillance.create(surveillanceService, "test3", 1500),
       "test3"
     );
     LoggingTestKit.info("in state Alarm").expect(testKit.system(), () -> {

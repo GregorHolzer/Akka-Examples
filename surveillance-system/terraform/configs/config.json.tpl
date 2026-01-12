@@ -29,5 +29,7 @@
   "edge_service_addr": "localhost",
   "edge_service_port": 8002,
   "iot_service_addr": "${iot_service_ip}",
-  "iot_service_port": 8001
+  "iot_service_port": 8001,
+  "detector_timeout_ms": 1000,
+  "alarm_timeout_ms": 15000
 }

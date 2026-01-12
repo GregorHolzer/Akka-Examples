@@ -1,5 +1,6 @@
 package actors;
 
+import actors.common.Configuration;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -120,7 +121,8 @@ public class DetectorSetup extends AbstractBehavior<Receptionist.Listing> {
         Detector.create(
           cameraId,
           availableSurveillance.getFirst(),
-          detectorService
+          detectorService,
+          Configuration.getNodeConfiguration().detector_timeout_ms()
         ),
         detectorId
       );
