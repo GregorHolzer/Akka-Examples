@@ -20,29 +20,28 @@ import services.SurveillanceService;
 
 public class SurveillanceTest {
 
-  private final SurveillanceService surveillanceService = mock(SurveillanceService.class);
+  private final SurveillanceService surveillanceService = mock(
+    SurveillanceService.class
+  );
 
   static final ActorTestKit testKit = ActorTestKit.create();
 
-  private final TestProbe<Detector.DetectorCommand> detector = testKit.createTestProbe(
-    "detector",
-    Detector.DetectorCommand.class
-  );
+  private final TestProbe<Detector.DetectorCommand> detector =
+    testKit.createTestProbe("detector", Detector.DetectorCommand.class);
 
   @Before
   public void setup() {
     doAnswer(invocationOnMock -> {
-      ActorContext<Detector.DetectorCommand> context = invocationOnMock.getArgument(0);
+      ActorContext<Detector.DetectorCommand> context =
+        invocationOnMock.getArgument(0);
       context.getLog().info("analyze");
       return null;
     })
       .when(surveillanceService)
       .analyze(any(), any());
     PubSub pubSub = PubSub.get(testKit.system());
-    ActorRef<Topic.Command<Detector.DetectorCommand>> detectorTopic = pubSub.topic(
-      Detector.DetectorCommand.class,
-      "global-detector-commands"
-    );
+    ActorRef<Topic.Command<Detector.DetectorCommand>> detectorTopic =
+      pubSub.topic(Detector.DetectorCommand.class, "global-detector-commands");
     detectorTopic.tell(Topic.subscribe(detector.getRef()));
   }
 
@@ -113,7 +112,10 @@ public class SurveillanceTest {
         return null;
       });
     //Wait Timeout
-    detector.expectMessageClass(SharedCommands.Disarm.class, Duration.ofSeconds(11));
+    detector.expectMessageClass(
+      SharedCommands.Disarm.class,
+      Duration.ofSeconds(11)
+    );
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
       surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
       return null;

@@ -20,44 +20,78 @@ public class Configuration {
    * @param configPath the path to the JSON configuration file.
    * @return {@link ConfigurationStatus#Success} if the configuration is loaded successfully, {@link ConfigurationStatus#Failure} otherwise.
    */
-  public static ConfigurationStatus initConfig(ActorContext<?> context, String configPath, Integer nodeId) {
+  public static ConfigurationStatus initConfig(
+    ActorContext<?> context,
+    String configPath,
+    Integer nodeId
+  ) {
     if (nodeConfiguration == null) {
       try {
         ObjectMapper mapper = new ObjectMapper();
-        nodeConfiguration = mapper.readValue(new File(configPath), NodeConfiguration.class);
-        context.getLog().info("actors.common.Configuration loaded successfully:");
-        nodeConfiguration.node_configs.get(nodeId).detectorConfigs.forEach(detector ->
-          context
-            .getLog()
-            .info(
-              "Launching Detector with cameraId: {} responding to SurveillanceId {}",
-              detector.cameraId,
-              detector.surveillanceId
-            )
-        );
-        nodeConfiguration.node_configs.get(nodeId).surveillanceConfigs.forEach(surveillance ->
-          context
-            .getLog()
-            .info("Launched Surveillance with SurveillanceId: {}", surveillance.surveillanceId)
+        nodeConfiguration = mapper.readValue(
+          new File(configPath),
+          NodeConfiguration.class
         );
         context
           .getLog()
-          .info("Configured Cloud-Service Address: {}", nodeConfiguration.cloud_service_addr);
+          .info("actors.common.Configuration loaded successfully:");
+        nodeConfiguration.node_configs
+          .get(nodeId)
+          .detectorConfigs.forEach(detector ->
+            context
+              .getLog()
+              .info(
+                "Launching Detector with cameraId: {} responding to SurveillanceId {}",
+                detector.cameraId,
+                detector.surveillanceId
+              )
+          );
+        nodeConfiguration.node_configs
+          .get(nodeId)
+          .surveillanceConfigs.forEach(surveillance ->
+            context
+              .getLog()
+              .info(
+                "Launched Surveillance with SurveillanceId: {}",
+                surveillance.surveillanceId
+              )
+          );
         context
           .getLog()
-          .info("Configured Cloud-Service Port: {}", nodeConfiguration.cloud_service_port);
+          .info(
+            "Configured Cloud-Service Address: {}",
+            nodeConfiguration.cloud_service_addr
+          );
         context
           .getLog()
-          .info("Configured Edge-Service Address: {}", nodeConfiguration.edge_service_addr);
+          .info(
+            "Configured Cloud-Service Port: {}",
+            nodeConfiguration.cloud_service_port
+          );
         context
           .getLog()
-          .info("Configured Edge-Service Port: {}", nodeConfiguration.edge_service_port);
+          .info(
+            "Configured Edge-Service Address: {}",
+            nodeConfiguration.edge_service_addr
+          );
         context
           .getLog()
-          .info("Configured IoT-Service Address: {}", nodeConfiguration.iot_service_addr);
+          .info(
+            "Configured Edge-Service Port: {}",
+            nodeConfiguration.edge_service_port
+          );
         context
           .getLog()
-          .info("Configured IoT-Service Port: {}", nodeConfiguration.iot_service_port);
+          .info(
+            "Configured IoT-Service Address: {}",
+            nodeConfiguration.iot_service_addr
+          );
+        context
+          .getLog()
+          .info(
+            "Configured IoT-Service Port: {}",
+            nodeConfiguration.iot_service_port
+          );
       } catch (Exception e) {
         context.getLog().error("Error parsing ConfigFile: {}", e.getMessage());
         context.getSystem().terminate();
@@ -75,17 +109,24 @@ public class Configuration {
   /** Results of loading the NodeConfig */
   public enum ConfigurationStatus {
     Success,
-    Failure
+    Failure,
   }
 
   /** Detector Configuration */
-  public record DetectorConfiguration(String detectorId, Integer cameraId, String surveillanceId) {}
+  public record DetectorConfiguration(
+    String detectorId,
+    Integer cameraId,
+    String surveillanceId
+  ) {}
 
   /** Surveillance Configuration */
   public record SurveillanceConfiguration(String surveillanceId) {}
 
   /** Component Configuration */
-  public record ComponentConfiguration(List<DetectorConfiguration> detectorConfigs, List<SurveillanceConfiguration> surveillanceConfigs) {}
+  public record ComponentConfiguration(
+    List<DetectorConfiguration> detectorConfigs,
+    List<SurveillanceConfiguration> surveillanceConfigs
+  ) {}
 
   /** Node Configuration holding multiple {@link DetectorConfiguration}s and {@link SurveillanceConfiguration}s. */
   public record NodeConfiguration(

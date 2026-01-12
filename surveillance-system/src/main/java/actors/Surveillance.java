@@ -71,19 +71,25 @@ public class Surveillance
     super(context);
     this.timers = timers;
     this.surveillanceService = surveillanceService;
-    ServiceKey<SurveillanceCommand> individualSurveillanceKey = ServiceKey.create(
-      SurveillanceCommand.class,
-      surveillanceId
-    );
+    ServiceKey<SurveillanceCommand> individualSurveillanceKey =
+      ServiceKey.create(SurveillanceCommand.class, surveillanceId);
     //Register to be found by DetectorSetup
     getContext()
       .getSystem()
       .receptionist()
-      .tell(Receptionist.register(individualSurveillanceKey, getContext().getSelf()));
+      .tell(
+        Receptionist.register(individualSurveillanceKey, getContext().getSelf())
+      );
     PubSub pubSub = PubSub.get(context.getSystem());
-    surveillanceTopic = pubSub.topic(SurveillanceCommand.class, "global-surveillance-commands");
+    surveillanceTopic = pubSub.topic(
+      SurveillanceCommand.class,
+      "global-surveillance-commands"
+    );
     surveillanceTopic.tell(Topic.subscribe(getContext().getSelf()));
-    detectorTopic = pubSub.topic(Detector.DetectorCommand.class, "global-detector-commands");
+    detectorTopic = pubSub.topic(
+      Detector.DetectorCommand.class,
+      "global-detector-commands"
+    );
   }
 
   /**
@@ -116,7 +122,10 @@ public class Surveillance
       .onMessage(Analyzed.class, this::onAnalyzed)
       .onMessage(SharedCommands.Alarm.class, msg -> onAlarm())
       .onMessage(SharedCommands.Disarm.class, msg -> onDisarm())
-            .onMessage(SharedCommands.InvocationFailure.class, this::onInvocationFailure)
+      .onMessage(
+        SharedCommands.InvocationFailure.class,
+        this::onInvocationFailure
+      )
       .build();
   }
 
@@ -125,7 +134,9 @@ public class Surveillance
    *
    * @param foundPersons the {@link FoundPersons} message of a {@link Detector} that contains an image.
    */
-  private Behavior<SurveillanceCommand> onFoundPersons(FoundPersons foundPersons) {
+  private Behavior<SurveillanceCommand> onFoundPersons(
+    FoundPersons foundPersons
+  ) {
     if (surveillanceState == SurveillanceState.Processing) {
       surveillanceService.analyze(getContext(), foundPersons);
     }
@@ -155,7 +166,10 @@ public class Surveillance
     if (surveillanceState == SurveillanceState.Processing) {
       surveillanceState = SurveillanceState.Alarm;
       logState(getContext(), surveillanceState);
-      timers.startSingleTimer(new SharedCommands.Disarm(), Duration.ofMillis(10000));
+      timers.startSingleTimer(
+        new SharedCommands.Disarm(),
+        Duration.ofMillis(10000)
+      );
     }
     return Behaviors.same();
   }
@@ -180,11 +194,14 @@ public class Surveillance
    * @param invocationFailure the message that contains the name of the failed service invocation
    */
   private Behavior<SurveillanceCommand> onInvocationFailure(
-          SharedCommands.InvocationFailure invocationFailure
+    SharedCommands.InvocationFailure invocationFailure
   ) {
     getContext()
-            .getLog()
-            .error("Service Invocation of service {} failed", invocationFailure.serviceName());
+      .getLog()
+      .error(
+        "Service Invocation of service {} failed",
+        invocationFailure.serviceName()
+      );
     return Behaviors.same();
   }
 
@@ -193,7 +210,7 @@ public class Surveillance
    */
   public enum SurveillanceState {
     Processing,
-    Alarm
+    Alarm,
   }
 
   /**
@@ -219,7 +236,8 @@ public class Surveillance
    * @param image image that has been analyzed
    * @param hasThreat indicates weather the image captured a threat to the system
    */
-  public record Analyzed(byte[] image, Boolean hasThreat) implements SurveillanceCommand {
+  public record Analyzed(byte[] image, Boolean hasThreat) implements
+    SurveillanceCommand {
     @JsonCreator
     public Analyzed(@JsonProperty("image") byte[] image, Boolean hasThreat) {
       this.image = image;

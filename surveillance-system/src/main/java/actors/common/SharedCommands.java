@@ -9,7 +9,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class SharedCommands {
 
   /** Triggers an Alarm */
-  public static class Alarm implements Detector.DetectorCommand, Surveillance.SurveillanceCommand {}
+  public static class Alarm
+    implements Detector.DetectorCommand, Surveillance.SurveillanceCommand {}
 
   /** Disarms the system. */
   public static class Disarm

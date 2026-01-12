@@ -16,6 +16,8 @@ public interface StateMachine<S extends Enum<S>> {
    * @param state The current State of the finite state machine.
    */
   default void logState(ActorContext<?> context, S state) {
-    context.getLog().info("{} in state {}", context.getSelf().path().name(), state);
+    context
+      .getLog()
+      .info("{} in state {}", context.getSelf().path().name(), state);
   }
 }

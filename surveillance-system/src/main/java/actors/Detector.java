@@ -84,7 +84,13 @@ public class Detector
   ) {
     return Behaviors.withTimers(timer ->
       Behaviors.setup(context ->
-        new Detector(context, timer, detectorService, cameraId, surveillanceActorRef)
+        new Detector(
+          context,
+          timer,
+          detectorService,
+          cameraId,
+          surveillanceActorRef
+        )
       )
     );
   }
@@ -102,7 +108,10 @@ public class Detector
       .onMessage(Timeout.class, msg -> onTimeout())
       .onMessage(SharedCommands.Alarm.class, msg -> onAlarm())
       .onMessage(SharedCommands.Disarm.class, msg -> onDisarm())
-      .onMessage(SharedCommands.InvocationFailure.class, this::onInvocationFailure)
+      .onMessage(
+        SharedCommands.InvocationFailure.class,
+        this::onInvocationFailure
+      )
       .build();
   }
 
@@ -111,12 +120,18 @@ public class Detector
    *
    * @param capturedImage a message from the {@link DetectorService} that contains the captured image.
    */
-  private Behavior<DetectorCommand> onCapturedImage(CapturedImage capturedImage) {
+  private Behavior<DetectorCommand> onCapturedImage(
+    CapturedImage capturedImage
+  ) {
     if (detectorState == DetectorState.Capturing) {
       detectorState = DetectorState.Processing;
       logState(getContext(), detectorState);
       detectorService.detectPersons(getContext(), capturedImage);
-      timers.startSingleTimer(TIMEOUT_KEY, new Timeout(), Duration.ofMillis(1000));
+      timers.startSingleTimer(
+        TIMEOUT_KEY,
+        new Timeout(),
+        Duration.ofMillis(1000)
+      );
     }
     return Behaviors.same();
   }
@@ -126,10 +141,14 @@ public class Detector
    *
    * @param detectedPersons a message from the {@link Surveillance} that contains information about the analyzed image.
    */
-  private Behavior<DetectorCommand> onDetectedPersons(DetectedPersons detectedPersons) {
+  private Behavior<DetectorCommand> onDetectedPersons(
+    DetectedPersons detectedPersons
+  ) {
     if (detectorState == DetectorState.Processing) {
       if (detectedPersons.hasDetectedPersons) {
-        surveillanceActorRef.tell(new Surveillance.FoundPersons(detectedPersons.image));
+        surveillanceActorRef.tell(
+          new Surveillance.FoundPersons(detectedPersons.image)
+        );
       }
     }
     return Behaviors.same();
@@ -176,7 +195,10 @@ public class Detector
   ) {
     getContext()
       .getLog()
-      .error("Service Invocation of service {} failed", invocationFailure.serviceName());
+      .error(
+        "Service Invocation of service {} failed",
+        invocationFailure.serviceName()
+      );
     return Behaviors.same();
   }
 
@@ -184,7 +206,7 @@ public class Detector
   public enum DetectorState {
     Capturing,
     Processing,
-    Alarm
+    Alarm,
   }
 
   /** Marker interface for all Detector commands. */
@@ -208,8 +230,10 @@ public class Detector
    * @param hasDetectedPersons indicates if the image contains persons
    * @param image the analyzed image
    */
-  public record DetectedPersons(byte[] image, Boolean hasDetectedPersons) implements
-    DetectorCommand {
+  public record DetectedPersons(
+    byte[] image,
+    Boolean hasDetectedPersons
+  ) implements DetectorCommand {
     @JsonCreator
     public DetectedPersons(
       @JsonProperty("image") byte[] image,

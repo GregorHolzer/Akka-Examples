@@ -21,7 +21,10 @@ public interface AkkaService {
    * @param request the HTTP request to send
    * @return a future of the HTTP response
    */
-  default CompletionStage<HttpResponse> sendRequest(ActorContext<?> context, HttpRequest request) {
+  default CompletionStage<HttpResponse> sendRequest(
+    ActorContext<?> context,
+    HttpRequest request
+  ) {
     return Http.get(context.getSystem()).singleRequest(request);
   }
 
@@ -46,7 +49,12 @@ public interface AkkaService {
    * @param body the request body
    * @return a configured POST request with entity
    */
-  default HttpRequest buildPostRequest(String host, Integer port, String path, byte[] body) {
+  default HttpRequest buildPostRequest(
+    String host,
+    Integer port,
+    String path,
+    byte[] body
+  ) {
     return HttpRequest.POST(getUrl(host, port, path)).withEntity(
       HttpEntities.create(
         ContentTypes.APPLICATION_OCTET_STREAM,
@@ -77,12 +85,16 @@ public interface AkkaService {
           ContextVariableProtos.Value.newBuilder().setInteger(i).build()
         );
         case byte[] bytes -> contextVariable.setValue(
-          ContextVariableProtos.Value.newBuilder().setBytes(ByteString.copyFrom(bytes)).build()
+          ContextVariableProtos.Value.newBuilder()
+            .setBytes(ByteString.copyFrom(bytes))
+            .build()
         );
         case String s -> contextVariable.setValue(
           ContextVariableProtos.Value.newBuilder().setString(s).build()
         );
-        default -> throw new IllegalArgumentException("Invalid value type: " + value.getClass());
+        default -> throw new IllegalArgumentException(
+          "Invalid value type: " + value.getClass()
+        );
       }
       var.addData(contextVariable.build());
     });
@@ -96,17 +108,22 @@ public interface AkkaService {
    * @param response the HTTP response containing the Protobuf body
    * @return a future of parsed {@code ContextVariables}
    */
-  default CompletionStage<ContextVariableProtos.ContextVariables> extractContextVariable(
-    ActorSystem<?> system,
-    HttpResponse response
-  ) {
+  default CompletionStage<
+    ContextVariableProtos.ContextVariables
+  > extractContextVariable(ActorSystem<?> system, HttpResponse response) {
     return response
       .entity()
       .getDataBytes()
-      .runFold(akka.util.ByteString.emptyByteString(), akka.util.ByteString::concat, system)
+      .runFold(
+        akka.util.ByteString.emptyByteString(),
+        akka.util.ByteString::concat,
+        system
+      )
       .thenApply(bytes -> {
         try {
-          return ContextVariableProtos.ContextVariables.parseFrom(bytes.toArray());
+          return ContextVariableProtos.ContextVariables.parseFrom(
+            bytes.toArray()
+          );
         } catch (InvalidProtocolBufferException e) {
           return ContextVariableProtos.ContextVariables.newBuilder().build();
         }

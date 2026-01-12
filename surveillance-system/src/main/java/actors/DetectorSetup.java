@@ -28,7 +28,9 @@ public class DetectorSetup extends AbstractBehavior<Receptionist.Listing> {
   /**
    * The Receptionist Key of the Surveillance Actor
    */
-  private final ServiceKey<Surveillance.SurveillanceCommand> individual_surveillance_key;
+  private final ServiceKey<
+    Surveillance.SurveillanceCommand
+  > individual_surveillance_key;
 
   /**
    * The id of the {@link Detector} Actor
@@ -65,7 +67,12 @@ public class DetectorSetup extends AbstractBehavior<Receptionist.Listing> {
     getContext()
       .getSystem()
       .receptionist()
-      .tell(Receptionist.subscribe(individual_surveillance_key, getContext().getSelf()));
+      .tell(
+        Receptionist.subscribe(
+          individual_surveillance_key,
+          getContext().getSelf()
+        )
+      );
   }
 
   /**
@@ -89,7 +96,9 @@ public class DetectorSetup extends AbstractBehavior<Receptionist.Listing> {
   /** Defines the {@link Behavior} of the DetectorSetup Actor that handles {@link Receptionist.Listing} messages from the {@link Receptionist} */
   @Override
   public Receive<Receptionist.Listing> createReceive() {
-    return newReceiveBuilder().onMessage(Receptionist.Listing.class, this::onListing).build();
+    return newReceiveBuilder()
+      .onMessage(Receptionist.Listing.class, this::onListing)
+      .build();
   }
 
   /**
@@ -97,21 +106,31 @@ public class DetectorSetup extends AbstractBehavior<Receptionist.Listing> {
    *
    * @param listing a message from the {@link Receptionist}  that contains a list of {@link ActorRef} s that have been registered with the {@link #individual_surveillance_key}
    */
-  private Behavior<Receptionist.Listing> onListing(Receptionist.Listing listing) {
-    List<ActorRef<Surveillance.SurveillanceCommand>> availableSurveillance = listing
-      .getServiceInstances(individual_surveillance_key)
-      .stream()
-      .toList();
+  private Behavior<Receptionist.Listing> onListing(
+    Receptionist.Listing listing
+  ) {
+    List<ActorRef<Surveillance.SurveillanceCommand>> availableSurveillance =
+      listing
+        .getServiceInstances(individual_surveillance_key)
+        .stream()
+        .toList();
     if (detector == null && !availableSurveillance.isEmpty()) {
       getContext().getLog().info("Registered detector with id {}", detectorId);
       detector = getContext().spawn(
-        Detector.create(cameraId, availableSurveillance.getFirst(), detectorService),
+        Detector.create(
+          cameraId,
+          availableSurveillance.getFirst(),
+          detectorService
+        ),
         detectorId
       );
     } else if (detector == null) {
       getContext()
         .getLog()
-        .warn("No Surveillance Actor with surveillanceId {} found", surveillanceId);
+        .warn(
+          "No Surveillance Actor with surveillanceId {} found",
+          surveillanceId
+        );
     }
     return Behaviors.same();
   }

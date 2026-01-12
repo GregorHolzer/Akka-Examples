@@ -19,9 +19,8 @@ public class DetectorTest {
 
   private static final Integer cameraId = 1;
 
-  private final TestProbe<Surveillance.SurveillanceCommand> surveillance = testKit.createTestProbe(
-    Surveillance.SurveillanceCommand.class
-  );
+  private final TestProbe<Surveillance.SurveillanceCommand> surveillance =
+    testKit.createTestProbe(Surveillance.SurveillanceCommand.class);
 
   @Test
   public void detectorAlarmTest() {

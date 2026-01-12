@@ -30,7 +30,8 @@ public class DetectorService implements AkkaService {
   private final Integer edge_port;
 
   public DetectorService() {
-    Configuration.NodeConfiguration config = Configuration.getNodeConfiguration();
+    Configuration.NodeConfiguration config =
+      Configuration.getNodeConfiguration();
     iot_addr = config.iot_service_addr();
     iot_port = config.iot_service_port();
     edge_addr = config.edge_service_addr();
@@ -72,32 +73,42 @@ public class DetectorService implements AkkaService {
     );
 
     futureResponse.whenComplete((response, throwableResponse) -> {
-      if (throwableResponse == null && response.status().equals(StatusCodes.OK)) {
-        extractContextVariable(system, response).whenComplete((var, throwableVar) -> {
-          if (throwableVar == null) {
-            ContextVariableProtos.ContextVariable variable = var
-              .getDataList()
-              .stream()
-              .filter(v -> v.getName().equals(variableName))
-              .findFirst()
-              .orElse(null);
+      if (
+        throwableResponse == null && response.status().equals(StatusCodes.OK)
+      ) {
+        extractContextVariable(system, response).whenComplete(
+          (var, throwableVar) -> {
+            if (throwableVar == null) {
+              ContextVariableProtos.ContextVariable variable = var
+                .getDataList()
+                .stream()
+                .filter(v -> v.getName().equals(variableName))
+                .findFirst()
+                .orElse(null);
 
-            if (variable != null) {
-              onSuccess.accept(self, variable);
+              if (variable != null) {
+                onSuccess.accept(self, variable);
+              } else {
+                self.tell(
+                  new SharedCommands.InvocationFailure(
+                    url + ": no " + variableName + "-field"
+                  )
+                );
+              }
             } else {
               self.tell(
-                new SharedCommands.InvocationFailure(url + ": no " + variableName + "-field")
+                new SharedCommands.InvocationFailure(url + ": " + throwableVar)
               );
             }
-          } else {
-            self.tell(new SharedCommands.InvocationFailure(url + ": " + throwableVar));
           }
-        });
+        );
       } else {
         if (response != null) {
           response.discardEntityBytes(system);
         }
-        self.tell(new SharedCommands.InvocationFailure(url + ": " + throwableResponse));
+        self.tell(
+          new SharedCommands.InvocationFailure(url + ": " + throwableResponse)
+        );
       }
     });
   }
@@ -129,14 +140,28 @@ public class DetectorService implements AkkaService {
    * @param context the detector actor context
    * @param cameraId the camera identifier
    */
-  public void cameraCapture(ActorContext<Detector.DetectorCommand> context, Integer cameraId) {
+  public void cameraCapture(
+    ActorContext<Detector.DetectorCommand> context,
+    Integer cameraId
+  ) {
     HashMap<String, Object> values = new HashMap<>();
     values.put("cameraId", cameraId);
 
     byte[] body = buildProtoRequestBody(values);
 
-    sendRequestAndHandle(context, body, iot_addr, iot_port, "/capture", "image", (self, imageVar) ->
-      self.tell(new Detector.CapturedImage(imageVar.getValue().getBytes().toByteArray()))
+    sendRequestAndHandle(
+      context,
+      body,
+      iot_addr,
+      iot_port,
+      "/capture",
+      "image",
+      (self, imageVar) ->
+        self.tell(
+          new Detector.CapturedImage(
+            imageVar.getValue().getBytes().toByteArray()
+          )
+        )
     );
   }
 
@@ -167,7 +192,10 @@ public class DetectorService implements AkkaService {
       "hasDetectedPersons",
       (self, detectedVar) ->
         self.tell(
-          new Detector.DetectedPersons(capturedImage.image(), detectedVar.getValue().getBool())
+          new Detector.DetectedPersons(
+            capturedImage.image(),
+            detectedVar.getValue().getBool()
+          )
         )
     );
   }

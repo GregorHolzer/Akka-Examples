@@ -24,7 +24,8 @@ public class SurveillanceService implements AkkaService {
   private final int cloud_port;
 
   public SurveillanceService() {
-    Configuration.NodeConfiguration config = Configuration.getNodeConfiguration();
+    Configuration.NodeConfiguration config =
+      Configuration.getNodeConfiguration();
     this.host = config.cloud_service_addr();
     this.cloud_port = config.cloud_service_port();
   }
@@ -59,29 +60,46 @@ public class SurveillanceService implements AkkaService {
     );
 
     futureResponse.whenComplete((response, throwableResponse) -> {
-      if (throwableResponse == null && response.status().equals(StatusCodes.OK)) {
-        extractContextVariable(system, response).whenComplete((var, throwableVar) -> {
-          if (throwableVar == null) {
-            ContextVariableProtos.ContextVariable variable = var
-              .getDataList()
-              .stream()
-              .filter(v -> v.getName().equals("hasThreat"))
-              .findFirst()
-              .orElse(null);
+      if (
+        throwableResponse == null && response.status().equals(StatusCodes.OK)
+      ) {
+        extractContextVariable(system, response).whenComplete(
+          (var, throwableVar) -> {
+            if (throwableVar == null) {
+              ContextVariableProtos.ContextVariable variable = var
+                .getDataList()
+                .stream()
+                .filter(v -> v.getName().equals("hasThreat"))
+                .findFirst()
+                .orElse(null);
 
-            if (variable != null) {
-              self.tell(
-                new Surveillance.Analyzed(foundPersons.image(), variable.getValue().getBool())
-              );
+              if (variable != null) {
+                self.tell(
+                  new Surveillance.Analyzed(
+                    foundPersons.image(),
+                    variable.getValue().getBool()
+                  )
+                );
+              } else {
+                self.tell(
+                  new SharedCommands.InvocationFailure(
+                    "/analyze: no hasThreat-field"
+                  )
+                );
+              }
             } else {
-              self.tell(new SharedCommands.InvocationFailure("/analyze: no hasThreat-field"));
+              self.tell(
+                new SharedCommands.InvocationFailure(
+                  "/analyze: " + throwableVar
+                )
+              );
             }
-          } else {
-            self.tell(new SharedCommands.InvocationFailure("/analyze: " + throwableVar));
           }
-        });
+        );
       } else {
-        self.tell(new SharedCommands.InvocationFailure("/analyze: " + throwableResponse));
+        self.tell(
+          new SharedCommands.InvocationFailure("/analyze: " + throwableResponse)
+        );
       }
     });
   }

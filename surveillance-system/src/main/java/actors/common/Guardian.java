@@ -25,7 +25,8 @@ public class Guardian extends AbstractBehavior<Command> {
     super(context);
     this.nodeId = Integer.parseInt(System.getenv("NODE_ID"));
     if (
-      Configuration.initConfig(context, configPath, nodeId) == Configuration.ConfigurationStatus.Success
+      Configuration.initConfig(context, configPath, nodeId) ==
+      Configuration.ConfigurationStatus.Success
     ) {
       setupComponents();
     }
@@ -54,9 +55,12 @@ public class Guardian extends AbstractBehavior<Command> {
    */
   private void setupComponents() {
     SurveillanceService surveillanceService = new SurveillanceService();
-    Configuration.NodeConfiguration configuration = Configuration.getNodeConfiguration();
+    Configuration.NodeConfiguration configuration =
+      Configuration.getNodeConfiguration();
     //Create all Surveillance Actors
-    configuration.node_configs().get(nodeId)
+    configuration
+      .node_configs()
+      .get(nodeId)
       .surveillanceConfigs()
       .forEach(config ->
         getContext().spawn(
@@ -65,10 +69,17 @@ public class Guardian extends AbstractBehavior<Command> {
         )
       );
     //Create all DetectorSetup Actors
-    configuration.node_configs().get(nodeId).detectorConfigs()
+    configuration
+      .node_configs()
+      .get(nodeId)
+      .detectorConfigs()
       .forEach(config ->
         getContext().spawn(
-          DetectorSetup.create(config.detectorId(), config.surveillanceId(), config.cameraId()),
+          DetectorSetup.create(
+            config.detectorId(),
+            config.surveillanceId(),
+            config.cameraId()
+          ),
           "Setup_" + config.detectorId()
         )
       );
