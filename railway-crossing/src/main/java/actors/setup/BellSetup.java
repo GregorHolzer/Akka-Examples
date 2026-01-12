@@ -19,7 +19,10 @@ public class BellSetup extends AbstractBehavior<Receptionist.Listing> {
   /** Attached to the railway-crossing id to identify the component */
   public static final String componentSuffix = "_Bell";
 
-  private BellSetup(ActorContext<Receptionist.Listing> context, String crossingId) {
+  private BellSetup(
+    ActorContext<Receptionist.Listing> context,
+    String crossingId
+  ) {
     super(context);
     //Create the ServiceKey for this Bell
     String componentName = crossingId + componentSuffix;
@@ -33,8 +36,13 @@ public class BellSetup extends AbstractBehavior<Receptionist.Listing> {
       String.format("%s", componentName)
     );
     //Register the Bell Actor at the Receptionist for Discovery
-    getContext().getSystem().receptionist().tell(Receptionist.register(bellServiceKey, bell));
-    getContext().getLog().info("Bell registered with ServiceKey: {}", bellServiceKey);
+    getContext()
+      .getSystem()
+      .receptionist()
+      .tell(Receptionist.register(bellServiceKey, bell));
+    getContext()
+      .getLog()
+      .info("Bell registered with ServiceKey: {}", bellServiceKey);
   }
 
   /**

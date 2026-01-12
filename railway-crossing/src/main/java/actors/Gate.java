@@ -23,7 +23,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *   <li>{@link Gate.State#Closed}</li>
  * </ul>
  */
-public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMachine<Gate.State> {
+public class Gate
+  extends AbstractBehavior<Gate.GateCommand>
+  implements StateMachine<Gate.State> {
 
   /** Reference to the Bell actor */
   private final ActorRef<Bell.BellCommand> bell;
@@ -80,7 +82,11 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
     if (state == State.Open) {
       bell.tell(new Bell.CommandBellOn(trainSpeed));
       state = State.Closed;
-      railwayService.gateDown(getContext(), getContext().getSelf().path().name(), trainSpeed);
+      railwayService.gateDown(
+        getContext(),
+        getContext().getSelf().path().name(),
+        trainSpeed
+      );
       logState(getContext(), state);
     }
     return Behaviors.same();
@@ -111,7 +117,7 @@ public class Gate extends AbstractBehavior<Gate.GateCommand> implements StateMac
    */
   public enum State {
     Open,
-    Closed
+    Closed,
   }
 
   /**

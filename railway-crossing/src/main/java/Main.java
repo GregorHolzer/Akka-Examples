@@ -20,7 +20,10 @@ public class Main {
       return;
     }
     //Start the Actor System with the Guardian Actor as User-Guardian
-    ActorSystem<Command> system = ActorSystem.create(Guardian.create(args[0]), "railway-crossing");
+    ActorSystem<Command> system = ActorSystem.create(
+      Guardian.create(args[0]),
+      "railway-crossing"
+    );
     //Start the Akka-Cluster
     Cluster.get(system);
     //Start Akka-Management

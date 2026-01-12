@@ -28,7 +28,9 @@ public class GateTest {
 
   private static final ActorTestKit testKit = ActorTestKit.create();
 
-  private final TestProbe<Bell.BellCommand> bell = testKit.createTestProbe(Bell.BellCommand.class);
+  private final TestProbe<Bell.BellCommand> bell = testKit.createTestProbe(
+    Bell.BellCommand.class
+  );
 
   @Test
   public void fullLightMachineTest() {
@@ -66,10 +68,13 @@ public class GateTest {
       });
     verify(mockedService, times(0)).gateDown(any(), any(), any());
     verify(mockedService, times(0)).gateUp(any(), any(), any(), any(), any());
-    LoggingTestKit.info("gate1 in state Closed").expect(testKit.system(), () -> {
-      gate.tell(new Gate.CommandClose(trainSpeed));
-      return null;
-    });
+    LoggingTestKit.info("gate1 in state Closed").expect(
+      testKit.system(),
+      () -> {
+        gate.tell(new Gate.CommandClose(trainSpeed));
+        return null;
+      }
+    );
     bell.expectMessageClass(Bell.CommandBellOn.class);
     verify(mockedService).gateDown(any(), any(), any());
     verify(mockedService, times(0)).gateUp(any(), any(), any(), any(), any());

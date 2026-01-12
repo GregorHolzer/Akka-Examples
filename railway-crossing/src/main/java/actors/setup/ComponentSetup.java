@@ -32,11 +32,15 @@ public interface ComponentSetup {
     Class<T> clazz
   ) {
     if (list.isEmpty()) {
-      context.getLog().warn("For class {} no instances found", clazz.toString());
+      context
+        .getLog()
+        .warn("For class {} no instances found", clazz.toString());
       return null;
     }
     if (list.size() == 1) {
-      context.getLog().info("For class {} exactly one instance found", clazz.toString());
+      context
+        .getLog()
+        .info("For class {} exactly one instance found", clazz.toString());
       return list.getFirst();
     }
     context

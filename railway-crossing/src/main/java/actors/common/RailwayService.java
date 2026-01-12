@@ -34,7 +34,11 @@ public class RailwayService {
    */
   private String getUrl(String path) {
     return (
-      "http://" + nodeConfig.service_server_addr() + ":" + nodeConfig.service_server_port() + path
+      "http://" +
+      nodeConfig.service_server_addr() +
+      ":" +
+      nodeConfig.service_server_port() +
+      path
     );
   }
 
@@ -45,7 +49,10 @@ public class RailwayService {
    * @param request the HTTP request to send.
    * @return a {@link CompletionStage} containing the HTTP response.
    */
-  private CompletionStage<HttpResponse> sendRequest(ActorContext<?> context, HttpRequest request) {
+  private CompletionStage<HttpResponse> sendRequest(
+    ActorContext<?> context,
+    HttpRequest request
+  ) {
     return Http.get(context.getSystem()).singleRequest(request);
   }
 
@@ -58,7 +65,9 @@ public class RailwayService {
    */
   private HttpRequest buildRequest(String path, String crossingId) {
     String url = getUrl(path);
-    return HttpRequest.POST(url).addHeader(HttpHeader.parse("Cirrina-Sender-ID", crossingId));
+    return HttpRequest.POST(url).addHeader(
+      HttpHeader.parse("Cirrina-Sender-ID", crossingId)
+    );
   }
 
   /**
@@ -69,12 +78,19 @@ public class RailwayService {
    * @param body       the request body payload.
    * @return the constructed {@link HttpRequest}.
    */
-  private HttpRequest buildRequest(String path, String crossingId, byte[] body) {
+  private HttpRequest buildRequest(
+    String path,
+    String crossingId,
+    byte[] body
+  ) {
     String url = getUrl(path);
     return HttpRequest.POST(url)
       .addHeader(HttpHeader.parse("Cirrina-Sender-ID", crossingId))
       .withEntity(
-        HttpEntities.create(ContentTypes.APPLICATION_OCTET_STREAM, ByteString.fromArray(body))
+        HttpEntities.create(
+          ContentTypes.APPLICATION_OCTET_STREAM,
+          ByteString.fromArray(body)
+        )
       );
   }
 
@@ -124,7 +140,11 @@ public class RailwayService {
    * @param crossingId the railway crossing ID of the bell.
    * @param trainSpeed the train speed.
    */
-  public void bellOn(ActorContext<?> context, String crossingId, Double trainSpeed) {
+  public void bellOn(
+    ActorContext<?> context,
+    String crossingId,
+    Double trainSpeed
+  ) {
     byte[] body = buildRequestBody(trainSpeed);
     HttpRequest request = buildRequest("/bell/on", crossingId, body);
     sendRequest(context, request);
@@ -138,7 +158,12 @@ public class RailwayService {
    * @param traceId    the trace identifier.
    * @param spanId     the span identifier.
    */
-  public void bellOff(ActorContext<?> context, String crossingId, String traceId, String spanId) {
+  public void bellOff(
+    ActorContext<?> context,
+    String crossingId,
+    String traceId,
+    String spanId
+  ) {
     byte[] body = buildRequestBody(traceId, spanId);
     HttpRequest request = buildRequest("/bell/off", crossingId, body);
     sendRequest(context, request);
@@ -175,7 +200,11 @@ public class RailwayService {
    * @param crossingId the railway crossing ID of the gate.
    * @param trainSpeed the approaching train speed
    */
-  public void gateDown(ActorContext<?> context, String crossingId, Double trainSpeed) {
+  public void gateDown(
+    ActorContext<?> context,
+    String crossingId,
+    Double trainSpeed
+  ) {
     byte[] body = buildRequestBody(trainSpeed);
     HttpRequest request = buildRequest("/gate/down", crossingId, body);
     sendRequest(context, request);
@@ -188,7 +217,11 @@ public class RailwayService {
    * @param crossingId the railway crossing ID of the LightMachine.
    * @param trainSpeed the approaching train speed
    */
-  public void lightOn(ActorContext<?> context, String crossingId, Double trainSpeed) {
+  public void lightOn(
+    ActorContext<?> context,
+    String crossingId,
+    Double trainSpeed
+  ) {
     byte[] body = buildRequestBody(trainSpeed);
     HttpRequest request = buildRequest("/light/on", crossingId, body);
     sendRequest(context, request);

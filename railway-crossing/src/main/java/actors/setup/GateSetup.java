@@ -23,7 +23,9 @@ import java.util.List;
  * </ul>
  * </p>
  */
-public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements ComponentSetup {
+public class GateSetup
+  extends AbstractBehavior<Receptionist.Listing>
+  implements ComponentSetup {
 
   /** Attached to the railway-crossing id to identify the component */
   public static final String componentSuffix = "_Gate";
@@ -53,7 +55,10 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
     return Behaviors.setup(context -> new GateSetup(context, crossingId));
   }
 
-  private GateSetup(ActorContext<Receptionist.Listing> context, String crossingId) {
+  private GateSetup(
+    ActorContext<Receptionist.Listing> context,
+    String crossingId
+  ) {
     super(context);
     this.crossingId = crossingId;
     this.railwayService = new RailwayService();
@@ -63,7 +68,10 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
       Bell.BellCommand.class,
       crossingId + BellSetup.componentSuffix
     );
-    gateServiceKey = ServiceKey.create(Gate.GateCommand.class, crossingId + componentSuffix);
+    gateServiceKey = ServiceKey.create(
+      Gate.GateCommand.class,
+      crossingId + componentSuffix
+    );
 
     // Subscribe to the Receptionist to discover the Bell Actor
     getContext()
@@ -80,7 +88,9 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
    */
   @Override
   public Receive<Receptionist.Listing> createReceive() {
-    return newReceiveBuilder().onMessage(Receptionist.Listing.class, this::onListing).build();
+    return newReceiveBuilder()
+      .onMessage(Receptionist.Listing.class, this::onListing)
+      .build();
   }
 
   /**
@@ -91,7 +101,9 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
    *
    * @param listing message of the {@link Receptionist} that contains a list of {@link ActorRef}s
    */
-  private Behavior<Receptionist.Listing> onListing(Receptionist.Listing listing) {
+  private Behavior<Receptionist.Listing> onListing(
+    Receptionist.Listing listing
+  ) {
     List<ActorRef<Bell.BellCommand>> availableBells = listing
       .getServiceInstances(bellServiceKey)
       .stream()
@@ -111,9 +123,14 @@ public class GateSetup extends AbstractBehavior<Receptionist.Listing> implements
         String.format("%s", crossingId + componentSuffix)
       );
 
-      getContext().getSystem().receptionist().tell(Receptionist.register(gateServiceKey, gate));
+      getContext()
+        .getSystem()
+        .receptionist()
+        .tell(Receptionist.register(gateServiceKey, gate));
 
-      getContext().getLog().info("Gate registered with ServiceKey: {}", gateServiceKey);
+      getContext()
+        .getLog()
+        .info("Gate registered with ServiceKey: {}", gateServiceKey);
     }
 
     return Behaviors.same();

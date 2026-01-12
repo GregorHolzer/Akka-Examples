@@ -22,7 +22,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * </ul>
  * </p>
  */
-public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMachine<Bell.State> {
+public class Bell
+  extends AbstractBehavior<Bell.BellCommand>
+  implements StateMachine<Bell.State> {
 
   /** Service to turn the Bell on or to turn the Bell off */
   private final RailwayService railwayService;
@@ -30,7 +32,10 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
   /** Current state of the Bell: initial Off */
   private State state = State.Off;
 
-  private Bell(ActorContext<Bell.BellCommand> context, RailwayService railwayService) {
+  private Bell(
+    ActorContext<Bell.BellCommand> context,
+    RailwayService railwayService
+  ) {
     super(context);
     this.railwayService = railwayService;
   }
@@ -67,7 +72,11 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
   private Behavior<Bell.BellCommand> onTurnOn(Double trainSpeed) {
     if (state == State.Off) {
       state = State.On;
-      railwayService.bellOn(getContext(), getContext().getSelf().path().name(), trainSpeed);
+      railwayService.bellOn(
+        getContext(),
+        getContext().getSelf().path().name(),
+        trainSpeed
+      );
       logState(getContext(), Bell.State.On);
     }
     return Behaviors.same();
@@ -97,7 +106,7 @@ public class Bell extends AbstractBehavior<Bell.BellCommand> implements StateMac
    */
   public enum State {
     On,
-    Off
+    Off,
   }
 
   /**

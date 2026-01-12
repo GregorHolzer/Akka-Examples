@@ -32,7 +32,10 @@ public class LightMachine
   /** Current state of the LightMachine: initial Off */
   private State state = State.Off;
 
-  private LightMachine(ActorContext<LightMachineCommand> context, RailwayService railwayService) {
+  private LightMachine(
+    ActorContext<LightMachineCommand> context,
+    RailwayService railwayService
+  ) {
     super(context);
     this.railwayService = railwayService;
   }
@@ -43,8 +46,12 @@ public class LightMachine
    * @param railwayService the {@link RailwayService} used by the LightMachine Actor
    * @return the {@link Behavior} of the created {@link LightMachine} Actor
    */
-  public static Behavior<LightMachineCommand> create(RailwayService railwayService) {
-    return Behaviors.setup(context -> new LightMachine(context, railwayService));
+  public static Behavior<LightMachineCommand> create(
+    RailwayService railwayService
+  ) {
+    return Behaviors.setup(context ->
+      new LightMachine(context, railwayService)
+    );
   }
 
   /**
@@ -70,8 +77,15 @@ public class LightMachine
   private Behavior<LightMachineCommand> onTurnOn(Double trainSpeed) {
     if (state == State.Off) {
       state = State.On;
-      railwayService.lightEarlyWarning(getContext(), getContext().getSelf().path().name());
-      railwayService.lightOn(getContext(), getContext().getSelf().path().name(), trainSpeed);
+      railwayService.lightEarlyWarning(
+        getContext(),
+        getContext().getSelf().path().name()
+      );
+      railwayService.lightOn(
+        getContext(),
+        getContext().getSelf().path().name(),
+        trainSpeed
+      );
       logState(getContext(), state);
     }
     return Behaviors.same();
@@ -85,7 +99,10 @@ public class LightMachine
   private Behavior<LightMachineCommand> onTurnOff() {
     if (state == State.On) {
       state = State.Off;
-      railwayService.lightOff(getContext(), getContext().getSelf().path().name());
+      railwayService.lightOff(
+        getContext(),
+        getContext().getSelf().path().name()
+      );
       logState(getContext(), state);
     }
     return Behaviors.same();
@@ -96,7 +113,7 @@ public class LightMachine
    */
   public enum State {
     On,
-    Off
+    Off,
   }
 
   /**

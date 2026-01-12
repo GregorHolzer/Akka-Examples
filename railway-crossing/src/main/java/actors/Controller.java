@@ -60,7 +60,9 @@ public class Controller
     ActorRef<Gate.GateCommand> gate,
     ActorRef<LightMachine.LightMachineCommand> lightMachine
   ) {
-    return Behaviors.setup(context -> new Controller(context, lightMachine, gate));
+    return Behaviors.setup(context ->
+      new Controller(context, lightMachine, gate)
+    );
   }
 
   /**
@@ -141,7 +143,7 @@ public class Controller
     Close,
     Present,
     Leaving,
-    Left
+    Left,
   }
 
   /**
@@ -189,7 +191,11 @@ public class Controller
   public static class CommandTrainNotSeen extends SensorCommand {
 
     @JsonCreator
-    public CommandTrainNotSeen(Double trainSpeed, String traceId, String spanId) {
+    public CommandTrainNotSeen(
+      Double trainSpeed,
+      String traceId,
+      String spanId
+    ) {
       super(trainSpeed, traceId, spanId);
     }
   }

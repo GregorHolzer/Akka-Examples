@@ -29,7 +29,10 @@ public class BellTest {
   @Test
   public void fullBellTest() {
     Telemetry.initOpenTelemetry();
-    ActorRef<Bell.BellCommand> bell = testKit.spawn(Bell.create(mockedService), "bell");
+    ActorRef<Bell.BellCommand> bell = testKit.spawn(
+      Bell.create(mockedService),
+      "bell"
+    );
     LoggingTestKit.info("bell in state On").expect(testKit.system(), () -> {
       bell.tell(new Bell.CommandBellOn(trainSpeed));
       return null;
@@ -44,7 +47,10 @@ public class BellTest {
 
   @Test
   public void duplicateCommands() {
-    ActorRef<Bell.BellCommand> bell = testKit.spawn(Bell.create(mockedService), "bell1");
+    ActorRef<Bell.BellCommand> bell = testKit.spawn(
+      Bell.create(mockedService),
+      "bell1"
+    );
     LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {

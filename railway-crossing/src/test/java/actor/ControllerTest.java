@@ -23,11 +23,12 @@ public class ControllerTest {
 
   private static final ActorTestKit testKit = ActorTestKit.create();
 
-  private final TestProbe<Gate.GateCommand> gate = testKit.createTestProbe(Gate.GateCommand.class);
-
-  private final TestProbe<LightMachine.LightMachineCommand> lightMachine = testKit.createTestProbe(
-    LightMachine.LightMachineCommand.class
+  private final TestProbe<Gate.GateCommand> gate = testKit.createTestProbe(
+    Gate.GateCommand.class
   );
+
+  private final TestProbe<LightMachine.LightMachineCommand> lightMachine =
+    testKit.createTestProbe(LightMachine.LightMachineCommand.class);
 
   @Test
   public void initialState() {
@@ -36,34 +37,64 @@ public class ControllerTest {
       Controller.create(gate.getRef(), lightMachine.getRef()),
       "controller"
     );
-    LoggingTestKit.info("controller in state Approaching").expect(testKit.system(), () -> {
-      controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
-      return null;
-    });
-    LoggingTestKit.info("controller in state Close").expect(testKit.system(), () -> {
-      controller.tell(new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId));
-      return null;
-    });
+    LoggingTestKit.info("controller in state Approaching").expect(
+      testKit.system(),
+      () -> {
+        controller.tell(
+          new Controller.CommandTrainSeen(trainSpeed, traceId, spanId)
+        );
+        return null;
+      }
+    );
+    LoggingTestKit.info("controller in state Close").expect(
+      testKit.system(),
+      () -> {
+        controller.tell(
+          new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId)
+        );
+        return null;
+      }
+    );
     gate.expectMessageClass(Gate.CommandClose.class);
     lightMachine.expectMessageClass(LightMachine.CommandTurnOn.class);
-    LoggingTestKit.info("controller in state Present").expect(testKit.system(), () -> {
-      controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
-      return null;
-    });
-    LoggingTestKit.info("controller in state Leaving").expect(testKit.system(), () -> {
-      controller.tell(new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId));
-      return null;
-    });
+    LoggingTestKit.info("controller in state Present").expect(
+      testKit.system(),
+      () -> {
+        controller.tell(
+          new Controller.CommandTrainSeen(trainSpeed, traceId, spanId)
+        );
+        return null;
+      }
+    );
+    LoggingTestKit.info("controller in state Leaving").expect(
+      testKit.system(),
+      () -> {
+        controller.tell(
+          new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId)
+        );
+        return null;
+      }
+    );
     gate.expectMessageClass(Gate.CommandOpen.class);
     lightMachine.expectMessageClass(LightMachine.CommandTurnOff.class);
-    LoggingTestKit.info("controller in state Left").expect(testKit.system(), () -> {
-      controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
-      return null;
-    });
-    LoggingTestKit.info("controller in state Away").expect(testKit.system(), () -> {
-      controller.tell(new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId));
-      return null;
-    });
+    LoggingTestKit.info("controller in state Left").expect(
+      testKit.system(),
+      () -> {
+        controller.tell(
+          new Controller.CommandTrainSeen(trainSpeed, traceId, spanId)
+        );
+        return null;
+      }
+    );
+    LoggingTestKit.info("controller in state Away").expect(
+      testKit.system(),
+      () -> {
+        controller.tell(
+          new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId)
+        );
+        return null;
+      }
+    );
   }
 
   @Test
@@ -75,57 +106,94 @@ public class ControllerTest {
     LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        controller.tell(new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId));
+        controller.tell(
+          new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId)
+        );
         return null;
       });
-    LoggingTestKit.info("controller1 in state Approaching").expect(testKit.system(), () -> {
-      controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
-      return null;
-    });
+    LoggingTestKit.info("controller1 in state Approaching").expect(
+      testKit.system(),
+      () -> {
+        controller.tell(
+          new Controller.CommandTrainSeen(trainSpeed, traceId, spanId)
+        );
+        return null;
+      }
+    );
     LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
+        controller.tell(
+          new Controller.CommandTrainSeen(trainSpeed, traceId, spanId)
+        );
         return null;
       });
-    LoggingTestKit.info("controller1 in state Close").expect(testKit.system(), () -> {
-      controller.tell(new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId));
-      return null;
-    });
+    LoggingTestKit.info("controller1 in state Close").expect(
+      testKit.system(),
+      () -> {
+        controller.tell(
+          new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId)
+        );
+        return null;
+      }
+    );
     LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        controller.tell(new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId));
+        controller.tell(
+          new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId)
+        );
         return null;
       });
-    LoggingTestKit.info("controller1 in state Present").expect(testKit.system(), () -> {
-      controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
-      return null;
-    });
+    LoggingTestKit.info("controller1 in state Present").expect(
+      testKit.system(),
+      () -> {
+        controller.tell(
+          new Controller.CommandTrainSeen(trainSpeed, traceId, spanId)
+        );
+        return null;
+      }
+    );
     LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
+        controller.tell(
+          new Controller.CommandTrainSeen(trainSpeed, traceId, spanId)
+        );
         return null;
       });
-    LoggingTestKit.info("controller1 in state Leaving").expect(testKit.system(), () -> {
-      controller.tell(new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId));
-      return null;
-    });
+    LoggingTestKit.info("controller1 in state Leaving").expect(
+      testKit.system(),
+      () -> {
+        controller.tell(
+          new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId)
+        );
+        return null;
+      }
+    );
     LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        controller.tell(new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId));
+        controller.tell(
+          new Controller.CommandTrainNotSeen(trainSpeed, traceId, spanId)
+        );
         return null;
       });
-    LoggingTestKit.info("controller1 in state Left").expect(testKit.system(), () -> {
-      controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
-      return null;
-    });
+    LoggingTestKit.info("controller1 in state Left").expect(
+      testKit.system(),
+      () -> {
+        controller.tell(
+          new Controller.CommandTrainSeen(trainSpeed, traceId, spanId)
+        );
+        return null;
+      }
+    );
     LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        controller.tell(new Controller.CommandTrainSeen(trainSpeed, traceId, spanId));
+        controller.tell(
+          new Controller.CommandTrainSeen(trainSpeed, traceId, spanId)
+        );
         return null;
       });
   }

@@ -44,7 +44,8 @@ public class ControllerSetup
   private static final String natsTopic = "peripheral.sensor";
 
   /** Logging prefix for the NatsDispatcher */
-  private static final String natsLoggingMessage = "INFO: Nats Dispatcher Message -- ";
+  private static final String natsLoggingMessage =
+    "INFO: Nats Dispatcher Message -- ";
 
   /** The railway-crossing-id of the Controller */
   public final String crossingId;
@@ -59,7 +60,9 @@ public class ControllerSetup
   private ActorRef<Controller.ControllerCommand> controller;
 
   /** The ServiceKey to discover the lightMachine ActorRef from the Receptionist */
-  private final ServiceKey<LightMachine.LightMachineCommand> lightMachineServiceKey;
+  private final ServiceKey<
+    LightMachine.LightMachineCommand
+  > lightMachineServiceKey;
 
   /** The ServiceKey to discover the gate ActorRef from the Receptionist */
   private final ServiceKey<Gate.GateCommand> gateServiceKey;
@@ -67,7 +70,10 @@ public class ControllerSetup
   /** Nats Connection */
   private Connection nc = null;
 
-  private ControllerSetup(ActorContext<Receptionist.Listing> context, String crossingId) {
+  private ControllerSetup(
+    ActorContext<Receptionist.Listing> context,
+    String crossingId
+  ) {
     super(context);
     this.crossingId = crossingId;
     //Create the ServiceKeys for the Gate and the LightMachine
@@ -87,10 +93,16 @@ public class ControllerSetup
     getContext()
       .getSystem()
       .receptionist()
-      .tell(Receptionist.subscribe(lightMachineServiceKey, getContext().getSelf()));
+      .tell(
+        Receptionist.subscribe(lightMachineServiceKey, getContext().getSelf())
+      );
     context
       .getLog()
-      .info("Controller subscribed to ServiceKeys: {}, {}", gateServiceKey, lightMachineServiceKey);
+      .info(
+        "Controller subscribed to ServiceKeys: {}, {}",
+        gateServiceKey,
+        lightMachineServiceKey
+      );
   }
 
   /**
@@ -106,7 +118,9 @@ public class ControllerSetup
   /** Defines the  {@link Behavior} of the {@link ControllerSetup} Actor that handles messages from the {@link Receptionist}.*/
   @Override
   public Receive<Receptionist.Listing> createReceive() {
-    return newReceiveBuilder().onMessage(Receptionist.Listing.class, this::onListing).build();
+    return newReceiveBuilder()
+      .onMessage(Receptionist.Listing.class, this::onListing)
+      .build();
   }
 
   /**
@@ -114,7 +128,9 @@ public class ControllerSetup
    *
    * @param listing message of the {@link Receptionist} that contains a list of {@link ActorRef}s
    */
-  private Behavior<Receptionist.Listing> onListing(Receptionist.Listing listing) {
+  private Behavior<Receptionist.Listing> onListing(
+    Receptionist.Listing listing
+  ) {
     //Check for what ServiceKey the message is
     if (listing.isForKey(gateServiceKey)) {
       List<ActorRef<Gate.GateCommand>> availableGates = listing
@@ -122,13 +138,15 @@ public class ControllerSetup
         .stream()
         .toList();
       //Extract Gate ActorRef if available
-      gate = checkInstances(getContext(), availableGates, Gate.GateCommand.class);
+      gate = checkInstances(
+        getContext(),
+        availableGates,
+        Gate.GateCommand.class
+      );
     }
     if (listing.isForKey(lightMachineServiceKey)) {
-      List<ActorRef<LightMachine.LightMachineCommand>> availableLightMachines = listing
-        .getServiceInstances(lightMachineServiceKey)
-        .stream()
-        .toList();
+      List<ActorRef<LightMachine.LightMachineCommand>> availableLightMachines =
+        listing.getServiceInstances(lightMachineServiceKey).stream().toList();
       //Extract LightMachine ActorRef if available
       lightMachine = checkInstances(
         getContext(),
@@ -164,16 +182,25 @@ public class ControllerSetup
       return NatsSetupStatus.Success;
     }
     try {
-      Configuration.NodeConfiguration config = Configuration.getNodeConfiguration();
-      nc = Nats.connect("nats://" + config.nats_server_addr() + ":" + config.nats_server_port());
+      Configuration.NodeConfiguration config =
+        Configuration.getNodeConfiguration();
+      nc = Nats.connect(
+        "nats://" + config.nats_server_addr() + ":" + config.nats_server_port()
+      );
       Dispatcher dispatcher = nc.createDispatcher(this::NatsDispatcher);
       dispatcher.subscribe(natsTopic);
       getContext()
         .getLog()
-        .info("{} subscribed to Topic: {}", crossingId + componentSuffix, natsTopic);
+        .info(
+          "{} subscribed to Topic: {}",
+          crossingId + componentSuffix,
+          natsTopic
+        );
       return NatsSetupStatus.Success;
     } catch (Exception e) {
-      getContext().getLog().error("Could not connect to nats server, error: {}", e.getMessage());
+      getContext()
+        .getLog()
+        .error("Could not connect to nats server, error: {}", e.getMessage());
       return NatsSetupStatus.Failure;
     }
   }
@@ -210,7 +237,9 @@ public class ControllerSetup
       }
     } catch (InvalidProtocolBufferException e) {
       System.out.println(
-        natsLoggingMessage + "Error parsing nats message to event: " + e.getMessage()
+        natsLoggingMessage +
+          "Error parsing nats message to event: " +
+          e.getMessage()
       );
     }
   }
@@ -218,6 +247,6 @@ public class ControllerSetup
   /** Status of the Nats Initialization */
   private enum NatsSetupStatus {
     Success,
-    Failure
+    Failure,
   }
 }

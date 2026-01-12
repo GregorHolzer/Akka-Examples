@@ -20,14 +20,22 @@ public class Configuration {
    * @param configPath the path to the JSON configuration file.
    * @return {@link ConfigStatus#Success} if the configuration is loaded successfully, {@link ConfigStatus#Failure} otherwise.
    */
-  public static ConfigStatus initConfig(ActorContext<?> context, String configPath, Integer nodeId) {
+  public static ConfigStatus initConfig(
+    ActorContext<?> context,
+    String configPath,
+    Integer nodeId
+  ) {
     if (nodeConfiguration == null) {
       try {
         ObjectMapper mapper = new ObjectMapper();
-        nodeConfiguration = mapper.readValue(new File(configPath), NodeConfiguration.class);
+        nodeConfiguration = mapper.readValue(
+          new File(configPath),
+          NodeConfiguration.class
+        );
         context.getLog().info("Configuration loaded successfully:");
         nodeConfiguration
-          .crossings().get(nodeId)
+          .crossings()
+          .get(nodeId)
           .forEach(crossing -> {
             context.getLog().info("Crossing ID: {}", crossing.crossingId());
             context.getLog().info("Components: {}", crossing.components());
@@ -64,7 +72,7 @@ public class Configuration {
   /** Results of loading the NodeConfig */
   public enum ConfigStatus {
     Success,
-    Failure
+    Failure,
   }
 
   /** Railway-Crossing Components */
@@ -73,11 +81,14 @@ public class Configuration {
     LightMachine,
     Gate,
     Bell,
-    None
+    None,
   }
 
   /** Specifies which components to create for a specific Railway-Crossing */
-  public record CrossingConfiguration(String crossingId, List<ComponentType> components) {}
+  public record CrossingConfiguration(
+    String crossingId,
+    List<ComponentType> components
+  ) {}
 
   /** Specifies the Railway-Crossings, Location of Railway-Service, Location of NATS, Location of Telegraf */
   public record NodeConfiguration(
