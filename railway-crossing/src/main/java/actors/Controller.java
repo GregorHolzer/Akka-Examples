@@ -36,9 +36,6 @@ public class Controller
   /** Reference to the Gate actor */
   private final ActorRef<Gate.GateCommand> gate;
 
-  /** Current state of the Controller: initial Away */
-  private State state = State.Away;
-
   private Controller(
     ActorContext<ControllerCommand> context,
     ActorRef<LightMachine.LightMachineCommand> lightMachine,
@@ -74,64 +71,68 @@ public class Controller
   @Override
   public Receive<ControllerCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(CommandTrainSeen.class, cmd -> onTrainSeen())
-      .onMessage(CommandTrainNotSeen.class, this::onTrainNotSeen)
+      .onMessage(CommandTrainNotSeen.class, cmd -> Behaviors.same())
+      .onMessage(CommandTrainSeen.class, cmd -> approaching())
       .build();
   }
 
-  /**
-   * Handles the {@link CommandTrainSeen} message and updates the state when a train is detected.
-   *
-   * @return the current {@link Behavior}
-   */
-  private Behavior<ControllerCommand> onTrainSeen() {
-    switch (state) {
-      case Away -> {
-        state = State.Approaching;
-        logState(getContext(), state);
-      }
-      case Close -> {
-        state = State.Present;
-        logState(getContext(), state);
-      }
-      case Leaving -> {
-        state = State.Left;
-        logState(getContext(), state);
-      }
-    }
-    return Behaviors.same();
+  /** Represents the Away-State of the Controller */
+  private Behavior<ControllerCommand> away() {
+    logState(getContext(), State.Away);
+    return createReceive();
   }
 
-  /**
-   * Handles the {@link CommandTrainNotSeen} message and updates the state when a train is no longer detected.
-   * <p>
-   * Sends appropriate commands to the {@link LightMachine} and {@link Gate} actors based on the current state.
-   * </p>
-   *
-   * @param cmd message containing train speed and tracing information
-   * @return the current {@link Behavior}
-   */
-  private Behavior<ControllerCommand> onTrainNotSeen(CommandTrainNotSeen cmd) {
-    switch (state) {
-      case Approaching -> {
-        getContext().getLog().info("Passed on TrainSpeed: {}", cmd.trainSpeed);
+  /** Represents the Approaching-State of the Controller */
+  private Behavior<ControllerCommand> approaching() {
+    logState(getContext(), State.Approaching);
+    return newReceiveBuilder()
+      .onMessage(CommandTrainNotSeen.class, cmd -> {
         lightMachine.tell(new LightMachine.CommandTurnOn(cmd.trainSpeed));
         gate.tell(new Gate.CommandClose(cmd.trainSpeed));
-        state = State.Close;
-        logState(getContext(), state);
-      }
-      case Present -> {
+        return close();
+      })
+      .onMessage(CommandTrainSeen.class, cmd -> Behaviors.same())
+      .build();
+  }
+
+  /** Represents the Close-State of the Controller */
+  private Behavior<ControllerCommand> close() {
+    logState(getContext(), State.Close);
+    return newReceiveBuilder()
+      .onMessage(CommandTrainNotSeen.class, cmd -> Behaviors.same())
+      .onMessage(CommandTrainSeen.class, cmd -> present())
+      .build();
+  }
+
+  /** Represents the Present-State of the Controller */
+  private Behavior<ControllerCommand> present() {
+    logState(getContext(), State.Present);
+    return newReceiveBuilder()
+      .onMessage(CommandTrainNotSeen.class, cmd -> {
         lightMachine.tell(new LightMachine.CommandTurnOff());
         gate.tell(new Gate.CommandOpen(cmd.traceId, cmd.spanId));
-        state = State.Leaving;
-        logState(getContext(), state);
-      }
-      case Left -> {
-        state = State.Away;
-        logState(getContext(), state);
-      }
-    }
-    return Behaviors.same();
+        return leaving();
+      })
+      .onMessage(CommandTrainSeen.class, cmd -> Behaviors.same())
+      .build();
+  }
+
+  /** Represents the Leaving-State of the Controller */
+  private Behavior<ControllerCommand> leaving() {
+    logState(getContext(), State.Leaving);
+    return newReceiveBuilder()
+      .onMessage(CommandTrainNotSeen.class, cmd -> Behaviors.same())
+      .onMessage(CommandTrainSeen.class, cmd -> left())
+      .build();
+  }
+
+  /** Represents the Left-State of the Controller */
+  private Behavior<ControllerCommand> left() {
+    logState(getContext(), State.Left);
+    return newReceiveBuilder()
+      .onMessage(CommandTrainNotSeen.class, cmd -> away())
+      .onMessage(CommandTrainSeen.class, cmd -> Behaviors.same())
+      .build();
   }
 
   /**

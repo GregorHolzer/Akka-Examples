@@ -29,9 +29,6 @@ public class Bell
   /** Service to turn the Bell on or to turn the Bell off */
   private final RailwayService railwayService;
 
-  /** Current state of the Bell: initial Off */
-  private State state = State.Off;
-
   private Bell(
     ActorContext<Bell.BellCommand> context,
     RailwayService railwayService
@@ -59,46 +56,39 @@ public class Bell
   @Override
   public Receive<BellCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(CommandBellOn.class, msg -> onTurnOn(msg.trainSpeed))
-      .onMessage(CommandBellOff.class, this::onTurnOff)
+      .onMessage(CommandBellOff.class, cmd -> Behaviors.same())
+      .onMessage(CommandBellOn.class, cmd -> {
+        railwayService.bellOn(
+          getContext(),
+          getContext().getSelf().path().name(),
+          cmd.trainSpeed
+        );
+        return on();
+      })
       .build();
   }
 
-  /**
-   * Handles the {@link CommandBellOn} message and turns the bell on.
-   *
-   * @param trainSpeed the speed of the approaching train
-   */
-  private Behavior<Bell.BellCommand> onTurnOn(Double trainSpeed) {
-    if (state == State.Off) {
-      state = State.On;
-      railwayService.bellOn(
-        getContext(),
-        getContext().getSelf().path().name(),
-        trainSpeed
-      );
-      logState(getContext(), Bell.State.On);
-    }
-    return Behaviors.same();
+  /** Represents the Off-State of the Bell */
+  private Behavior<BellCommand> off() {
+    logState(getContext(), State.Off);
+    return createReceive();
   }
 
-  /**
-   * Handles the {@link CommandBellOff} message and turns the bell off.
-   *
-   * @param cmd message from the {@link Gate} containing tracing information
-   */
-  private Behavior<Bell.BellCommand> onTurnOff(CommandBellOff cmd) {
-    if (state == State.On) {
-      state = State.Off;
-      railwayService.bellOff(
-        getContext(),
-        getContext().getSelf().path().name(),
-        cmd.traceId,
-        cmd.spanId
-      );
-      logState(getContext(), state);
-    }
-    return Behaviors.same();
+  /** Represents the On-State of the Bell */
+  private Behavior<BellCommand> on() {
+    logState(getContext(), State.On);
+    return newReceiveBuilder()
+      .onMessage(CommandBellOff.class, cmd -> {
+        railwayService.bellOff(
+          getContext(),
+          getContext().getSelf().path().name(),
+          cmd.traceId,
+          cmd.spanId
+        );
+        return off();
+      })
+      .onMessage(CommandBellOn.class, cmd -> Behaviors.same())
+      .build();
   }
 
   /**
@@ -117,10 +107,7 @@ public class Bell
   /**
    * Message to change the Bell state to {@link State#On}.
    */
-  public static class CommandBellOn implements BellCommand {
-
-    public final Double trainSpeed;
-
+  public record CommandBellOn(Double trainSpeed) implements BellCommand {
     @JsonCreator
     public CommandBellOn(@JsonProperty("trainSpeed") Double trainSpeed) {
       this.trainSpeed = trainSpeed;
@@ -130,12 +117,8 @@ public class Bell
   /**
    * Message to change the Bell state to {@link State#Off}.
    */
-  public static class CommandBellOff implements BellCommand {
-
-    public final String traceId;
-
-    public final String spanId;
-
+  public record CommandBellOff(String traceId, String spanId) implements
+    BellCommand {
     @JsonCreator
     public CommandBellOff(
       @JsonProperty("traceId") String traceId,

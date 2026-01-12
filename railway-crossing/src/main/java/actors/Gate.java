@@ -33,9 +33,6 @@ public class Gate
   /** Service to open or close the Gate */
   private final RailwayService railwayService;
 
-  /** Current state of the Gate: initial Open */
-  private State state = State.Open;
-
   private Gate(
     ActorContext<GateCommand> context,
     ActorRef<Bell.BellCommand> bell,
@@ -68,48 +65,41 @@ public class Gate
    */
   public Receive<GateCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(CommandOpen.class, this::onGateOpen)
-      .onMessage(CommandClose.class, msg -> onGateClose(msg.trainSpeed))
+      .onMessage(CommandOpen.class, cmd -> Behaviors.same())
+      .onMessage(CommandClose.class, cmd -> {
+        railwayService.gateDown(
+          getContext(),
+          getContext().getSelf().path().name(),
+          cmd.trainSpeed
+        );
+        bell.tell(new Bell.CommandBellOn(cmd.trainSpeed));
+        return closed();
+      })
       .build();
   }
 
-  /**
-   * Handles the {@link CommandClose} message and closes the gate.
-   *
-   * @param trainSpeed the speed of the approaching train
-   */
-  private Behavior<GateCommand> onGateClose(Double trainSpeed) {
-    if (state == State.Open) {
-      bell.tell(new Bell.CommandBellOn(trainSpeed));
-      state = State.Closed;
-      railwayService.gateDown(
-        getContext(),
-        getContext().getSelf().path().name(),
-        trainSpeed
-      );
-      logState(getContext(), state);
-    }
-    return Behaviors.same();
+  /** Represents the Open-State of the Gate Actor */
+  private Behavior<GateCommand> open() {
+    logState(getContext(), State.Open);
+    return createReceive();
   }
 
-  /**
-   * Handles the {@link CommandOpen} message and opens the gate.
-   *
-   * @param cmd message from the {@link Controller} containing tracing information
-   */
-  private Behavior<GateCommand> onGateOpen(CommandOpen cmd) {
-    if (state == State.Closed) {
-      railwayService.gateUp(
-        getContext(),
-        bell,
-        getContext().getSelf().path().name(),
-        cmd.traceId,
-        cmd.spanId
-      );
-      state = State.Open;
-      logState(getContext(), state);
-    }
-    return Behaviors.same();
+  /** Represents the Closed-State of the Gate Actor */
+  private Behavior<GateCommand> closed() {
+    logState(getContext(), State.Closed);
+    return newReceiveBuilder()
+      .onMessage(CommandOpen.class, cmd -> {
+        railwayService.gateUp(
+          getContext(),
+          bell,
+          getContext().getSelf().path().name(),
+          cmd.traceId,
+          cmd.spanId
+        );
+        return open();
+      })
+      .onMessage(CommandClose.class, cmd -> Behaviors.same())
+      .build();
   }
 
   /**

@@ -29,9 +29,6 @@ public class LightMachine
   /** Service to turn the LightMachine on or off */
   private final RailwayService railwayService;
 
-  /** Current state of the LightMachine: initial Off */
-  private State state = State.Off;
-
   private LightMachine(
     ActorContext<LightMachineCommand> context,
     RailwayService railwayService
@@ -63,49 +60,36 @@ public class LightMachine
   @Override
   public Receive<LightMachineCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(CommandTurnOn.class, msg -> onTurnOn(msg.trainSpeed))
-      .onMessage(CommandTurnOff.class, msg -> onTurnOff())
+      .onMessage(CommandTurnOff.class, cmd -> Behaviors.same())
+      .onMessage(CommandTurnOn.class, cmd -> {
+        railwayService.lightOn(
+          getContext(),
+          getContext().getSelf().path().name(),
+          cmd.trainSpeed
+        );
+        return on();
+      })
       .build();
   }
 
-  /**
-   * Handles the {@link CommandTurnOn} message and turns the LightMachine on.
-   *
-   * @param trainSpeed the speed of the approaching train
-   * @return the current {@link Behavior}
-   */
-  private Behavior<LightMachineCommand> onTurnOn(Double trainSpeed) {
-    if (state == State.Off) {
-      state = State.On;
-      railwayService.lightEarlyWarning(
-        getContext(),
-        getContext().getSelf().path().name()
-      );
-      railwayService.lightOn(
-        getContext(),
-        getContext().getSelf().path().name(),
-        trainSpeed
-      );
-      logState(getContext(), state);
-    }
-    return Behaviors.same();
+  /** Represents the Off-State of the LightMachine */
+  private Behavior<LightMachineCommand> off() {
+    logState(getContext(), State.Off);
+    return createReceive();
   }
 
-  /**
-   * Handles the {@link CommandTurnOff} message and turns the LightMachine off.
-   *
-   * @return the current {@link Behavior}
-   */
-  private Behavior<LightMachineCommand> onTurnOff() {
-    if (state == State.On) {
-      state = State.Off;
-      railwayService.lightOff(
-        getContext(),
-        getContext().getSelf().path().name()
-      );
-      logState(getContext(), state);
-    }
-    return Behaviors.same();
+  /** Represents the On-State of the LightMachine */
+  private Behavior<LightMachineCommand> on() {
+    logState(getContext(), State.On);
+    return newReceiveBuilder()
+      .onMessage(CommandTurnOff.class, cmd -> {
+        railwayService.lightOff(
+          getContext(),
+          getContext().getSelf().path().name()
+        );
+        return off();
+      })
+      .build();
   }
 
   /**

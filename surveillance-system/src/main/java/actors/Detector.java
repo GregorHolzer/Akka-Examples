@@ -1,7 +1,6 @@
 package actors;
 
 import actors.common.Command;
-import actors.common.Configuration;
 import actors.common.SharedCommands;
 import actors.common.StateMachine;
 import akka.actor.typed.ActorRef;
@@ -12,7 +11,6 @@ import akka.actor.typed.pubsub.Topic;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Duration;
-import scala.Int;
 import services.DetectorService;
 
 /**
@@ -44,9 +42,6 @@ public class Detector
 
   /** The {@link ActorRef} of the {@link Surveillance} Actor that will receive the {@link Surveillance.FoundPersons} messages */
   private final ActorRef<Surveillance.SurveillanceCommand> surveillanceActorRef;
-
-  /** The current state of the {@link Detector}: initial {@link DetectorState#Capturing} */
-  private DetectorState detectorState = DetectorState.Capturing;
 
   /** Timeout to move back to the processing State */
   private final Integer detectorTimeout;
@@ -112,11 +107,11 @@ public class Detector
   @Override
   public Receive<DetectorCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(CapturedImage.class, this::onCapturedImage)
-      .onMessage(DetectedPersons.class, this::onDetectedPersons)
-      .onMessage(Timeout.class, msg -> onTimeout())
-      .onMessage(SharedCommands.Alarm.class, msg -> onAlarm())
-      .onMessage(SharedCommands.Disarm.class, msg -> onDisarm())
+      .onMessage(CapturedImage.class, this::processing)
+      .onMessage(DetectedPersons.class, msg -> Behaviors.same())
+      .onMessage(Timeout.class, msg -> Behaviors.same())
+      .onMessage(SharedCommands.Alarm.class, msg -> this.alarm())
+      .onMessage(SharedCommands.Disarm.class, msg -> Behaviors.same())
       .onMessage(
         SharedCommands.InvocationFailure.class,
         this::onInvocationFailure
@@ -125,73 +120,64 @@ public class Detector
   }
 
   /**
-   * Handles the captured image and start person detection.
-   *
-   * @param capturedImage a message from the {@link DetectorService} that contains the captured image.
+   * Represents the Capturing-State of the Detector
+   * Checks the result of the person detection and may send a message to the {@link Surveillance} Actor to further analyze the image.
    */
-  private Behavior<DetectorCommand> onCapturedImage(
-    CapturedImage capturedImage
-  ) {
-    if (detectorState == DetectorState.Capturing) {
-      detectorState = DetectorState.Processing;
-      logState(getContext(), detectorState);
-      detectorService.detectPersons(getContext(), capturedImage);
-      timers.startSingleTimer(
-        TIMEOUT_KEY,
-        new Timeout(),
-        Duration.ofMillis(detectorTimeout)
-      );
-    }
-    return Behaviors.same();
+  private Behavior<DetectorCommand> capturing() {
+    logState(getContext(), DetectorState.Capturing);
+    detectorService.cameraCapture(getContext(), cameraId);
+    return createReceive();
   }
 
   /**
-   * Checks the result of the person detection and may send a message to the {@link Surveillance} Actor to further analyze the image.
+   * Represents the Processing-State of the Detector
    *
-   * @param detectedPersons a message from the {@link Surveillance} that contains information about the analyzed image.
+   * @param capturedImage a message from the {@link DetectorService} that contains the captured image.
    */
-  private Behavior<DetectorCommand> onDetectedPersons(
-    DetectedPersons detectedPersons
-  ) {
-    if (detectorState == DetectorState.Processing) {
-      if (detectedPersons.hasDetectedPersons) {
-        surveillanceActorRef.tell(
-          new Surveillance.FoundPersons(detectedPersons.image)
-        );
-      }
-    }
-    return Behaviors.same();
+  private Behavior<DetectorCommand> processing(CapturedImage capturedImage) {
+    logState(getContext(), DetectorState.Processing);
+    detectorService.detectPersons(getContext(), capturedImage);
+    timers.startSingleTimer(
+      TIMEOUT_KEY,
+      new Timeout(),
+      Duration.ofMillis(detectorTimeout)
+    );
+    return newReceiveBuilder()
+      .onMessage(CapturedImage.class, msg -> Behaviors.same())
+      .onMessage(DetectedPersons.class, msg -> {
+        if (msg.hasDetectedPersons) {
+          surveillanceActorRef.tell(new Surveillance.FoundPersons(msg.image));
+        }
+        return Behaviors.same();
+      })
+      .onMessage(Timeout.class, msg -> this.capturing())
+      .onMessage(SharedCommands.Alarm.class, msg -> this.alarm())
+      .onMessage(SharedCommands.Disarm.class, msg -> Behaviors.same())
+      .onMessage(
+        SharedCommands.InvocationFailure.class,
+        this::onInvocationFailure
+      )
+      .build();
   }
 
-  /** Handles the Timeout Message and captures the next image. */
-  private Behavior<DetectorCommand> onTimeout() {
-    if (detectorState == DetectorState.Processing) {
-      detectorState = DetectorState.Capturing;
-      logState(getContext(), detectorState);
-      detectorService.cameraCapture(getContext(), cameraId);
-    }
-    return Behaviors.same();
-  }
-
-  /** Handles an Alarm Message and turns the alarm on */
-  private Behavior<DetectorCommand> onAlarm() {
-    //Always move to Alarm-State
-    timers.cancel(TIMEOUT_KEY);
-    detectorState = DetectorState.Alarm;
-    logState(getContext(), detectorState);
+  /** Represents the Alarm-State of the Detector */
+  private Behavior<DetectorCommand> alarm() {
+    logState(getContext(), DetectorState.Alarm);
     detectorService.alarmOn(getContext());
-    return Behaviors.same();
-  }
-
-  /** Handles a Disarm Message and turns the alarm off */
-  private Behavior<DetectorCommand> onDisarm() {
-    if (detectorState == DetectorState.Alarm) {
-      detectorState = DetectorState.Capturing;
-      logState(getContext(), detectorState);
-      detectorService.alarmOff(getContext());
-      detectorService.cameraCapture(getContext(), cameraId);
-    }
-    return Behaviors.same();
+    return newReceiveBuilder()
+      .onMessage(CapturedImage.class, msg -> Behaviors.same())
+      .onMessage(DetectedPersons.class, msg -> Behaviors.same())
+      .onMessage(SharedCommands.Alarm.class, msg -> Behaviors.same())
+      .onMessage(SharedCommands.Disarm.class, msg -> {
+        detectorService.alarmOff(getContext());
+        return this.capturing();
+      })
+      .onMessage(Timeout.class, msg -> Behaviors.same())
+      .onMessage(
+        SharedCommands.InvocationFailure.class,
+        this::onInvocationFailure
+      )
+      .build();
   }
 
   /**

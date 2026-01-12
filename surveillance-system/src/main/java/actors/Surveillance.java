@@ -1,7 +1,6 @@
 package actors;
 
 import actors.common.Command;
-import actors.common.Configuration;
 import actors.common.SharedCommands;
 import actors.common.StateMachine;
 import akka.actor.typed.ActorRef;
@@ -57,11 +56,6 @@ public class Surveillance
    * Provides functionality to invoke surveillance-services
    */
   private final SurveillanceService surveillanceService;
-
-  /**
-   * Current State of the Surveillance Actor: initial {@link SurveillanceState#Processing}
-   */
-  private SurveillanceState surveillanceState = SurveillanceState.Processing;
 
   /** Timeout to disarm the system */
   private final Integer alarmTimeout;
@@ -131,10 +125,26 @@ public class Surveillance
   @Override
   public Receive<SurveillanceCommand> createReceive() {
     return newReceiveBuilder()
-      .onMessage(FoundPersons.class, this::onFoundPersons)
-      .onMessage(Analyzed.class, this::onAnalyzed)
-      .onMessage(SharedCommands.Alarm.class, msg -> onAlarm())
-      .onMessage(SharedCommands.Disarm.class, msg -> onDisarm())
+      .onMessage(FoundPersons.class, msg -> {
+        surveillanceService.analyze(getContext(), msg);
+        return Behaviors.same();
+      })
+      .onMessage(Analyzed.class, msg -> {
+        if (msg.hasThreat) {
+          surveillanceTopic.tell(Topic.publish(new SharedCommands.Alarm()));
+          detectorTopic.tell(Topic.publish(new SharedCommands.Alarm()));
+          timers.startSingleTimer(
+            TIMEOUT_KEY,
+            new AlarmTimeout(),
+            Duration.ofMillis(alarmTimeout)
+          );
+          return this.alarm();
+        }
+        return Behaviors.same();
+      })
+      .onMessage(SharedCommands.Alarm.class, msg -> this.alarm())
+      .onMessage(SharedCommands.Disarm.class, msg -> Behaviors.same())
+      .onMessage(AlarmTimeout.class, msg -> Behaviors.same())
       .onMessage(
         SharedCommands.InvocationFailure.class,
         this::onInvocationFailure
@@ -142,64 +152,30 @@ public class Surveillance
       .build();
   }
 
-  /**
-   * Handles the {@link FoundPersons} message and analyzes the image.
-   *
-   * @param foundPersons the {@link FoundPersons} message of a {@link Detector} that contains an image.
-   */
-  private Behavior<SurveillanceCommand> onFoundPersons(
-    FoundPersons foundPersons
-  ) {
-    if (surveillanceState == SurveillanceState.Processing) {
-      surveillanceService.analyze(getContext(), foundPersons);
-    }
-    return Behaviors.same();
+  /** Represents the Processing-State of the Surveillance Actor */
+  private Behavior<SurveillanceCommand> processing() {
+    logState(getContext(), SurveillanceState.Processing);
+    return createReceive();
   }
 
-  /**
-   * Handles the result of an analyzed image.
-   *
-   * @param analyzed the {@link Analyzed} message from the {@link SurveillanceService} that contains the result of the analyzed image
-   */
-  private Behavior<SurveillanceCommand> onAnalyzed(Analyzed analyzed) {
-    if (surveillanceState == SurveillanceState.Processing) {
-      if (analyzed.hasThreat) {
-        //getContext().getSelf().tell(new GlobalCommands.Alarm());
-        surveillanceTopic.tell(Topic.publish(new SharedCommands.Alarm()));
-        detectorTopic.tell(Topic.publish(new SharedCommands.Alarm()));
-      }
-    }
-    return Behaviors.same();
-  }
-
-  /**
-   * Handles the {@link SharedCommands.Alarm} message and publishes it to the Surveillance and Detector Topic
-   */
-  private Behavior<SurveillanceCommand> onAlarm() {
-    if (surveillanceState == SurveillanceState.Processing) {
-      surveillanceState = SurveillanceState.Alarm;
-      logState(getContext(), surveillanceState);
-      timers.startSingleTimer(
-        TIMEOUT_KEY,
-        new SharedCommands.Disarm(),
-        Duration.ofMillis(alarmTimeout)
-      );
-    }
-    return Behaviors.same();
-  }
-
-  /**
-   * Handles the {@link SharedCommands.Disarm} message and publishes it to the Surveillance and Detector Topic
-   */
-  private Behavior<SurveillanceCommand> onDisarm() {
-    if (surveillanceState == SurveillanceState.Alarm) {
-      surveillanceState = SurveillanceState.Processing;
-      logState(getContext(), surveillanceState);
-      surveillanceTopic.tell(Topic.publish(new SharedCommands.Disarm()));
-      detectorTopic.tell(Topic.publish(new SharedCommands.Disarm()));
-      timers.cancel(TIMEOUT_KEY);
-    }
-    return Behaviors.same();
+  /** Represents the Alarm-State of the Surveillance Actor */
+  private Behavior<SurveillanceCommand> alarm() {
+    logState(getContext(), SurveillanceState.Alarm);
+    return newReceiveBuilder()
+      .onMessage(FoundPersons.class, msg -> Behaviors.same())
+      .onMessage(Analyzed.class, msg -> Behaviors.same())
+      .onMessage(SharedCommands.Alarm.class, msg -> Behaviors.same())
+      .onMessage(SharedCommands.Disarm.class, msg -> this.processing())
+      .onMessage(AlarmTimeout.class, msg -> {
+        detectorTopic.tell(Topic.publish(new SharedCommands.Disarm()));
+        surveillanceTopic.tell(Topic.publish(new SharedCommands.Disarm()));
+        return processing();
+      })
+      .onMessage(
+        SharedCommands.InvocationFailure.class,
+        this::onInvocationFailure
+      )
+      .build();
   }
 
   /**
@@ -258,4 +234,7 @@ public class Surveillance
       this.hasThreat = hasThreat;
     }
   }
+
+  /** Message that indicates that the System should be disarmed */
+  public static class AlarmTimeout implements SurveillanceCommand {}
 }

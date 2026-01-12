@@ -102,9 +102,13 @@ public class SurveillanceTest {
       "test3"
     );
     LoggingTestKit.info("in state Alarm").expect(testKit.system(), () -> {
-      surveillance.tell(new SharedCommands.Alarm());
+      surveillance.tell(new Surveillance.Analyzed(new byte[0], true));
       return null;
     });
+    detector.expectMessageClass(
+      SharedCommands.Alarm.class,
+      Duration.ofSeconds(3)
+    );
     LoggingTestKit.info("analyze")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
