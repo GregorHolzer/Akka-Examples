@@ -88,8 +88,14 @@ services:
       - /config.json
 
   simulate-sensors:
-    image: gregor2323/akka-railway-simple-sensors:latest
-    pull_policy: always
+    image: gregor2323/railway-crossing-signal-generator:latest
+    pull_policy: never
     environment:
       - NATS_URL=nats-server:4222
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://telegraf:4317
+      - MIN_SENSOR_INTERVAL=0.1
+      - MAX_SENSOR_INTERVAL=0.1
+      - MIN_TRAIN_SPEED_MS=150
+      - MAX_TRAIN_SPEED_MS=150
+      - DURATION_IN_SECONDS=60
+      - PYTHONUNBUFFERED=1
