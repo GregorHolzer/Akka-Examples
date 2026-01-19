@@ -1,19 +1,15 @@
 from fastapi import FastAPI, Request, BackgroundTasks
-from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from starlette.responses import Response
 from starlette.status import HTTP_200_OK
-import datetime
 import ContextVariable_pb2
-import Event_pb2
-import logging
 import time, asyncio
-from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.trace import SpanContext, TraceFlags
+from opentelemetry import trace, context
 
 app = FastAPI()
 
@@ -100,53 +96,61 @@ async def gate_down(request: Request, background_tasks: BackgroundTasks):
     context_variables = ContextVariable_pb2.ContextVariables()
     context_variables.ParseFromString(body)
 
-    # Extract the approachingSpeed value
-    approaching_speed = None
-    for context_variable in context_variables.data:
-        if context_variable.name == "approachingSpeed":
-            approaching_speed = context_variable.value.double
-            break
+    seconds_to_close = calc_seconds_to_close(context_variables)
 
-    if approaching_speed is None:
-        return {"error": "approachingSpeed not found in context variables"}
+    parent_context = get_parent_context_from_context_var(context_variables)
 
-    seconds_until_arrival = 1000 / approaching_speed
-    seconds_to_close = seconds_until_arrival - 15 if seconds_until_arrival > 15 else seconds_until_arrival
+    with tracer.start_as_current_span(
+        "process_bell_invocation", context=parent_context
+    ) as span:
 
-    # Retrieve the sender ID
-    id = request.headers.get("Cirrina-Sender-ID")
+        span.set_attribute("type", "gateDownInvocation")
 
-    # Create the gate status if not seen before
-    if id not in gate_statuses:
-        gate_statuses[id] = GateStatus(status="up", last=time.time())
+        # Retrieve the sender ID
+        id = request.headers.get("Cirrina-Sender-ID")
 
-    # Update its state 15 seconds before projected arrival
-    background_tasks.add_task(set_gate_down_in, id, seconds_to_close)
+        # Create the gate status if not seen before
+        if id not in gate_statuses:
+            gate_statuses[id] = GateStatus(status="up", last=time.time())
 
-    response_vars = ContextVariable_pb2.ContextVariables()
-    response_vars.data.add(
-        name="downDelay", value=ContextVariable_pb2.Value(double=seconds_to_close)
-    )
-    # Serialize response
-    response_body = response_vars.SerializeToString()
-    return Response(
-        content=response_body, media_type="application/x-protobuf", status_code=200
-    )
+        current_context = get_parent_context(span.get_span_context().trace_id,span.get_span_context().span_id)
+
+        # Update its state 15 seconds before projected arrival
+        background_tasks.add_task(set_gate_down_in, id, seconds_to_close, current_context)
+
+        response_vars = ContextVariable_pb2.ContextVariables()
+        response_vars.data.add(
+            name="downDelay", value=ContextVariable_pb2.Value(double=seconds_to_close)
+        )
+        # Serialize response
+        response_body = response_vars.SerializeToString()
+        return Response(
+            content=response_body, media_type="application/x-protobuf", status_code=200
+        )
 
 
 @app.post("/gate/up")
-def gate_up(request: Request):
-    # Retrieve the sender ID
-    id = request.headers.get("Cirrina-Sender-ID")
+async def gate_up(request: Request):
+    body = await request.body()
+    context_variables = ContextVariable_pb2.ContextVariables()
+    context_variables.ParseFromString(body)
+    parent_context = get_parent_context_from_context_var(context_variables)
+    with tracer.start_as_current_span(
+        "process_bell_invocation", context=parent_context
+    ) as span:
 
-    # Create the gate status if not seen before
-    if id not in gate_statuses:
-        gate_statuses[id] = GateStatus(status="up", last=time.time())
+        span.set_attribute("type", "gateUpInvocation")
+        # Retrieve the sender ID
+        id = request.headers.get("Cirrina-Sender-ID")
 
-    # Update its state
-    gate_statuses[id].status = "up"
+        # Create the gate status if not seen before
+        if id not in gate_statuses:
+            gate_statuses[id] = GateStatus(status="up", last=time.time())
 
-    return Response(status_code=HTTP_200_OK)
+        # Update its state
+        gate_statuses[id].status = "up"
+
+        return Response(status_code=HTTP_200_OK)
 
 
 @app.post("/light/on")
@@ -158,41 +162,52 @@ async def light_on(request: Request, background_tasks: BackgroundTasks):
     context_variables = ContextVariable_pb2.ContextVariables()
     context_variables.ParseFromString(body)
 
-    # Extract the approachingSpeed value
-    approaching_speed = None
-    for context_variable in context_variables.data:
-        if context_variable.name == "approachingSpeed":
-            approaching_speed = context_variable.value.double
-            break
+    seconds_to_close = calc_seconds_to_close(context_variables)
 
-    seconds_until_arrival = 1000 / approaching_speed
-    seconds_to_close = seconds_until_arrival - 15 if seconds_until_arrival > 15 else seconds_until_arrival
-    # Retrieve the sender ID
-    id = request.headers.get("Cirrina-Sender-ID")
+    parent_context = get_parent_context_from_context_var(context_variables)
 
-    # Create the gate status if not seen before
-    if id not in light_statuses:
-        light_statuses[id] = LightStatus(status="off", last=time.time())
+    with tracer.start_as_current_span(
+        "process_bell_invocation", context=parent_context
+    ) as span:
 
-    # Update its state
-    background_tasks.add_task(set_light_on_in, id, seconds_to_close)
+        span.set_attribute("type", "lightOnInvocation")
+        # Retrieve the sender ID
+        id = request.headers.get("Cirrina-Sender-ID")
 
-    return Response(status_code=HTTP_200_OK)
+        # Create the gate status if not seen before
+        if id not in light_statuses:
+            light_statuses[id] = LightStatus(status="off", last=time.time())
+
+        current_context = get_parent_context(span.get_span_context().trace_id,span.get_span_context().span_id)
+
+        # Update its state
+        background_tasks.add_task(set_light_on_in, id, seconds_to_close, current_context)
+
+        return Response(status_code=HTTP_200_OK)
 
 
 @app.post("/light/off")
 async def light_off(request: Request):
-    # Retrieve the sender ID
-    id = request.headers.get("Cirrina-Sender-ID")
+    body = await request.body()
+    context_variables = ContextVariable_pb2.ContextVariables()
+    context_variables.ParseFromString(body)
+    parent_context = get_parent_context_from_context_var(context_variables)
+    with tracer.start_as_current_span(
+        "process_bell_invocation", context=parent_context
+    ) as span:
 
-    # Create the gate status if not seen before
-    if id not in light_statuses:
-        light_statuses[id] = LightStatus(status="off", last=time.time())
+        span.set_attribute("type", "lightOffInvocation")
+        # Retrieve the sender ID
+        id = request.headers.get("Cirrina-Sender-ID")
 
-    # Update its state
-    light_statuses[id].status = "off"
+        # Create the gate status if not seen before
+        if id not in light_statuses:
+            light_statuses[id] = LightStatus(status="off", last=time.time())
 
-    return Response(status_code=HTTP_200_OK)
+        # Update its state
+        light_statuses[id].status = "off"
+
+        return Response(status_code=HTTP_200_OK)
 
 
 @app.post("/light/earlyWarning")
@@ -219,26 +234,28 @@ async def bell_on(request: Request, background_tasks: BackgroundTasks):
     context_variables = ContextVariable_pb2.ContextVariables()
     context_variables.ParseFromString(body)
 
-    # Extract the approachingSpeed, traceId and spanId values
-    approaching_speed = None
-    for context_variable in context_variables.data:
-        if context_variable.name == "approachingSpeed":
-            approaching_speed = context_variable.value.double
-            break
-    seconds_until_arrival = 1000 / approaching_speed
-    seconds_to_close = seconds_until_arrival - 15 if seconds_until_arrival > 15 else seconds_until_arrival
+    seconds_to_close = calc_seconds_to_close(context_variables)
 
-    # Retrieve the sender ID
-    id = request.headers.get("Cirrina-Sender-ID")
+    parent_context = get_parent_context_from_context_var(context_variables)
 
-    # Create the gate status if not seen before
-    if id not in bell_statuses:
-        bell_statuses[id] = BellStatus(status="off", last=time.time())
+    with tracer.start_as_current_span(
+            "process_bell_invocation", context=parent_context
+    ) as span:
+        span.set_attribute("type", "bellOnInvocation")
 
-    # Update its state 15 seconds before projected arrival
-    background_tasks.add_task(set_bell_on_in, id, seconds_to_close)
+        # Retrieve the sender ID
+        id = request.headers.get("Cirrina-Sender-ID")
 
-    return Response(status_code=HTTP_200_OK)
+        current_context = get_parent_context(span.get_span_context().trace_id,span.get_span_context().span_id)
+
+        # Create the gate status if not seen before
+        if id not in bell_statuses:
+            bell_statuses[id] = BellStatus(status="off", last=time.time())
+
+        # Update its state 15 seconds before projected arrival
+        background_tasks.add_task(set_bell_on_in, id, seconds_to_close, current_context)
+
+        return Response(status_code=HTTP_200_OK)
 
 
 @app.post("/bell/off")
@@ -250,12 +267,84 @@ async def bell_off(request: Request):
     context_variables = ContextVariable_pb2.ContextVariables()
     context_variables.ParseFromString(body)
 
-    # Extract the approachingSpeed, traceId and spanId values
-    traceId = spanId = parent_context = None
+    parent_context = get_parent_context_from_context_var(context_variables)
+
+    with tracer.start_as_current_span(
+        "process_bell_invocation", context=parent_context
+    ) as span:
+
+        span.set_attribute("type", "bellOffInvocation")
+        # Retrieve the sender ID
+        id = request.headers.get("Cirrina-Sender-ID")
+
+        # Create the gate status if not seen before
+        if id not in bell_statuses:
+            bell_statuses[id] = BellStatus(status="off", last=time.time())
+
+        # Update its state
+        bell_statuses[id].status = "off"
+
+        return Response(status_code=HTTP_200_OK)
+
+
+async def set_gate_down_in(id: str, delay: float, parent_context: context.Context):
+    # Delay lowering of gate by given value
+    if delay > 0:
+        await asyncio.sleep(delay)
+    with tracer.start_as_current_span(
+            "process_gate_down", context=parent_context
+    ) as span:
+        span.set_attribute("type", "gateDownAction")
+        # Update its state
+        gate_statuses[id].status = "down"
+        gate_statuses[id].last = time.time()
+
+
+async def set_bell_on_in(id: str, delay: float, parent_context: context.Context):
+    # Delay activation of bell by given value
+    if delay > 0:
+        await asyncio.sleep(delay)
+
+    with tracer.start_as_current_span(
+            "process_bell_on", context=parent_context
+    ) as span:
+        span.set_attribute("type", "bellOnAction")
+        # Update its state
+        bell_statuses[id].status = "on"
+        bell_statuses[id].last = time.time()
+
+
+async def set_light_on_in(id: str, delay: float, parent_context: context.Context):
+    # Delay activation of lights by given value
+    if delay > 0:
+        await asyncio.sleep(delay)
+
+    with tracer.start_as_current_span(
+            "process_light_on", context=parent_context
+    ) as span:
+        span.set_attribute("type", "lightOnAction")
+        # Update its state
+        light_statuses[id].status = "on"
+        light_statuses[id].last = time.time()
+
+def calc_seconds_to_close(context_variables: ContextVariable_pb2.ContextVariables):
+    # Extract the approachingSpeed value
+    approaching_speed = None
+    for context_variable in context_variables.data:
+        if context_variable.name == "approachingSpeed":
+            approaching_speed = context_variable.value.double
+            break
+
+    seconds_until_arrival = 1000 / approaching_speed
+    seconds_to_close = seconds_until_arrival - 15 if seconds_until_arrival > 15 else seconds_until_arrival
+    return seconds_to_close
+
+def get_parent_context_from_context_var(context_variables: ContextVariable_pb2.ContextVariables):
+    traceId = spanId = None
     for context_variable in context_variables.data:
         if context_variable.name == "traceId":
             traceId = context_variable.value.string
-        elif context_variable.name == "spanId":
+        if context_variable.name == "spanId":
             spanId = context_variable.value.string
 
     if traceId and spanId:
@@ -270,52 +359,24 @@ async def bell_off(request: Request):
                 trace_flags=TraceFlags(0x01),
             )
             parent_context = trace.set_span_in_context(trace.NonRecordingSpan(span_ctx))
+            return parent_context
         except Exception as e:
             print("Failed to extract span")
-
-    with tracer.start_as_current_span(
-        "process_bell_invocation", context=parent_context
-    ) as span:
-
-        span.set_attribute("service", "bellOff")
-        # Retrieve the sender ID
-        id = request.headers.get("Cirrina-Sender-ID")
-
-        # Create the gate status if not seen before
-        if id not in bell_statuses:
-            bell_statuses[id] = BellStatus(status="off", last=time.time())
-
-        # Update its state
-        bell_statuses[id].status = "off"
-
-        return Response(status_code=HTTP_200_OK)
+    return None
 
 
-async def set_gate_down_in(id: str, delay: float):
-    # Delay lowering of gate by given value
-    if delay > 0:
-        await asyncio.sleep(delay)
+def get_parent_context(traceId, spanId):
+    if traceId and spanId:
+        try:
+            span_ctx = SpanContext(
+                trace_id=traceId,
+                span_id=spanId,
+                is_remote=True,
+                trace_flags=TraceFlags(0x01),
+            )
+            parent_context = trace.set_span_in_context(trace.NonRecordingSpan(span_ctx))
+            return parent_context
+        except Exception as e:
+            print("Failed to extract span")
+    return None
 
-    # Update its state
-    gate_statuses[id].status = "down"
-    gate_statuses[id].last = time.time()
-
-
-async def set_bell_on_in(id: str, delay: float):
-    # Delay activation of bell by given value
-    if delay > 0:
-        await asyncio.sleep(delay)
-
-    # Update its state
-    bell_statuses[id].status = "on"
-    bell_statuses[id].last = time.time()
-
-
-async def set_light_on_in(id: str, delay: float):
-    # Delay activation of lights by given value
-    if delay > 0:
-        await asyncio.sleep(delay)
-
-    # Update its state
-    light_statuses[id].status = "on"
-    light_statuses[id].last = time.time()

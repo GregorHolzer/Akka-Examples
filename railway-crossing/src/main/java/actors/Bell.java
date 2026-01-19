@@ -1,7 +1,7 @@
 package actors;
 
 import actors.common.Command;
-import actors.common.RailwayService;
+import actors.services.RailwayService;
 import actors.common.StateMachine;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -61,7 +61,7 @@ public class Bell
         railwayService.bellOn(
           getContext(),
           getContext().getSelf().path().name(),
-          cmd.trainSpeed
+          cmd
         );
         return on();
       })
@@ -82,8 +82,7 @@ public class Bell
         railwayService.bellOff(
           getContext(),
           getContext().getSelf().path().name(),
-          cmd.traceId,
-          cmd.spanId
+          cmd
         );
         return off();
       })
@@ -107,10 +106,15 @@ public class Bell
   /**
    * Message to change the Bell state to {@link State#On}.
    */
-  public record CommandBellOn(Double trainSpeed) implements BellCommand {
+  public record CommandBellOn(Double trainSpeed, String traceId, String spanId) implements BellCommand {
     @JsonCreator
-    public CommandBellOn(@JsonProperty("trainSpeed") Double trainSpeed) {
+    public CommandBellOn(
+            @JsonProperty("trainSpeed") Double trainSpeed,
+            @JsonProperty("traceId") String traceId,
+            @JsonProperty("spanId") String spanId) {
       this.trainSpeed = trainSpeed;
+      this.traceId = traceId;
+      this.spanId = spanId;
     }
   }
 

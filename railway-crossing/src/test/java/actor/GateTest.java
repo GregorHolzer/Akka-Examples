@@ -5,7 +5,7 @@ import static org.mockito.Mockito.*;
 
 import actors.Bell;
 import actors.Gate;
-import actors.common.RailwayService;
+import actors.services.RailwayService;
 import actors.common.Telemetry;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
@@ -40,18 +40,18 @@ public class GateTest {
       "gate"
     );
     LoggingTestKit.info("gate in state Closed").expect(testKit.system(), () -> {
-      gate.tell(new Gate.CommandClose(trainSpeed));
+      gate.tell(new Gate.CommandClose(trainSpeed, traceId, spanId));
       return null;
     });
     bell.expectMessageClass(Bell.CommandBellOn.class);
     verify(mockedService).gateDown(any(), any(), any());
-    verify(mockedService, times(0)).gateUp(any(), any(), any(), any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any(), any(), any());
     LoggingTestKit.info("gate in state Open").expect(testKit.system(), () -> {
       gate.tell(new Gate.CommandOpen(traceId, spanId));
       return null;
     });
     verify(mockedService).gateDown(any(), any(), any());
-    verify(mockedService).gateUp(any(), any(), any(), any(), any());
+    verify(mockedService).gateUp(any(), any(), any(), any());
   }
 
   @Test
@@ -67,25 +67,25 @@ public class GateTest {
         return null;
       });
     verify(mockedService, times(0)).gateDown(any(), any(), any());
-    verify(mockedService, times(0)).gateUp(any(), any(), any(), any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any(), any(), any());
     LoggingTestKit.info("gate1 in state Closed").expect(
       testKit.system(),
       () -> {
-        gate.tell(new Gate.CommandClose(trainSpeed));
+        gate.tell(new Gate.CommandClose(trainSpeed, traceId, spanId));
         return null;
       }
     );
     bell.expectMessageClass(Bell.CommandBellOn.class);
     verify(mockedService).gateDown(any(), any(), any());
-    verify(mockedService, times(0)).gateUp(any(), any(), any(), any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any(), any(), any());
     LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        gate.tell(new Gate.CommandClose(trainSpeed));
+        gate.tell(new Gate.CommandClose(trainSpeed, traceId, spanId));
         return null;
       });
     verify(mockedService).gateDown(any(), any(), any());
-    verify(mockedService, times(0)).gateUp(any(), any(), any(), any(), any());
+    verify(mockedService, times(0)).gateUp(any(), any(), any(), any());
   }
 
   @AfterClass

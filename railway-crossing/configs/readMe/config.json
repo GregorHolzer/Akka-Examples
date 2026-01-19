@@ -24,17 +24,6 @@
           "Bell"
         ]
       }
-    ],
-    "3": [
-      {
-        "crossingId": "crossing1",
-        "components": [
-          "Controller",
-          "Gate",
-          "LightMachine",
-          "Bell"
-        ]
-      }
     ]
   },
   "service_server_addr": "akka-railway-service",

@@ -3,9 +3,9 @@ import time
 import asyncio
 import uuid
 
-import ContextVariable_pb2
 import Event_pb2
 import nats
+from datetime import datetime, timezone
 
 from opentelemetry import metrics
 from opentelemetry import trace
@@ -23,6 +23,7 @@ MAX_SENSOR_INTERVAL = float(os.environ.get("MAX_SENSOR_INTERVAL", "1"))
 MIN_TRAIN_SPEED_MS = float(os.environ.get("MIN_TRAIN_SPEED_MS", "1"))
 MAX_TRAIN_SPEED_MS = float(os.environ.get("MAX_TRAIN_SPEED_MS", "1"))
 
+START_DELAY = float(os.environ.get("START_DELAY", "60"))
 
 SENSOR_POSITIONS = [500.0, 1000.0, 1500.0]
 
@@ -52,6 +53,7 @@ class Train:
         #Represents if the train got checked in each position
         self.sensor_neg_flanks = 0
         self.last_sensor = False
+        self.expected_arrival = datetime.fromtimestamp(self.start_time + self.sensor_positions[1] / self.train_speed)
 
     def check_sensor(self):
         passed_time = time.time() - self.start_time
@@ -74,12 +76,11 @@ class Train:
 
 class Generator:
     def __init__(self, nc, duration):
+        self.num_trains = 0
         self.nc = nc
         self.duration = duration
         self._start_time = time.time()
-        self.latest_broadcast = time.time()
         self.train = None
-
 
         self._event_template = Event_pb2.Event()
         self._event_template.name = "sensor"
@@ -115,7 +116,7 @@ class Generator:
 
 
 
-    async def _publish_event(self, s_value, current_interval, current_speed):
+    async def publish_event(self, s_value, current_interval, current_speed, expected_arrival):
         self._bool_var.value.bool = s_value
         self._event_template.createdTime = time.time_ns() / 1.0e6
         self._event_template.id = str(uuid.uuid4())
@@ -125,6 +126,7 @@ class Generator:
             self._trace_id_var.value.string = trace.format_trace_id(ctx.trace_id)
             self._span_id_var.value.string = trace.format_span_id(ctx.span_id)
             span.set_attribute("interval", current_interval)
+            span.set_attribute("arrival", expected_arrival.isoformat())
             span.set_attribute("speed", current_speed)
             await self.nc.publish("peripheral.sensor", self._event_template.SerializeToString())
 
@@ -144,16 +146,15 @@ class Generator:
             if self.train is None:
                 train_speed = self.compute_train_speed()
                 print("Creating Train with speed: " + str(train_speed))
+                self.num_trains = 1 + self.num_trains
                 self.train = Train(TRAIN_LEN, train_speed, SENSOR_POSITIONS)
 
             broadcast_interval = self.compute_broadcast_interval()
-            if time.time() - self.latest_broadcast > broadcast_interval:
-                self.latest_broadcast = time.time()
-                await self._publish_event(self.train.check_sensor(), broadcast_interval, self.train.train_speed)
-
-            await asyncio.sleep(MIN_SENSOR_INTERVAL - MIN_SENSOR_INTERVAL * 0.1)
+            await self.publish_event(self.train.check_sensor(), broadcast_interval, self.train.train_speed, self.train.expected_arrival)
+            await asyncio.sleep(broadcast_interval)
 
 async def main():
+    await asyncio.sleep(START_DELAY)
     nats_url = os.environ.get("NATS_URL")
     try:
         nc = await nats.connect(nats_url)
@@ -167,6 +168,7 @@ async def main():
     end = time.time()
 
     print(f"Done. Actual Duration: {end - start:.4f} seconds")
+    print(f"Number of Trains: {generator.num_trains}")
 
     await nc.drain()
 

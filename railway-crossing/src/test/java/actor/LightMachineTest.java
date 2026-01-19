@@ -4,7 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import actors.LightMachine;
-import actors.common.RailwayService;
+import actors.services.RailwayService;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
 import akka.actor.typed.ActorRef;
@@ -12,6 +12,10 @@ import org.junit.AfterClass;
 import org.junit.Test;
 
 public class LightMachineTest {
+
+  private static final String traceId = "trace1";
+
+  private static final String spanId = "span1";
 
   private static final String ANY_LOG = "in state";
 
@@ -30,7 +34,7 @@ public class LightMachineTest {
     LoggingTestKit.info("lightMachine in state On").expect(
       testKit.system(),
       () -> {
-        lightMachine.tell(new LightMachine.CommandTurnOn(trainSpeed));
+        lightMachine.tell(new LightMachine.CommandTurnOn(trainSpeed, traceId, spanId));
         return null;
       }
     );
@@ -38,11 +42,11 @@ public class LightMachineTest {
     LoggingTestKit.info("lightMachine in state Off").expect(
       testKit.system(),
       () -> {
-        lightMachine.tell(new LightMachine.CommandTurnOff());
+        lightMachine.tell(new LightMachine.CommandTurnOff(traceId, spanId));
         return null;
       }
     );
-    verify(mockedService).lightOff(any(), any());
+    verify(mockedService).lightOff(any(), any(), any());
   }
 
   @Test
@@ -54,28 +58,28 @@ public class LightMachineTest {
     LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        lightMachine.tell(new LightMachine.CommandTurnOff());
+        lightMachine.tell(new LightMachine.CommandTurnOff(traceId, spanId));
         return null;
       });
     verify(mockedService, times(0)).lightOn(any(), any(), any());
-    verify(mockedService, times(0)).lightOff(any(), any());
+    verify(mockedService, times(0)).lightOff(any(), any(), any());
     LoggingTestKit.info("lightMachine1 in state On").expect(
       testKit.system(),
       () -> {
-        lightMachine.tell(new LightMachine.CommandTurnOn(trainSpeed));
+        lightMachine.tell(new LightMachine.CommandTurnOn(trainSpeed, traceId, spanId));
         return null;
       }
     );
     verify(mockedService).lightOn(any(), any(), any());
-    verify(mockedService, times(0)).lightOff(any(), any());
+    verify(mockedService, times(0)).lightOff(any(), any(), any());
     LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        lightMachine.tell(new LightMachine.CommandTurnOn(trainSpeed));
+        lightMachine.tell(new LightMachine.CommandTurnOn(trainSpeed, traceId, spanId));
         return null;
       });
     verify(mockedService).lightOn(any(), any(), any());
-    verify(mockedService, times(0)).lightOff(any(), any());
+    verify(mockedService, times(0)).lightOff(any(), any(), any());
   }
 
   @AfterClass

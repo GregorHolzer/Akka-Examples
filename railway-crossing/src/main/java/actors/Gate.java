@@ -1,7 +1,7 @@
 package actors;
 
 import actors.common.Command;
-import actors.common.RailwayService;
+import actors.services.RailwayService;
 import actors.common.StateMachine;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
@@ -70,9 +70,9 @@ public class Gate
         railwayService.gateDown(
           getContext(),
           getContext().getSelf().path().name(),
-          cmd.trainSpeed
+          cmd
         );
-        bell.tell(new Bell.CommandBellOn(cmd.trainSpeed));
+        bell.tell(new Bell.CommandBellOn(cmd.trainSpeed, cmd.traceId, cmd.spanId));
         return closed();
       })
       .build();
@@ -93,9 +93,9 @@ public class Gate
           getContext(),
           bell,
           getContext().getSelf().path().name(),
-          cmd.traceId,
-          cmd.spanId
+          cmd
         );
+        bell.tell(new Bell.CommandBellOff(cmd.traceId, cmd.spanId));
         return open();
       })
       .onMessage(CommandClose.class, cmd -> Behaviors.same())
@@ -141,9 +141,18 @@ public class Gate
 
     public Double trainSpeed;
 
+    public String traceId;
+
+    public String spanId;
+
     @JsonCreator
-    public CommandClose(@JsonProperty("trainSpeed") Double trainSpeed) {
+    public CommandClose(
+            @JsonProperty("trainSpeed") Double trainSpeed,
+            @JsonProperty("traceId") String traceId,
+            @JsonProperty("spanId") String spanId) {
       this.trainSpeed = trainSpeed;
+      this.traceId = traceId;
+      this.spanId = spanId;
     }
   }
 }

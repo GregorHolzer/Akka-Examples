@@ -4,7 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import actors.Bell;
-import actors.common.RailwayService;
+import actors.services.RailwayService;
 import actors.common.Telemetry;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.LoggingTestKit;
@@ -34,7 +34,7 @@ public class BellTest {
       "bell"
     );
     LoggingTestKit.info("bell in state On").expect(testKit.system(), () -> {
-      bell.tell(new Bell.CommandBellOn(trainSpeed));
+      bell.tell(new Bell.CommandBellOn(trainSpeed, traceId, spanId));
       return null;
     });
     verify(mockedService).bellOn(any(), any(), any());
@@ -42,7 +42,7 @@ public class BellTest {
       bell.tell(new Bell.CommandBellOff(traceId, spanId));
       return null;
     });
-    verify(mockedService).bellOff(any(), any(), any(), any());
+    verify(mockedService).bellOff(any(), any(), any());
   }
 
   @Test
@@ -58,21 +58,21 @@ public class BellTest {
         return null;
       });
     verify(mockedService, times(0)).bellOn(any(), any(), any());
-    verify(mockedService, times(0)).bellOff(any(), any(), any(), any());
+    verify(mockedService, times(0)).bellOff(any(), any(), any());
     LoggingTestKit.info("bell1 in state On").expect(testKit.system(), () -> {
-      bell.tell(new Bell.CommandBellOn(trainSpeed));
+      bell.tell(new Bell.CommandBellOn(trainSpeed, traceId, spanId));
       return null;
     });
     verify(mockedService, times(1)).bellOn(any(), any(), any());
-    verify(mockedService, times(0)).bellOff(any(), any(), any(), any());
+    verify(mockedService, times(0)).bellOff(any(), any(), any());
     LoggingTestKit.info(ANY_LOG)
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        bell.tell(new Bell.CommandBellOn(trainSpeed));
+        bell.tell(new Bell.CommandBellOn(trainSpeed, traceId, spanId));
         return null;
       });
     verify(mockedService, times(1)).bellOn(any(), any(), any());
-    verify(mockedService, times(0)).bellOff(any(), any(), any(), any());
+    verify(mockedService, times(0)).bellOff(any(), any(), any());
   }
 
   @AfterClass

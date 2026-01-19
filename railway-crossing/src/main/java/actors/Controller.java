@@ -87,8 +87,8 @@ public class Controller
     logState(getContext(), State.Approaching);
     return newReceiveBuilder()
       .onMessage(CommandTrainNotSeen.class, cmd -> {
-        lightMachine.tell(new LightMachine.CommandTurnOn(cmd.trainSpeed));
-        gate.tell(new Gate.CommandClose(cmd.trainSpeed));
+        lightMachine.tell(new LightMachine.CommandTurnOn(cmd.trainSpeed, cmd.traceId, cmd.spanId));
+        gate.tell(new Gate.CommandClose(cmd.trainSpeed, cmd.traceId, cmd.spanId));
         return close();
       })
       .onMessage(CommandTrainSeen.class, cmd -> Behaviors.same())
@@ -109,7 +109,7 @@ public class Controller
     logState(getContext(), State.Present);
     return newReceiveBuilder()
       .onMessage(CommandTrainNotSeen.class, cmd -> {
-        lightMachine.tell(new LightMachine.CommandTurnOff());
+        lightMachine.tell(new LightMachine.CommandTurnOff(cmd.traceId, cmd.spanId));
         gate.tell(new Gate.CommandOpen(cmd.traceId, cmd.spanId));
         return leaving();
       })

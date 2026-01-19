@@ -1,7 +1,7 @@
 package actors;
 
 import actors.common.Command;
-import actors.common.RailwayService;
+import actors.services.RailwayService;
 import actors.common.StateMachine;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -65,7 +65,7 @@ public class LightMachine
         railwayService.lightOn(
           getContext(),
           getContext().getSelf().path().name(),
-          cmd.trainSpeed
+          cmd
         );
         return on();
       })
@@ -85,7 +85,8 @@ public class LightMachine
       .onMessage(CommandTurnOff.class, cmd -> {
         railwayService.lightOff(
           getContext(),
-          getContext().getSelf().path().name()
+          getContext().getSelf().path().name(),
+                cmd
         );
         return off();
       })
@@ -112,14 +113,36 @@ public class LightMachine
 
     public Double trainSpeed;
 
+    public String traceId;
+
+    public String spanId;
+
     @JsonCreator
-    public CommandTurnOn(@JsonProperty("trainSpeed") Double trainSpeed) {
+    public CommandTurnOn(
+            @JsonProperty("trainSpeed") Double trainSpeed,
+            @JsonProperty("traceId") String traceId,
+            @JsonProperty("spanId") String spanId) {
       this.trainSpeed = trainSpeed;
+      this.traceId = traceId;
+      this.spanId = spanId;
     }
   }
 
   /**
    * Message to change the LightMachine state to {@link State#Off}.
    */
-  public static class CommandTurnOff implements LightMachineCommand {}
+  public static class CommandTurnOff implements LightMachineCommand {
+
+    public String traceId;
+
+    public String spanId;
+
+    @JsonCreator
+    public  CommandTurnOff(
+            @JsonProperty("traceId") String traceId,
+            @JsonProperty("spanId") String spanId) {
+      this.traceId = traceId;
+      this.spanId = spanId;
+    }
+  }
 }

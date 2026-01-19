@@ -1,7 +1,7 @@
 package actors.setup;
 
 import actors.Bell;
-import actors.common.RailwayService;
+import actors.services.RailwayService;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;

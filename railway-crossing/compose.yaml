@@ -30,7 +30,7 @@ services:
 
 
   akka-railway-service:
-    image: "gregor2323/akka-railway-crossing-service:latest"
+    image: gregor2323/akka-railway-crossing-service:latest
     pull_policy: always
     ports:
       - "8000:8000"
@@ -75,27 +75,16 @@ services:
       - /config.json
 
 
-  akka-worker-3:
-    image: gregor2323/akka-railway-crossing-node:latest
-    pull_policy: always
-    environment:
-      - NODE_ID=3
-      - AKKA_ARTERY_HOST=akka-worker-3
-      - AKKA_CLUSTER_SEED_NODE=akka://railway-crossing@akka-seed-node:2551
-    volumes:
-      - ./configs/readMe/config.json:/config.json
-    command:
-      - /config.json
-
   simulate-sensors:
     image: gregor2323/railway-crossing-signal-generator:latest
-    pull_policy: never
+    pull_policy: always
     environment:
       - NATS_URL=nats-server:4222
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://telegraf:4317
       - MIN_SENSOR_INTERVAL=0.1
-      - MAX_SENSOR_INTERVAL=0.1
-      - MIN_TRAIN_SPEED_MS=150
-      - MAX_TRAIN_SPEED_MS=150
-      - DURATION_IN_SECONDS=60
+      - MAX_SENSOR_INTERVAL=0.00001
+      - MIN_TRAIN_SPEED_MS=1000
+      - MAX_TRAIN_SPEED_MS=1000
+      - DURATION_IN_SECONDS=600
+      - START_DELAY=60
       - PYTHONUNBUFFERED=1
