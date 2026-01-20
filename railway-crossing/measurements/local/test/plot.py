@@ -58,10 +58,8 @@ def get_duration(start_time, end_time):
 def gather_data(inputfile):
     values = pd.read_csv(inputfile)
     values_cols = values[[
-        'trace_id', 'calc_train_arrival', 'interval', 'published_time',
-        'gate_invocation_type', 'gate_invocation_start', 'gate_invocation_end', 'gate_action_type', 'gate_action_start', 'gate_action_end',
-        'light_invocation_type', 'light_invocation_start', 'light_invocation_end', 'light_action_type', 'light_action_start', 'light_action_end',
-        'bell_invocation_type', 'bell_invocation_start', 'bell_invocation_end', 'bell_action_type', 'bell_action_start', 'bell_action_end'
+        'trace_id', 'calc_train_arrival', 'interval', 'published_time', 'type', 'start_time', 'end_time',
+
     ]].copy()
 
     # Latency lists
@@ -69,48 +67,42 @@ def gather_data(inputfile):
     x_axis_gate, y_axis_gate = [], []
     x_axis_bell, y_axis_bell = [], []
 
-    # Safety/Missed deadline lists
-    x_axis_missed_gates, y_axis_missed_gates = [], []
-    x_axis_missed_lights, y_axis_missed_lights = [], []
-    x_axis_missed_bells, y_axis_missed_bells = [], []
+    missed_gates = {}
+    missed_lights =  {}
+    missed_bells = {}
+
 
     for _, row in values_cols.iterrows():
-        if pd.isna(row['published_time']):
+        if pd.isna([row['calc_train_arrival'], row['interval'], row['published_time'], row['type'], row['start_time'], row['end_time']]).any():
             continue
 
-        # --- GATE LOGIC ---
-        if pd.notna(row['gate_invocation_end']):
-            x_axis_gate.append(row['interval'])
-            y_axis_gate.append(get_duration(row['published_time'], row['gate_invocation_end']))
-            if pd.notna(row['gate_action_end']):
-                x_axis_missed_gates.append(row['interval'])
-                y_axis_missed_gates.append(get_duration(row['gate_action_end'], row['calc_train_arrival']) < 0)
+        match row['type']:
+            case "gateUpInvocation" | "gateDownInvocation":
+                x_axis_gate.append(row['interval'])
+                y_axis_gate.append(get_duration(row['published_time'], row['end_time']))
+            case "lightOnInvocation" | "lightOffInvocation":
+                x_axis_light.append(row['interval'])
+                y_axis_light.append(get_duration(row['published_time'], row['end_time']))
+            case "bellOnInvocation" | "bellOffInvocation":
+                x_axis_bell.append(row['interval'])
+                y_axis_bell.append(get_duration(row['published_time'], row['end_time']))
+            case "gateDownAction":
+                if get_duration(row['end_time'], row['calc_train_arrival']) < 0:
+                    missed_gates[row['interval']] = missed_gates.get(row['interval'], 0) + 1
+            case "lightOnAction":
+                if get_duration(row['end_time'], row['calc_train_arrival']) < 0:
+                    missed_lights[row['interval']] = missed_lights.get(row['interval'], 0) + 1
+            case "bellOnAction":
+                if get_duration(row['end_time'], row['calc_train_arrival']) < 0:
+                    missed_bells[row['interval']] = missed_bells.get(row['interval'], 0) + 1
 
-        # --- LIGHT LOGIC ---
-        if pd.notna(row['light_invocation_end']):
-            x_axis_light.append(row['interval'])
-            y_axis_light.append(get_duration(row['published_time'], row['light_invocation_end']))
-            if pd.notna(row['light_action_end']):
-                x_axis_missed_lights.append(row['interval'])
-                y_axis_missed_lights.append(get_duration(row['light_action_end'], row['calc_train_arrival']) < 0)
-
-        # --- BELL LOGIC ---
-        if pd.notna(row['bell_invocation_end']):
-            x_axis_bell.append(row['interval'])
-            y_axis_bell.append(get_duration(row['published_time'], row['bell_invocation_end']))
-            if pd.notna(row['bell_action_end']):
-                x_axis_missed_bells.append(row['interval'])
-                y_axis_missed_bells.append(get_duration(row['bell_action_end'], row['calc_train_arrival']) < 0)
-
-    # --- INVOCATION PLOTS ---
     plot_scatter(x_axis_gate, y_axis_gate, "Event Interval [sec]", "Response Time [ms]", "Gate Service Invocation", "gate_invocation.pdf")
     plot_scatter(x_axis_light, y_axis_light, "Event Interval [sec]", "Response Time [ms]", "Light Service Invocation", "light_invocation.pdf")
     plot_scatter(x_axis_bell, y_axis_bell, "Event Interval [sec]", "Response Time [ms]", "Bell Service Invocation", "bell_invocation.pdf")
 
-    # --- MISSED ACTION PLOTS ---
-    plot_scatter(x_axis_missed_gates, y_axis_missed_gates, "Event Interval [sec]", "Missed Deadline (Boolean)", "Missed Gates Safety Check", "missed_gates.pdf")
-    plot_scatter(x_axis_missed_lights, y_axis_missed_lights, "Event Interval [sec]", "Missed Deadline (Boolean)", "Missed Lights Safety Check", "missed_lights.pdf")
-    plot_scatter(x_axis_missed_bells, y_axis_missed_bells, "Event Interval [sec]", "Missed Deadline (Boolean)", "Missed Bells Safety Check", "missed_bells.pdf")
+    plot_scatter(missed_gates.keys(), missed_gates.values(), "Event Interval [sec]", "Number of missed Trains", "Missed Gates", "missed_gates.pdf")
+    plot_scatter(missed_lights.keys(), missed_lights.values(), "Event Interval [sec]", "Number of missed Trains", "Missed Lights", "missed_lights.pdf")
+    plot_scatter(missed_bells.keys(), missed_bells.values(), "Event Interval [sec]", "Number of missed Trains", "Missed Bells", "missed_bells.pdf")
 
     print("Number of Gate Invocations: " + str(len(x_axis_gate)))
     print("Number of Light Invocations: " + str(len(x_axis_light)))

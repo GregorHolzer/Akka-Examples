@@ -6,6 +6,13 @@
         "components": [
           "Controller"
         ]
+      },
+      {
+        "crossingId": "crossing1",
+        "components": [
+          "LightMachine",
+          "Gate"
+        ]
       }
     ],
     "1": [
@@ -15,6 +22,12 @@
           "LightMachine",
           "Gate"
         ]
+      },
+      {
+        "crossingId": "crossing1",
+        "components": [
+          "Bell"
+        ]
       }
     ],
     "2" : [
@@ -22,6 +35,12 @@
         "crossingId": "crossing0",
         "components": [
           "Bell"
+        ]
+      },
+      {
+        "crossingId": "crossing1",
+        "components": [
+          "Controller"
         ]
       }
     ]

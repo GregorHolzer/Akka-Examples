@@ -93,31 +93,6 @@ def extract_attributes(attribute_file, duration, output_file):
     output_rows = []
 
     for trace_id, trace_data in trace_dict.items():
-        # Initialize empty row
-        row = {
-            "trace_id": trace_id,
-            "calc_train_arrival": None,
-            "interval": None,
-            "published_time": None,
-            "gate_invocation_type": None,
-            "gate_invocation_start": None,
-            "gate_invocation_end": None,
-            "gate_action_type": None,
-            "gate_action_start": None,
-            "gate_action_end": None,
-            "light_invocation_type": None,
-            "light_invocation_start": None,
-            "light_invocation_end": None,
-            "light_action_type": None,
-            "light_action_start": None,
-            "light_action_end": None,
-            "bell_invocation_type": None,
-            "bell_invocation_start": None,
-            "bell_invocation_end": None,
-            "bell_action_type": None,
-            "bell_action_start": None,
-            "bell_action_end": None,
-        }
 
         def calc_start_time(end_time, duration):
             end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
@@ -128,55 +103,33 @@ def extract_attributes(attribute_file, duration, output_file):
         def format_time(time):
             return datetime.fromisoformat(time.replace('Z', '+00:00'))
 
-        for span_id, span in trace_data.spans.items():
-            match span.span_type:
-                case "bellOnInvocation" | "bellOffInvocation":
-                    row.update({
-                        "bell_invocation_type": span.span_type,
-                        "bell_invocation_start": calc_start_time(span.end_time, span.duration),
-                        "bell_invocation_end": format_time(span.end_time),
-                    })
-                case "gateDownInvocation" | "gateUpInvocation":
-                    row.update({
-                        "gate_invocation_type": span.span_type,
-                        "gate_invocation_start": calc_start_time(span.end_time, span.duration),
-                        "gate_invocation_end": format_time(span.end_time),
-                    })
-                case "lightOnInvocation" | "lightOffInvocation":
-                    row.update({
-                        "light_invocation_type": span.span_type,
-                        "light_invocation_start": calc_start_time(span.end_time, span.duration),
-                        "light_invocation_end": format_time(span.end_time),
-                    })
-                case "bellOnAction" | "bellOffAction":
-                    row.update({
-                        "bell_action_type": span.span_type,
-                        "bell_action_start": calc_start_time(span.end_time, span.duration),
-                        "bell_action_end": format_time(span.end_time)
-                    })
-                case "gateUpAction" | "gateDownAction":
-                    row.update({
-                        "gate_action_type": span.span_type,
-                        "gate_action_start": calc_start_time(span.end_time, span.duration),
-                        "gate_action_end": format_time(span.end_time)
-                    })
-                case "lightOnAction" | "lightOffAction":
-                    row.update({
-                        "light_action_type": span.span_type,
-                        "light_action_start": calc_start_time(span.end_time, span.duration),
-                        "light_action_end": format_time(span.end_time)
-                    })
-                case "generator":
-                    # Use generator span to fill train data
-                    row.update({
-                        "calc_train_arrival": span.calc_train_arrival,
-                        "interval": span.interval,
-                        "published_time": format_time(span.end_time)
-                    })
+        interval = calc_arrival = published_time= None
 
-        output_rows.append(row)
+        for _, span in trace_data.spans.items():
+            if span.span_type == "generator":
+                interval = span.interval
+                calc_arrival = span.calc_train_arrival
+                published_time = span.end_time
 
-    # Convert to DataFrame and save CSV
+        for _, span in trace_data.spans.items():
+            row = {
+                "trace_id": trace_id,
+                "calc_train_arrival": calc_arrival,
+                "interval": interval,
+                "published_time": published_time,
+                "type": None,
+                "start_time": None,
+                "end_time": None
+            }
+
+            if not span.span_type == "generator":
+                row.update({
+                    "type": span.span_type,
+                    "start_time": calc_start_time(span.end_time, span.duration),
+                    "end_time": format_time(span.end_time)
+                })
+                output_rows.append(row)
+
     df_output = pd.DataFrame(output_rows)
     df_output.to_csv(output_file, index=False)
     print(f"Saved output to {output_file}")

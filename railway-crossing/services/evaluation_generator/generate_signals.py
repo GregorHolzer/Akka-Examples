@@ -88,7 +88,6 @@ class Generator:
 
         self._speed_var = self._event_template.data.add()
         self._speed_var.name = "trainSpeed"
-        self._speed_var.value.double = 2500.0
 
         self._bool_var = self._event_template.data.add()
         self._bool_var.name = "value"
@@ -146,6 +145,7 @@ class Generator:
             if self.train is None:
                 train_speed = self.compute_train_speed()
                 print("Creating Train with speed: " + str(train_speed))
+                self._speed_var.value.double = train_speed
                 self.num_trains = 1 + self.num_trains
                 self.train = Train(TRAIN_LEN, train_speed, SENSOR_POSITIONS)
 
