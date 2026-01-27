@@ -61,14 +61,14 @@ public class LightMachine
   public Receive<LightMachineCommand> createReceive() {
     return newReceiveBuilder()
       .onMessage(CommandTurnOff.class, cmd -> Behaviors.same())
-      .onMessage(CommandTurnOn.class, cmd -> {
-        railwayService.lightOn(
-          getContext(),
-          getContext().getSelf().path().name(),
-          cmd
-        );
-        return on();
-      })
+            .onMessage(CommandEarlyMorning.class, cmd -> {
+              railwayService.lightEarlyWarning(getContext(), getContext().getSelf().path().name(), cmd);
+              return earlyWarning();
+            })
+            .onMessage(CommandTurnOn.class, cmd -> {
+              railwayService.lightOn(getContext(), getContext().getSelf().path().name(), cmd);
+              return on();
+            })
       .build();
   }
 
@@ -78,11 +78,30 @@ public class LightMachine
     return createReceive();
   }
 
+  /** Represents the Early-Warning-State of the LightMachine */
+  private Behavior<LightMachineCommand> earlyWarning() {
+    logState(getContext(), State.EarlyMorning);
+    return newReceiveBuilder()
+            .onMessage(CommandTurnOff.class, cmd -> Behaviors.same())
+            .onMessage(CommandEarlyMorning.class, cmd -> Behaviors.same())
+            .onMessage(CommandTurnOn.class, cmd -> {
+              railwayService.lightOn(
+                      getContext(),
+                      getContext().getSelf().path().name(),
+                      cmd
+              );
+              return on();
+            })
+            .build();
+  }
+
   /** Represents the On-State of the LightMachine */
   private Behavior<LightMachineCommand> on() {
     logState(getContext(), State.On);
     return newReceiveBuilder()
-      .onMessage(CommandTurnOff.class, cmd -> {
+            .onMessage(CommandEarlyMorning.class, cmd -> Behaviors.same())
+            .onMessage(CommandTurnOn.class, cmd -> Behaviors.same())
+            .onMessage(CommandTurnOff.class, cmd -> {
         railwayService.lightOff(
           getContext(),
           getContext().getSelf().path().name(),
@@ -99,6 +118,7 @@ public class LightMachine
   public enum State {
     On,
     Off,
+    EarlyMorning,
   }
 
   /**
@@ -106,16 +126,29 @@ public class LightMachine
    */
   public interface LightMachineCommand extends Command {}
 
+  public record CommandEarlyMorning (
+          String traceId,
+          String spanId
+  ) implements LightMachineCommand {
+
+    @JsonCreator
+    public CommandEarlyMorning(
+            @JsonProperty("traceId") String traceId,
+            @JsonProperty("spanId") String spanId) {
+      this.traceId = traceId;
+      this.spanId = spanId;
+    }
+
+  }
+
   /**
    * Message to change the LightMachine state to {@link State#On}.
    */
-  public static class CommandTurnOn implements LightMachineCommand {
-
-    public Double trainSpeed;
-
-    public String traceId;
-
-    public String spanId;
+  public record CommandTurnOn (
+          Double trainSpeed,
+          String traceId,
+          String spanId
+  ) implements LightMachineCommand {
 
     @JsonCreator
     public CommandTurnOn(
@@ -131,11 +164,10 @@ public class LightMachine
   /**
    * Message to change the LightMachine state to {@link State#Off}.
    */
-  public static class CommandTurnOff implements LightMachineCommand {
-
-    public String traceId;
-
-    public String spanId;
+  public record CommandTurnOff (
+          String traceId,
+          String spanId
+  ) implements LightMachineCommand {
 
     @JsonCreator
     public  CommandTurnOff(

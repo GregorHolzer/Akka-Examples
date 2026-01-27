@@ -6,14 +6,7 @@ import actors.LightMachine;
 import actors.common.Configuration;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.javadsl.ActorContext;
-import akka.http.javadsl.Http;
 import akka.http.javadsl.model.*;
-import akka.util.ByteString;
-import exchange.ContextVariableProtos.ContextVariable;
-import exchange.ContextVariableProtos.ContextVariables;
-import exchange.ContextVariableProtos.Value;
-
-import javax.net.ssl.SSLEngineResult;
 import java.util.HashMap;
 import java.util.concurrent.CompletionStage;
 
@@ -161,9 +154,9 @@ public class RailwayService implements AkkaService{
     LightMachine.CommandTurnOn cmd
   ) {
     HashMap<String, Object> vars = new HashMap<>();
-    vars.put("approachingSpeed", cmd.trainSpeed);
-    vars.put("traceId", cmd.traceId);
-    vars.put("spanId", cmd.spanId);
+    vars.put("approachingSpeed", cmd.trainSpeed());
+    vars.put("traceId", cmd.traceId());
+    vars.put("spanId", cmd.spanId());
     byte[] body = buildProtoRequestBody(vars);
     HttpRequest request = buildPostRequest(
             nodeConfig.service_server_addr(),
@@ -182,8 +175,8 @@ public class RailwayService implements AkkaService{
    */
   public void lightOff(ActorContext<?> context, String crossingId, LightMachine.CommandTurnOff cmd) {
     HashMap<String, Object> vars = new HashMap<>();
-    vars.put("traceId", cmd.traceId);
-    vars.put("spanId", cmd.spanId);
+    vars.put("traceId", cmd.traceId());
+    vars.put("spanId", cmd.spanId());
     byte[] body = buildProtoRequestBody(vars);
     HttpRequest request = buildPostRequest(
             nodeConfig.service_server_addr(),
@@ -200,11 +193,10 @@ public class RailwayService implements AkkaService{
    * @param context    the {@link ActorContext} of the calling actor.
    * @param crossingId the railway crossing ID of the LightMachine.
    */
-  public void lightEarlyWarning(ActorContext<?> context, String crossingId, LightMachine.CommandTurnOn cmd) {
+  public void lightEarlyWarning(ActorContext<?> context, String crossingId, LightMachine.CommandEarlyMorning cmd) {
     HashMap<String, Object> vars = new HashMap<>();
-    vars.put("approachingSpeed", cmd.trainSpeed);
-    vars.put("traceId", cmd.traceId);
-    vars.put("spanId", cmd.spanId);
+    vars.put("traceId", cmd.traceId());
+    vars.put("spanId", cmd.spanId());
     byte[] body = buildProtoRequestBody(vars);
     HttpRequest request = buildPostRequest(
             nodeConfig.service_server_addr(),
