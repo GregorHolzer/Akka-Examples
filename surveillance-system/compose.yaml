@@ -1,21 +1,61 @@
+configs:
+  telegraf_config:
+    file: ./telegraf.conf
+
 services:
-  nats-server:
-    image: "nats"
+
+  influxdb:
+    image: "influxdb:2"
     ports:
-      - "4222:4222"
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=adminadmin
+      - DOCKER_INFLUXDB_INIT_ORG=org
+      - DOCKER_INFLUXDB_INIT_BUCKET=bucket
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=bzO10KmR8x
+  telegraf:
+    image: "telegraf:latest"
+    ports:
+      - "4317:4317"
+    configs:
+      - source: telegraf_config
+        target: /etc/telegraf/telegraf.conf
 
-  cloud-service:
-    image: gregor2323/akka-surveillance-system-cloud-service
+  iotservices:
+    build:
+      context: ./services/iotservices
+      dockerfile: ./Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://telegraf:4317
+      - "PROTO=${PROTO:-true}"
 
-  edge-service:
-    image: gregor2323/akka-surveillance-system-edge-service
+  edgeservices:
+    build:
+      context: ./services/edgeservices
+      dockerfile: ./Dockerfile
+    ports:
+      - "8002:8000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://telegraf:4317
+      - "PROTO=${PROTO:-true}"
 
-  iot-service:
-    image: gregor2323/akka-surveillance-system-iot-service
+  cloudservices:
+    build:
+      context: ./services/cloudservices
+      dockerfile: ./Dockerfile
+    ports:
+      - "8003:8000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://telegraf:4317
+      - "PROTO=${PROTO:-true}"
 
   akka-seed-node:
     image: gregor2323/akka-surveillance-system-node
-    pull_policy: always
+    pull_policy: never
     environment:
       - NODE_ID=0
       - AKKA_ARTERY_HOST=akka-seed-node
@@ -27,7 +67,7 @@ services:
 
   akka-worker-1:
     image: gregor2323/akka-surveillance-system-node
-    pull_policy: always
+    pull_policy: never
     environment:
       - NODE_ID=1
       - AKKA_ARTERY_HOST=akka-worker-1

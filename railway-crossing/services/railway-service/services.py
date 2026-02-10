@@ -96,9 +96,9 @@ async def gate_down(request: Request, background_tasks: BackgroundTasks):
     context_variables = ContextVariable_pb2.ContextVariables()
     context_variables.ParseFromString(body)
 
-    seconds_to_close = calc_seconds_to_close(context_variables)
+    seconds_to_close, approaching_speed = calc_seconds_to_close(context_variables)
 
-    parent_context = get_parent_context_from_context_var(context_variables)
+    parent_context, trace_id, span_id = get_parent_context_from_context_var(context_variables)
 
     with tracer.start_as_current_span(
         "process_bell_invocation", context=parent_context
@@ -122,6 +122,9 @@ async def gate_down(request: Request, background_tasks: BackgroundTasks):
         response_vars.data.add(
             name="downDelay", value=ContextVariable_pb2.Value(double=seconds_to_close)
         )
+        response_vars.data.add(name="approachingSpeed", value=ContextVariable_pb2.Value(double=approaching_speed))
+        response_vars.data.add(name="traceId", value=ContextVariable_pb2.Value(string=trace_id))
+        response_vars.data.add(name="spanId", value=ContextVariable_pb2.Value(string=span_id))
         # Serialize response
         response_body = response_vars.SerializeToString()
         return Response(
@@ -134,7 +137,7 @@ async def gate_up(request: Request):
     body = await request.body()
     context_variables = ContextVariable_pb2.ContextVariables()
     context_variables.ParseFromString(body)
-    parent_context = get_parent_context_from_context_var(context_variables)
+    parent_context, _, _ = get_parent_context_from_context_var(context_variables)
     with tracer.start_as_current_span(
         "process_bell_invocation", context=parent_context
     ) as span:
@@ -162,9 +165,9 @@ async def light_on(request: Request, background_tasks: BackgroundTasks):
     context_variables = ContextVariable_pb2.ContextVariables()
     context_variables.ParseFromString(body)
 
-    seconds_to_close = calc_seconds_to_close(context_variables)
+    seconds_to_close, _ = calc_seconds_to_close(context_variables)
 
-    parent_context = get_parent_context_from_context_var(context_variables)
+    parent_context, _, _ = get_parent_context_from_context_var(context_variables)
 
     with tracer.start_as_current_span(
         "process_bell_invocation", context=parent_context
@@ -191,7 +194,7 @@ async def light_off(request: Request):
     body = await request.body()
     context_variables = ContextVariable_pb2.ContextVariables()
     context_variables.ParseFromString(body)
-    parent_context = get_parent_context_from_context_var(context_variables)
+    parent_context, _, _ = get_parent_context_from_context_var(context_variables)
     with tracer.start_as_current_span(
         "process_bell_invocation", context=parent_context
     ) as span:
@@ -234,9 +237,9 @@ async def bell_on(request: Request, background_tasks: BackgroundTasks):
     context_variables = ContextVariable_pb2.ContextVariables()
     context_variables.ParseFromString(body)
 
-    seconds_to_close = calc_seconds_to_close(context_variables)
+    seconds_to_close, _ = calc_seconds_to_close(context_variables)
 
-    parent_context = get_parent_context_from_context_var(context_variables)
+    parent_context, _, _ = get_parent_context_from_context_var(context_variables)
 
     with tracer.start_as_current_span(
             "process_bell_invocation", context=parent_context
@@ -267,7 +270,7 @@ async def bell_off(request: Request):
     context_variables = ContextVariable_pb2.ContextVariables()
     context_variables.ParseFromString(body)
 
-    parent_context = get_parent_context_from_context_var(context_variables)
+    parent_context, trace_id, span_id = get_parent_context_from_context_var(context_variables)
 
     with tracer.start_as_current_span(
         "process_bell_invocation", context=parent_context
@@ -337,7 +340,7 @@ def calc_seconds_to_close(context_variables: ContextVariable_pb2.ContextVariable
 
     seconds_until_arrival = 1000 / approaching_speed
     seconds_to_close = seconds_until_arrival - 15 if seconds_until_arrival > 15 else seconds_until_arrival
-    return seconds_to_close
+    return seconds_to_close, approaching_speed
 
 def get_parent_context_from_context_var(context_variables: ContextVariable_pb2.ContextVariables):
     traceId = spanId = None
@@ -359,10 +362,10 @@ def get_parent_context_from_context_var(context_variables: ContextVariable_pb2.C
                 trace_flags=TraceFlags(0x01),
             )
             parent_context = trace.set_span_in_context(trace.NonRecordingSpan(span_ctx))
-            return parent_context
+            return parent_context, traceId, spanId
         except Exception as e:
             print("Failed to extract span")
-    return None
+    return None, None, None
 
 
 def get_parent_context(traceId, spanId):

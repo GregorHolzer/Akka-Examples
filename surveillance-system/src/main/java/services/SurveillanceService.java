@@ -48,6 +48,8 @@ public class SurveillanceService implements AkkaService {
   ) {
     HashMap<String, Object> values = new HashMap<>();
     values.put("image", foundPersons.image());
+    values.put("traceId", foundPersons.traceId());
+    values.put("spanId", foundPersons.spanId());
 
     byte[] body = buildProtoRequestBody(values);
 
@@ -77,7 +79,9 @@ public class SurveillanceService implements AkkaService {
                 self.tell(
                   new Surveillance.Analyzed(
                     foundPersons.image(),
-                    variable.getValue().getBool()
+                    variable.getValue().getBool(),
+                          foundPersons.traceId(),
+                          foundPersons.spanId()
                   )
                 );
               } else {

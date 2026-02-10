@@ -23,7 +23,7 @@ resource "aws_instance" "Akka-Worker" {
   depends_on = [null_resource.wait_for_cloud_service, null_resource.wait_for_iot_service]
 
   ami                    = "ami-068c0051b15cdb816"
-  instance_type          = "t3.medium"
+  instance_type          = "t3.large"
   key_name               = aws_key_pair.surveillance-system-node.key_name
   vpc_security_group_ids = [aws_security_group.Surveillance-Default.id]
 

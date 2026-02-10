@@ -19,6 +19,9 @@ public class DetectorTest {
 
   private static final Integer cameraId = 1;
 
+  private static final String traceId = "traceId";
+  private static final String spanId = "spanId";
+
   private final TestProbe<Surveillance.SurveillanceCommand> surveillance =
     testKit.createTestProbe(Surveillance.SurveillanceCommand.class);
 
@@ -30,12 +33,12 @@ public class DetectorTest {
     );
 
     LoggingTestKit.info("in state Processing").expect(testKit.system(), () -> {
-      detector.tell(new Detector.CapturedImage(new byte[0]));
+      detector.tell(new Detector.CapturedImage(new byte[0], traceId, spanId));
       return null;
     });
     verify(detectorService, times(1)).cameraCapture(any(), any());
     LoggingTestKit.info("in state Alarm").expect(testKit.system(), () -> {
-      detector.tell(new SharedCommands.Alarm());
+      detector.tell(new SharedCommands.Alarm(traceId, spanId));
       return null;
     });
     LoggingTestKit.info("in state Capturing").expect(testKit.system(), () -> {
@@ -53,7 +56,7 @@ public class DetectorTest {
     );
 
     LoggingTestKit.info("in state Processing").expect(testKit.system(), () -> {
-      detector.tell(new Detector.CapturedImage(new byte[0]));
+      detector.tell(new Detector.CapturedImage(new byte[0], traceId, spanId));
       return null;
     });
     verify(detectorService, times(1)).cameraCapture(any(), any());

@@ -105,9 +105,7 @@ async def alarm_on(request: Request):
 
 @app.post("/alarm/off")
 async def alarm_on():
-    parent_context = await get_parent_context(request)
-    with tracer.start_as_current_span("alarmOff", context=parent_context):
-        return Response(status_code=HTTP_200_OK)
+    return Response(status_code=HTTP_200_OK)
 
 
 @app.post("/capture")
@@ -180,16 +178,18 @@ async def capture(request: Request):
         # Prepare output data
         if proto:
             ctx = span.get_span_context()
+            trace_id_hex = format(ctx.trace_id, '032x')
+            span_id_hex = format(ctx.span_id, '032x')
             # Create response protobuf message
             response_context_variables = ContextVariable_pb2.ContextVariables()
             image_context_variable = ContextVariable_pb2.ContextVariable(
                 name="image", value=ContextVariable_pb2.Value(bytes=buffer_bytes)
             )
             trace_context_variable = ContextVariable_pb2.ContextVariable(
-                name="traceId", value=ContextVariable_pb2.Value(string=ctx.trace_id)
+                name="traceId", value=ContextVariable_pb2.Value(string=trace_id_hex)
             )
             span_context_variable = ContextVariable_pb2.ContextVariable(
-                name="spanId", value=ContextVariable_pb2.Value(string=ctx.span_id)
+                name="spanId", value=ContextVariable_pb2.Value(string=span_id_hex)
             )
             response_context_variables.data.append(image_context_variable)
             response_context_variables.data.append(trace_context_variable)

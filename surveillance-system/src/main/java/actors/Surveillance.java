@@ -131,8 +131,8 @@ public class Surveillance
       })
       .onMessage(Analyzed.class, msg -> {
         if (msg.hasThreat) {
-          surveillanceTopic.tell(Topic.publish(new SharedCommands.Alarm()));
-          detectorTopic.tell(Topic.publish(new SharedCommands.Alarm()));
+          surveillanceTopic.tell(Topic.publish(new SharedCommands.Alarm(msg.traceId, msg.spanId)));
+          detectorTopic.tell(Topic.publish(new SharedCommands.Alarm(msg.traceId, msg.spanId)));
           timers.startSingleTimer(
             TIMEOUT_KEY,
             new AlarmTimeout(),
@@ -213,10 +213,15 @@ public class Surveillance
    *
    * @param image image to analyze
    */
-  public record FoundPersons(byte[] image) implements SurveillanceCommand {
+  public record FoundPersons(byte[] image, String traceId, String spanId) implements SurveillanceCommand {
     @JsonCreator
-    public FoundPersons(@JsonProperty("image") byte[] image) {
+    public FoundPersons(@JsonProperty("image") byte[] image,
+                        @JsonProperty("traceId") String traceId,
+                        @JsonProperty("spanId") String spanId
+    ) {
       this.image = image;
+      this.traceId = traceId;
+      this.spanId = spanId;
     }
   }
 
@@ -226,12 +231,16 @@ public class Surveillance
    * @param image image that has been analyzed
    * @param hasThreat indicates weather the image captured a threat to the system
    */
-  public record Analyzed(byte[] image, Boolean hasThreat) implements
+  public record Analyzed(byte[] image, Boolean hasThreat, String traceId, String spanId) implements
     SurveillanceCommand {
     @JsonCreator
-    public Analyzed(@JsonProperty("image") byte[] image, Boolean hasThreat) {
+    public Analyzed(@JsonProperty("image") byte[] image, Boolean hasThreat,
+                     @JsonProperty("traceId") String traceId,
+                    @JsonProperty("spanId") String spanId) {
       this.image = image;
       this.hasThreat = hasThreat;
+      this.traceId = traceId;
+      this.spanId = spanId;
     }
   }
 

@@ -27,7 +27,7 @@ proto = "PROTO" not in os.environ or os.environ["PROTO"].lower() in ["true", "t"
 hog = cv2.HOGDescriptor()
 hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
-resource = Resource(attributes={SERVICE_NAME: "surveillance-iot"})
+resource = Resource(attributes={SERVICE_NAME: "surveillance-edge"})
 trace_provider = TracerProvider(resource=resource)
 span_exporter = OTLPSpanExporter()
 span_processor = BatchSpanProcessor(span_exporter)
@@ -35,18 +35,6 @@ trace_provider.add_span_processor(span_processor)
 trace.set_tracer_provider(trace_provider)
 
 tracer = trace.get_tracer(__name__)
-
-
-
-
-# Utility function for debugging
-# def generate_random_colors(n: int):
-#    random.seed(0)
-#
-#    return [
-#        (random.randint(128, 255), random.randint(128, 255), random.randint(128, 255))
-#        for _ in range(n)
-#    ]
 
 async def get_parent_context(request: Request):
     body = await request.body()
@@ -131,6 +119,9 @@ async def detect(request: Request):
 
         # Prepare output data
         if proto:
+            ctx = span.get_span_context()
+            trace_id_hex = format(ctx.trace_id, '032x')
+            span_id_hex = format(ctx.span_id, '032x')
             # Create response protobuf message
             response_context_variables = ContextVariable_pb2.ContextVariables()
             detections_context_variable = ContextVariable_pb2.ContextVariable(
@@ -140,10 +131,10 @@ async def detect(request: Request):
                 value=ContextVariable_pb2.Value(bool=len(regions) > 0),
             )
             trace_context_variable = ContextVariable_pb2.ContextVariable(
-                name="traceId", value=ContextVariable_pb2.Value(string=ctx.trace_id)
+                name="traceId", value=ContextVariable_pb2.Value(string=trace_id_hex)
             )
             span_context_variable = ContextVariable_pb2.ContextVariable(
-                name="spanId", value=ContextVariable_pb2.Value(string=ctx.span_id)
+                name="spanId", value=ContextVariable_pb2.Value(string=span_id_hex)
             )
             response_context_variables.data.append(detections_context_variable)
             response_context_variables.data.append(trace_context_variable)

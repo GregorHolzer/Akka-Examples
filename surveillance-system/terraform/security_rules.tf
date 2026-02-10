@@ -19,6 +19,22 @@ resource "aws_security_group" "Surveillance-Default" {
   }
 
   ingress {
+    from_port = 8086
+    to_port = 8086
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "influxdb"
+  }
+
+  ingress {
+    from_port = 4317
+    to_port = 4317
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "telegraf"
+  }
+
+  ingress {
     from_port = 2551
     to_port = 2551
     protocol = "tcp"

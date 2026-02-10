@@ -80,13 +80,13 @@ public class Gate
 
   /** Represents the Open-State of the Gate Actor */
   private Behavior<GateCommand> open() {
-    logState(getContext(), State.Open);
+    //logState(getContext(), State.Open);
     return createReceive();
   }
 
   /** Represents the Closed-State of the Gate Actor */
   private Behavior<GateCommand> closed() {
-    logState(getContext(), State.Closed);
+    //logState(getContext(), State.Closed);
     return newReceiveBuilder()
       .onMessage(CommandOpen.class, cmd -> {
         railwayService.gateUp(

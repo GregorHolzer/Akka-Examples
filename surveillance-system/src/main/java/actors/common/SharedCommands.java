@@ -8,9 +8,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 /** Commands shared across detectors and surveillance actors. */
 public class SharedCommands {
 
-  /** Triggers an Alarm */
-  public static class Alarm
-    implements Detector.DetectorCommand, Surveillance.SurveillanceCommand {}
+  /**
+   * Triggers an Alarm
+   */
+    public record Alarm(String traceId, String spanId)
+          implements Detector.DetectorCommand, Surveillance.SurveillanceCommand {
+
+      @JsonCreator
+      public Alarm(@JsonProperty("traceId") String traceId, @JsonProperty("spanId") String spanId) {
+        this.traceId = traceId;
+        this.spanId = spanId;
+      }
+    }
 
   /** Disarms the system. */
   public static class Disarm

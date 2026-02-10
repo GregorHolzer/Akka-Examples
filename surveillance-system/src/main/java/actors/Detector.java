@@ -110,7 +110,7 @@ public class Detector
       .onMessage(CapturedImage.class, this::processing)
       .onMessage(DetectedPersons.class, msg -> Behaviors.same())
       .onMessage(Timeout.class, msg -> Behaviors.same())
-      .onMessage(SharedCommands.Alarm.class, msg -> this.alarm())
+      .onMessage(SharedCommands.Alarm.class, this::alarm)
       .onMessage(SharedCommands.Disarm.class, msg -> Behaviors.same())
       .onMessage(
         SharedCommands.InvocationFailure.class,
@@ -146,12 +146,12 @@ public class Detector
       .onMessage(CapturedImage.class, msg -> Behaviors.same())
       .onMessage(DetectedPersons.class, msg -> {
         if (msg.hasDetectedPersons) {
-          surveillanceActorRef.tell(new Surveillance.FoundPersons(msg.image));
+          surveillanceActorRef.tell(new Surveillance.FoundPersons(msg.image, msg.traceId(), msg.spanId()));
         }
         return Behaviors.same();
       })
       .onMessage(Timeout.class, msg -> this.capturing())
-      .onMessage(SharedCommands.Alarm.class, msg -> this.alarm())
+      .onMessage(SharedCommands.Alarm.class, this::alarm)
       .onMessage(SharedCommands.Disarm.class, msg -> Behaviors.same())
       .onMessage(
         SharedCommands.InvocationFailure.class,
@@ -161,9 +161,9 @@ public class Detector
   }
 
   /** Represents the Alarm-State of the Detector */
-  private Behavior<DetectorCommand> alarm() {
+  private Behavior<DetectorCommand> alarm(SharedCommands.Alarm alarm) {
     logState(getContext(), DetectorState.Alarm);
-    detectorService.alarmOn(getContext());
+    detectorService.alarmOn(getContext(), alarm);
     return newReceiveBuilder()
       .onMessage(CapturedImage.class, msg -> Behaviors.same())
       .onMessage(DetectedPersons.class, msg -> Behaviors.same())
@@ -212,10 +212,15 @@ public class Detector
    *
    * @param image the captured image.
    */
-  public record CapturedImage(byte[] image) implements DetectorCommand {
+  public record CapturedImage(byte[] image, String traceId, String spanId) implements DetectorCommand {
     @JsonCreator
-    public CapturedImage(@JsonProperty("image") byte[] image) {
+    public CapturedImage(
+            @JsonProperty("image") byte[] image,
+            @JsonProperty("traceId") String traceId,
+            @JsonProperty("spanId") String spanId) {
       this.image = image;
+      this.traceId = traceId;
+      this.spanId = spanId;
     }
   }
 
@@ -227,15 +232,21 @@ public class Detector
    */
   public record DetectedPersons(
     byte[] image,
-    Boolean hasDetectedPersons
+    Boolean hasDetectedPersons,
+    String traceId,
+    String spanId
   ) implements DetectorCommand {
     @JsonCreator
     public DetectedPersons(
       @JsonProperty("image") byte[] image,
-      @JsonProperty("hasDetectedPersons") Boolean hasDetectedPersons
+      @JsonProperty("hasDetectedPersons") Boolean hasDetectedPersons,
+      @JsonProperty("traceId") String traceId,
+      @JsonProperty("spanId") String spanId
     ) {
       this.image = image;
       this.hasDetectedPersons = hasDetectedPersons;
+      this.traceId = traceId;
+      this.spanId = spanId;
     }
   }
 

@@ -83,8 +83,9 @@ class Generator:
         self.train = None
 
         self._event_template = Event_pb2.Event()
-        self._event_template.name = "sensor"
+        self._event_template.topic = "sensor"
         self._event_template.channel = Event_pb2.Event.PERIPHERAL
+        self._event_template.source = "generator"
 
         self._speed_var = self._event_template.data.add()
         self._speed_var.name = "trainSpeed"
@@ -117,7 +118,7 @@ class Generator:
 
     async def publish_event(self, s_value, current_interval, current_speed, expected_arrival):
         self._bool_var.value.bool = s_value
-        self._event_template.createdTime = time.time_ns() / 1.0e6
+        self._event_template.createdTime = int(time.time_ns() / 1.0e6)
         self._event_template.id = str(uuid.uuid4())
 
         with tracer.start_as_current_span("broadcast_sensor") as span:

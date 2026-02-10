@@ -26,6 +26,10 @@ public class SurveillanceTest {
 
   static final ActorTestKit testKit = ActorTestKit.create();
 
+  private static final String traceId = "traceId";
+
+  private static final String spanId = "spanId";
+
   private final TestProbe<Detector.DetectorCommand> detector =
     testKit.createTestProbe("detector", Detector.DetectorCommand.class);
 
@@ -53,14 +57,14 @@ public class SurveillanceTest {
     );
 
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
-      surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
+      surveillance.tell(new Surveillance.FoundPersons(new byte[0], traceId, spanId));
       return null;
     });
 
     LoggingTestKit.info("")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        surveillance.tell(new Surveillance.Analyzed(new byte[0], false));
+        surveillance.tell(new Surveillance.Analyzed(new byte[0], false, traceId, spanId));
         return null;
       });
     testKit.stop(surveillance);
@@ -74,12 +78,12 @@ public class SurveillanceTest {
     );
 
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
-      surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
+      surveillance.tell(new Surveillance.FoundPersons(new byte[0], traceId, spanId));
       return null;
     });
 
     LoggingTestKit.info("in state Alarm").expect(testKit.system(), () -> {
-      surveillance.tell(new Surveillance.Analyzed(new byte[0], true));
+      surveillance.tell(new Surveillance.Analyzed(new byte[0], true, traceId, spanId));
       return null;
     });
     detector.expectMessageClass(SharedCommands.Alarm.class);
@@ -89,7 +93,7 @@ public class SurveillanceTest {
       return null;
     });
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
-      surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
+      surveillance.tell(new Surveillance.FoundPersons(new byte[0], traceId, spanId));
       return null;
     });
     testKit.stop(surveillance);
@@ -102,7 +106,7 @@ public class SurveillanceTest {
       "test3"
     );
     LoggingTestKit.info("in state Alarm").expect(testKit.system(), () -> {
-      surveillance.tell(new Surveillance.Analyzed(new byte[0], true));
+      surveillance.tell(new Surveillance.Analyzed(new byte[0], true, traceId, spanId));
       return null;
     });
     detector.expectMessageClass(
@@ -112,7 +116,7 @@ public class SurveillanceTest {
     LoggingTestKit.info("analyze")
       .withOccurrences(0)
       .expect(testKit.system(), () -> {
-        surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
+        surveillance.tell(new Surveillance.FoundPersons(new byte[0], traceId, spanId));
         return null;
       });
     //Wait Timeout
@@ -121,7 +125,7 @@ public class SurveillanceTest {
       Duration.ofSeconds(11)
     );
     LoggingTestKit.info("analyze").expect(testKit.system(), () -> {
-      surveillance.tell(new Surveillance.FoundPersons(new byte[0]));
+      surveillance.tell(new Surveillance.FoundPersons(new byte[0], traceId, spanId));
       return null;
     });
     testKit.stop(surveillance);

@@ -78,13 +78,13 @@ public class Controller
 
   /** Represents the Away-State of the Controller */
   private Behavior<ControllerCommand> away() {
-    logState(getContext(), State.Away);
+    //logState(getContext(), State.Away);
     return createReceive();
   }
 
   /** Represents the Approaching-State of the Controller */
   private Behavior<ControllerCommand> approaching() {
-    logState(getContext(), State.Approaching);
+    //logState(getContext(), State.Approaching);
     return newReceiveBuilder()
       .onMessage(CommandTrainNotSeen.class, cmd -> {
         lightMachine.tell(new LightMachine.CommandTurnOn(cmd.trainSpeed, cmd.traceId, cmd.spanId));
@@ -97,7 +97,7 @@ public class Controller
 
   /** Represents the Close-State of the Controller */
   private Behavior<ControllerCommand> close() {
-    logState(getContext(), State.Close);
+    //logState(getContext(), State.Close);
     return newReceiveBuilder()
       .onMessage(CommandTrainNotSeen.class, cmd -> Behaviors.same())
       .onMessage(CommandTrainSeen.class, cmd -> present())
@@ -106,7 +106,7 @@ public class Controller
 
   /** Represents the Present-State of the Controller */
   private Behavior<ControllerCommand> present() {
-    logState(getContext(), State.Present);
+    //logState(getContext(), State.Present);
     return newReceiveBuilder()
       .onMessage(CommandTrainNotSeen.class, cmd -> {
         lightMachine.tell(new LightMachine.CommandTurnOff(cmd.traceId, cmd.spanId));
@@ -119,7 +119,7 @@ public class Controller
 
   /** Represents the Leaving-State of the Controller */
   private Behavior<ControllerCommand> leaving() {
-    logState(getContext(), State.Leaving);
+    //logState(getContext(), State.Leaving);
     return newReceiveBuilder()
       .onMessage(CommandTrainNotSeen.class, cmd -> Behaviors.same())
       .onMessage(CommandTrainSeen.class, cmd -> left())
@@ -128,7 +128,7 @@ public class Controller
 
   /** Represents the Left-State of the Controller */
   private Behavior<ControllerCommand> left() {
-    logState(getContext(), State.Left);
+    //logState(getContext(), State.Left);
     return newReceiveBuilder()
       .onMessage(CommandTrainNotSeen.class, cmd -> away())
       .onMessage(CommandTrainSeen.class, cmd -> Behaviors.same())

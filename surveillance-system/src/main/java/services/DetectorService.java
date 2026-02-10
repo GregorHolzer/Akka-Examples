@@ -10,6 +10,7 @@ import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
 import exchange.ContextVariableProtos;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -49,7 +50,7 @@ public class DetectorService implements AkkaService {
    * @param body the Protobuf request body
    * @param port the target service port
    * @param url the request path
-   * @param variableName the expected variable name in the response
+   * @param variableNames the expected variable name in the response
    * @param onSuccess callback executed on successful extraction
    */
   private void sendRequestAndHandle(
@@ -58,10 +59,10 @@ public class DetectorService implements AkkaService {
     String host,
     Integer port,
     String url,
-    String variableName,
+    List<String> variableNames,
     java.util.function.BiConsumer<
       ActorRef<Detector.DetectorCommand>,
-      ContextVariableProtos.ContextVariable
+      List<ContextVariableProtos.ContextVariable>
     > onSuccess
   ) {
     ActorRef<Detector.DetectorCommand> self = context.getSelf();
@@ -79,19 +80,17 @@ public class DetectorService implements AkkaService {
         extractContextVariable(system, response).whenComplete(
           (var, throwableVar) -> {
             if (throwableVar == null) {
-              ContextVariableProtos.ContextVariable variable = var
+              List<ContextVariableProtos.ContextVariable> variables = var
                 .getDataList()
                 .stream()
-                .filter(v -> v.getName().equals(variableName))
-                .findFirst()
-                .orElse(null);
+                .filter(v -> variableNames.contains(v.getName())).toList();
 
-              if (variable != null) {
-                onSuccess.accept(self, variable);
+              if (variables.size() == variableNames.size()) {
+                onSuccess.accept(self, variables);
               } else {
                 self.tell(
                   new SharedCommands.InvocationFailure(
-                    url + ": no " + variableName + "-field"
+                    url + ": missing fields: expected " + variableNames
                   )
                 );
               }
@@ -118,8 +117,14 @@ public class DetectorService implements AkkaService {
    *
    * @param context the detector actor context
    */
-  public void alarmOn(ActorContext<Detector.DetectorCommand> context) {
-    sendRequest(context, buildPostRequest(iot_addr, iot_port, "/alarm/on"));
+  public void alarmOn(ActorContext<Detector.DetectorCommand> context, SharedCommands.Alarm alarm) {
+    HashMap<String, Object> values = new HashMap<>();
+    values.put("traceId", alarm.traceId());
+    values.put("spanId", alarm.spanId());
+
+    byte[] body = buildProtoRequestBody(values);
+
+    sendRequest(context, buildPostRequest(iot_addr, iot_port, "/alarm/on", body));
   }
 
   /**
@@ -155,11 +160,13 @@ public class DetectorService implements AkkaService {
       iot_addr,
       iot_port,
       "/capture",
-      "image",
-      (self, imageVar) ->
+      List.of("image", "traceId", "spanId"),
+      (self, variables) ->
         self.tell(
           new Detector.CapturedImage(
-            imageVar.getValue().getBytes().toByteArray()
+                  variables.getFirst().getValue().getBytes().toByteArray(),
+                  variables.get(1).getValue().getString(),
+                  variables.get(2).getValue().getString()
           )
         )
     );
@@ -180,6 +187,8 @@ public class DetectorService implements AkkaService {
   ) {
     HashMap<String, Object> values = new HashMap<>();
     values.put("image", capturedImage.image());
+    values.put("traceId",  capturedImage.traceId());
+    values.put("spanId", capturedImage.spanId());
 
     byte[] body = buildProtoRequestBody(values);
 
@@ -189,12 +198,14 @@ public class DetectorService implements AkkaService {
       edge_addr,
       edge_port,
       "/detect",
-      "hasDetectedPersons",
-      (self, detectedVar) ->
+      List.of("hasDetectedPersons", "traceId", "spanId"),
+      (self, list) ->
         self.tell(
           new Detector.DetectedPersons(
             capturedImage.image(),
-            detectedVar.getValue().getBool()
+            list.getFirst().getValue().getBool(),
+            list.get(1).getValue().getString(),
+            list.get(2).getValue().getString()
           )
         )
     );
