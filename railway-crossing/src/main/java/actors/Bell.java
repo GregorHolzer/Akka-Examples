@@ -70,13 +70,13 @@ public class Bell
 
   /** Represents the Off-State of the Bell */
   private Behavior<BellCommand> off() {
-    //logState(getContext(), State.Off);
+    logState(getContext(), State.Off);
     return createReceive();
   }
 
   /** Represents the On-State of the Bell */
   private Behavior<BellCommand> on() {
-    //logState(getContext(), State.On);
+    logState(getContext(), State.On);
     return newReceiveBuilder()
       .onMessage(CommandBellOff.class, cmd -> {
         railwayService.bellOff(

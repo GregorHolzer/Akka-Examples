@@ -12,7 +12,6 @@ def plot_scatter(x, y, xlabel, ylabel, title, output_file):
     plt.ylim(bottom=0)
     plt.title(title)
     plt.grid(True)
-    plt.gca().invert_xaxis()  # Invert x-axis
     plt.tight_layout()
     plt.savefig(output_file)
     plt.close()

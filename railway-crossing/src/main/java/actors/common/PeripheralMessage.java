@@ -7,7 +7,7 @@ import java.util.Objects;
 /**
  * Represents a received Message from NATS
  */
-public record NatsMessage(
+public record PeripheralMessage(
   Boolean sensorValue,
   Double trainSpeed,
   String traceId,
@@ -17,7 +17,7 @@ public record NatsMessage(
    * @param dataList list of {@link exchange.ContextVariableProtos.ContextVariables}
    *                 that have been received from {@link exchange.EventProtos}
    */
-  public static NatsMessage getNatsMessage(
+  public static PeripheralMessage getNatsMessage(
     List<ContextVariableProtos.ContextVariable> dataList
   ) {
     Boolean sensorValue = null;
@@ -35,7 +35,7 @@ public record NatsMessage(
         spanId = contextVariable.getValue().getString();
       }
     }
-    return new NatsMessage(sensorValue, trainSpeed, traceId, spanId);
+    return new PeripheralMessage(sensorValue, trainSpeed, traceId, spanId);
   }
 
   /** Checks if all fields are initialized */
@@ -52,7 +52,7 @@ public record NatsMessage(
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    NatsMessage that = (NatsMessage) o;
+    PeripheralMessage that = (PeripheralMessage) o;
 
     return (
       (Objects.equals(sensorValue, that.sensorValue)) &&

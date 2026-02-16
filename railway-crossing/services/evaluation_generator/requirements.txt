@@ -1,4 +1,4 @@
-nats-py
+eclipse-zenoh
 opentelemetry-api
 opentelemetry-sdk
 opentelemetry-exporter-otlp

@@ -1,12 +1,10 @@
 package actors.setup;
 
-import static actors.common.NatsMessage.getNatsMessage;
-
 import actors.Controller;
 import actors.Gate;
 import actors.LightMachine;
-import actors.common.Configuration;
-import actors.common.NatsMessage;
+
+import actors.common.PeripheralMessage;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -17,10 +15,12 @@ import akka.actor.typed.receptionist.Receptionist;
 import akka.actor.typed.receptionist.ServiceKey;
 import com.google.protobuf.InvalidProtocolBufferException;
 import exchange.EventProtos;
-import io.nats.client.Connection;
-import io.nats.client.Dispatcher;
-import io.nats.client.Message;
-import io.nats.client.Nats;
+import io.zenoh.Config;
+import io.zenoh.Session;
+import io.zenoh.Zenoh;
+import io.zenoh.keyexpr.KeyExpr;
+import io.zenoh.sample.Sample;
+
 import java.util.List;
 
 /**
@@ -29,23 +29,23 @@ import java.util.List;
  * <ul>
  * <li> Discovers the {@link LightMachine} and {@link Gate} Actors.</li>
  * <li> Creates the {@link Controller} Actor when the {@link LightMachine} and the {@link Gate} are ready. </li>
- * <li> Receives and forwards messages from NATS to the {@link Controller}. </li>
+ * <li> Receives and forwards messages from Zenoh to the {@link Controller}. </li>
  * </ul>
  * </p>
  */
 public class ControllerSetup
-  extends AbstractBehavior<Receptionist.Listing>
-  implements ComponentSetup {
+        extends AbstractBehavior<Receptionist.Listing>
+        implements ComponentSetup {
 
   /** Attached to the railway-crossing id to identify the component */
   public static final String componentSuffix = "_Controller";
 
-  /** Nats topic that emits sensor events */
-  private static final String natsTopic = "peripheral.sensor";
+  /** Zenoh key expression that emits sensor events */
+  private static final String zenohKeyExpr = "peripheral/sensor";
 
-  /** Logging prefix for the NatsDispatcher */
-  private static final String natsLoggingMessage =
-    "INFO: Nats Dispatcher Message -- ";
+  /** Logging prefix for the Zenoh Subscriber */
+  private static final String zenohLoggingMessage =
+          "INFO: Zenoh Subscriber Message -- ";
 
   /** The railway-crossing-id of the Controller */
   public final String crossingId;
@@ -60,49 +60,47 @@ public class ControllerSetup
   private ActorRef<Controller.ControllerCommand> controller;
 
   /** The ServiceKey to discover the lightMachine ActorRef from the Receptionist */
-  private final ServiceKey<
-    LightMachine.LightMachineCommand
-  > lightMachineServiceKey;
+  private final ServiceKey<LightMachine.LightMachineCommand> lightMachineServiceKey;
 
   /** The ServiceKey to discover the gate ActorRef from the Receptionist */
   private final ServiceKey<Gate.GateCommand> gateServiceKey;
 
-  /** Nats Connection */
-  private Connection nc = null;
+  /** Zenoh Session */
+  private Session session = null;
 
   private ControllerSetup(
-    ActorContext<Receptionist.Listing> context,
-    String crossingId
+          ActorContext<Receptionist.Listing> context,
+          String crossingId
   ) {
     super(context);
     this.crossingId = crossingId;
     //Create the ServiceKeys for the Gate and the LightMachine
     gateServiceKey = ServiceKey.create(
-      Gate.GateCommand.class,
-      crossingId + GateSetup.componentSuffix
+            Gate.GateCommand.class,
+            crossingId + GateSetup.componentSuffix
     );
     lightMachineServiceKey = ServiceKey.create(
-      LightMachine.LightMachineCommand.class,
-      crossingId + LightMachineSetup.componentSuffix
+            LightMachine.LightMachineCommand.class,
+            crossingId + LightMachineSetup.componentSuffix
     );
     //Subscribe to the Receptionist with the ServiceKeys to discover the Gate and the LightMachine
     getContext()
-      .getSystem()
-      .receptionist()
-      .tell(Receptionist.subscribe(gateServiceKey, getContext().getSelf()));
+            .getSystem()
+            .receptionist()
+            .tell(Receptionist.subscribe(gateServiceKey, getContext().getSelf()));
     getContext()
-      .getSystem()
-      .receptionist()
-      .tell(
-        Receptionist.subscribe(lightMachineServiceKey, getContext().getSelf())
-      );
+            .getSystem()
+            .receptionist()
+            .tell(
+                    Receptionist.subscribe(lightMachineServiceKey, getContext().getSelf())
+            );
     context
-      .getLog()
-      .info(
-        "Controller subscribed to ServiceKeys: {}, {}",
-        gateServiceKey,
-        lightMachineServiceKey
-      );
+            .getLog()
+            .info(
+                    "Controller subscribed to ServiceKeys: {}, {}",
+                    gateServiceKey,
+                    lightMachineServiceKey
+            );
   }
 
   /**
@@ -119,8 +117,8 @@ public class ControllerSetup
   @Override
   public Receive<Receptionist.Listing> createReceive() {
     return newReceiveBuilder()
-      .onMessage(Receptionist.Listing.class, this::onListing)
-      .build();
+            .onMessage(Receptionist.Listing.class, this::onListing)
+            .build();
   }
 
   /**
@@ -129,29 +127,29 @@ public class ControllerSetup
    * @param listing message of the {@link Receptionist} that contains a list of {@link ActorRef}s
    */
   private Behavior<Receptionist.Listing> onListing(
-    Receptionist.Listing listing
+          Receptionist.Listing listing
   ) {
     //Check for what ServiceKey the message is
     if (listing.isForKey(gateServiceKey)) {
       List<ActorRef<Gate.GateCommand>> availableGates = listing
-        .getServiceInstances(gateServiceKey)
-        .stream()
-        .toList();
+              .getServiceInstances(gateServiceKey)
+              .stream()
+              .toList();
       //Extract Gate ActorRef if available
       gate = checkInstances(
-        getContext(),
-        availableGates,
-        Gate.GateCommand.class
+              getContext(),
+              availableGates,
+              Gate.GateCommand.class
       );
     }
     if (listing.isForKey(lightMachineServiceKey)) {
       List<ActorRef<LightMachine.LightMachineCommand>> availableLightMachines =
-        listing.getServiceInstances(lightMachineServiceKey).stream().toList();
+              listing.getServiceInstances(lightMachineServiceKey).stream().toList();
       //Extract LightMachine ActorRef if available
       lightMachine = checkInstances(
-        getContext(),
-        availableLightMachines,
-        LightMachine.LightMachineCommand.class
+              getContext(),
+              availableLightMachines,
+              LightMachine.LightMachineCommand.class
       );
     }
     //Create the Controller when the LightMachine and Gate are discovered
@@ -164,88 +162,77 @@ public class ControllerSetup
   /** Creates a new {@link Controller} Actor */
   private void createController() {
     controller = getContext().spawn(
-      Controller.create(gate, lightMachine),
-      String.format("%s", crossingId + componentSuffix)
+            Controller.create(gate, lightMachine),
+            String.format("%s", crossingId + componentSuffix)
     );
-    NatsSetupStatus status = natsSetup();
-    if (status.equals(NatsSetupStatus.Failure)) {
-      getContext().getLog().error("Failed to connect to NATS-Server");
+    ZenohSetupStatus status = zenohSetup();
+    if (status.equals(ZenohSetupStatus.Failure)) {
+      getContext().getLog().error("Failed to connect to Zenoh");
     }
   }
 
   /**
-   * Initializes the Nats-Connection
-   * @return {@link NatsSetupStatus#Success} on success, otherwise {@link NatsSetupStatus#Failure}.
+   * Initializes the Zenoh Session and Subscriber
+   * @return {@link ZenohSetupStatus#Success} on success, otherwise {@link ZenohSetupStatus#Failure}.
    */
-  private NatsSetupStatus natsSetup() {
-    if (nc != null) {
-      return NatsSetupStatus.Success;
+  private ZenohSetupStatus zenohSetup() {
+    if (session != null) {
+      return ZenohSetupStatus.Success;
     }
     try {
-      Configuration.NodeConfiguration config =
-        Configuration.getNodeConfiguration();
-      nc = Nats.connect(
-        "nats://" + config.nats_server_addr() + ":" + config.nats_server_port()
-      );
-      Dispatcher dispatcher = nc.createDispatcher(this::NatsDispatcher);
-      dispatcher.subscribe(natsTopic);
-      getContext()
-        .getLog()
-        .info(
-          "{} subscribed to Topic: {}",
-          crossingId + componentSuffix,
-          natsTopic
-        );
-      return NatsSetupStatus.Success;
+      Config zenohConfig = Config.loadDefault();
+      session = Zenoh.open(zenohConfig);
+      session.declareSubscriber(KeyExpr.tryFrom(zenohKeyExpr),  this::zenohHandler);
+      return ZenohSetupStatus.Success;
     } catch (Exception e) {
       getContext()
-        .getLog()
-        .error("Could not connect to nats server, error: {}", e.getMessage());
-      return NatsSetupStatus.Failure;
+              .getLog()
+              .error("Could not connect to Zenoh, error: {}", e.getMessage());
+      return ZenohSetupStatus.Failure;
     }
   }
 
   /**
-   * Dispatcher that handles arriving messages from Nats and forwards them to the {@link Controller}
-   * @param msg   a message from Nats containing a sensor value
+   * Handler that processes arriving messages from Zenoh and forwards them to the {@link Controller}
+   * @param sample message data from Zenoh containing a sensor value
    */
-  private void NatsDispatcher(Message msg) {
+  private void zenohHandler(Sample sample) {
     try {
-      EventProtos.Event event = EventProtos.Event.parseFrom(msg.getData());
-      //Create a NatsMessage from the Proto message
-      NatsMessage natsMessage = getNatsMessage(event.getDataList());
-      if (natsMessage.isValid()) {
-        if (natsMessage.sensorValue()) {
+      EventProtos.Event event = EventProtos.Event.parseFrom(sample.getPayload().toBytes());
+      //Create a ZenohMessage from the Proto message
+      PeripheralMessage message = PeripheralMessage.getNatsMessage(event.getDataList());
+      if (message.isValid()) {
+        if (message.sensorValue()) {
           //Send a new TrainSeen Message to the Controller
           controller.tell(
-            new Controller.CommandTrainSeen(
-              natsMessage.trainSpeed(),
-              natsMessage.traceId(),
-              natsMessage.spanId()
-            )
+                  new Controller.CommandTrainSeen(
+                          message.trainSpeed(),
+                          message.traceId(),
+                          message.spanId()
+                  )
           );
         } else {
           //Send a new TrainNotSeen Message to the Controller
           controller.tell(
-            new Controller.CommandTrainNotSeen(
-              natsMessage.trainSpeed(),
-              natsMessage.traceId(),
-              natsMessage.spanId()
-            )
+                  new Controller.CommandTrainNotSeen(
+                          message.trainSpeed(),
+                          message.traceId(),
+                          message.spanId()
+                  )
           );
         }
       }
     } catch (InvalidProtocolBufferException e) {
       System.out.println(
-        natsLoggingMessage +
-          "Error parsing nats message to event: " +
-          e.getMessage()
+              zenohLoggingMessage +
+                      "Error parsing Zenoh message to event: " +
+                      e.getMessage()
       );
     }
   }
 
-  /** Status of the Nats Initialization */
-  private enum NatsSetupStatus {
+  /** Status of the Zenoh Initialization */
+  private enum ZenohSetupStatus {
     Success,
     Failure,
   }

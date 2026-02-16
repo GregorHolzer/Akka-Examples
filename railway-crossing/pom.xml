@@ -12,7 +12,6 @@
         <scala.binary.version>2.13</scala.binary.version>
         <akka.management.version>1.6.3</akka.management.version>
         <version.number>1</version.number>
-        <nats.version>2.24.0</nats.version>
         <akka.grpc.version>2.5.8</akka.grpc.version>
         <protobuf.version>3.25.8</protobuf.version>
     </properties>
@@ -108,9 +107,9 @@
             <artifactId>akka-http_${scala.binary.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.nats</groupId>
-            <artifactId>jnats</artifactId>
-            <version>${nats.version}</version>
+            <groupId>org.eclipse.zenoh</groupId>
+            <artifactId>zenoh-java</artifactId>
+            <version>1.7.2</version>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>

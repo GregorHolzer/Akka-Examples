@@ -4,8 +4,8 @@ import asyncio
 import uuid
 
 import Event_pb2
-import nats
-from datetime import datetime, timezone
+import zenoh
+from datetime import datetime
 
 from opentelemetry import metrics
 from opentelemetry import trace
@@ -17,8 +17,8 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 
-MIN_SENSOR_INTERVAL = float(os.environ.get("MIN_SENSOR_INTERVAL", "1"))
-MAX_SENSOR_INTERVAL = float(os.environ.get("MAX_SENSOR_INTERVAL", "1"))
+MIN_EVENTS_PER_SEC = float(os.environ.get("MIN_EVENTS_PER_SEC", "1"))
+MAX_EVENTS_PER_SEC = float(os.environ.get("MAX_EVENTS_PER_SEC", "1"))
 
 MIN_TRAIN_SPEED_MS = float(os.environ.get("MIN_TRAIN_SPEED_MS", "1"))
 MAX_TRAIN_SPEED_MS = float(os.environ.get("MAX_TRAIN_SPEED_MS", "1"))
@@ -75,12 +75,14 @@ class Train:
         return train_back < 2000
 
 class Generator:
-    def __init__(self, nc, duration):
+    def __init__(self, session, duration):
         self.num_trains = 0
-        self.nc = nc
         self.duration = duration
         self._start_time = time.time()
         self.train = None
+
+        self._key = "peripheral/sensor"
+        self.pub = session.declare_publisher(self._key)
 
         self._event_template = Event_pb2.Event()
         self._event_template.topic = "sensor"
@@ -100,18 +102,17 @@ class Generator:
 
     def compute_broadcast_interval(self):
         elapsed_time = time.time() - self._start_time
+        current_event_rate = MIN_EVENTS_PER_SEC + (MAX_EVENTS_PER_SEC - MIN_EVENTS_PER_SEC) * (elapsed_time / DURATION_IN_SECONDS)
 
         # Linear interpolation
-        return MAX_SENSOR_INTERVAL - (
-            MAX_SENSOR_INTERVAL - MIN_SENSOR_INTERVAL
-        ) * (elapsed_time / DURATION_IN_SECONDS)
+        return 1 / current_event_rate, current_event_rate
 
     def compute_train_speed(self):
         elapsed_time = time.time() - self._start_time
 
         # Linear interpolation
         return MIN_TRAIN_SPEED_MS + (
-            MAX_TRAIN_SPEED_MS -MIN_TRAIN_SPEED_MS
+                MAX_TRAIN_SPEED_MS -MIN_TRAIN_SPEED_MS
         ) * (elapsed_time / DURATION_IN_SECONDS)
 
 
@@ -128,7 +129,7 @@ class Generator:
             span.set_attribute("interval", current_interval)
             span.set_attribute("arrival", expected_arrival.isoformat())
             span.set_attribute("speed", current_speed)
-            await self.nc.publish("peripheral.sensor", self._event_template.SerializeToString())
+            self.pub.put(self._event_template.SerializeToString())
 
 
     async def run(self):
@@ -137,7 +138,7 @@ class Generator:
             if self.train is not None and not self.train.on_track():
                 print("Removing Train")
                 if self.train.sensor_neg_flanks == 3:
-                    print("Train was measured correctly!")
+                    print(f"Train was measured correctly! Current Interval: {event_rate} ")
                 else:
                     print("Train was not measured correctly!")
 
@@ -150,28 +151,21 @@ class Generator:
                 self.num_trains = 1 + self.num_trains
                 self.train = Train(TRAIN_LEN, train_speed, SENSOR_POSITIONS)
 
-            broadcast_interval = self.compute_broadcast_interval()
+            broadcast_interval, event_rate = self.compute_broadcast_interval()
             await self.publish_event(self.train.check_sensor(), broadcast_interval, self.train.train_speed, self.train.expected_arrival)
             await asyncio.sleep(broadcast_interval)
 
 async def main():
     await asyncio.sleep(START_DELAY)
-    nats_url = os.environ.get("NATS_URL")
-    try:
-        nc = await nats.connect(nats_url)
-    except Exception as e:
-        print(f"Error connecting to NATS: {e}")
-        return
+    with zenoh.open(zenoh.Config()) as session:
+        generator = Generator(session, DURATION_IN_SECONDS)
+        start = time.time()
+        await generator.run()
+        end = time.time()
 
-    generator = Generator(nc, DURATION_IN_SECONDS)
-    start = time.time()
-    await generator.run()
-    end = time.time()
+        print(f"Done. Actual Duration: {end - start:.4f} seconds")
+        print(f"Number of Trains: {generator.num_trains}")
 
-    print(f"Done. Actual Duration: {end - start:.4f} seconds")
-    print(f"Number of Trains: {generator.num_trains}")
-
-    await nc.drain()
 
 if __name__ == "__main__":
     asyncio.run(main())

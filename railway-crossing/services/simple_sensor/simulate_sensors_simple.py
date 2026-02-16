@@ -16,8 +16,8 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 
-START_RATE = 1000
-END_RATE = 100000
+START_RATE = 80000
+END_RATE = 80000
 INTERVALS_PER_SECOND = 6
 DURATION_IN_SECONDS = 600
 SLICE_DURATION = 1.0 / INTERVALS_PER_SECOND
@@ -34,7 +34,6 @@ span_processor = BatchSpanProcessor(span_exporter)
 trace_provider.add_span_processor(span_processor)
 trace.set_tracer_provider(trace_provider)
 tracer = trace.get_tracer(__name__)
-
 class Generator:
     def __init__(self, nc):
         self._nc = nc

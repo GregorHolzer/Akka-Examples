@@ -1,0 +1,114 @@
+{
+  "crossings": {
+    "0": [
+      {
+        "crossingId": "crossing_0",
+        "components": [
+          "Controller"
+        ]
+      },
+      {
+        "crossingId": "crossing_1",
+        "components": [
+          "Controller"
+        ]
+      },
+      {
+        "crossingId": "crossing_2",
+        "components": [
+          "Controller"
+        ]
+      },
+      {
+        "crossingId": "crossing_3",
+        "components": [
+          "Controller"
+        ]
+      }
+    ],
+    "1": [
+      {
+        "crossingId": "crossing_0",
+        "components": [
+          "LightMachine"
+        ]
+      },
+      {
+        "crossingId": "crossing_1",
+        "components": [
+          "LightMachine"
+        ]
+      },
+      {
+        "crossingId": "crossing_2",
+        "components": [
+          "LightMachine"
+        ]
+      },
+      {
+        "crossingId": "crossing_3",
+        "components": [
+          "LightMachine"
+        ]
+      }
+    ],
+    "2": [
+      {
+        "crossingId": "crossing_0",
+        "components": [
+          "Gate"
+        ]
+      },
+      {
+        "crossingId": "crossing_1",
+        "components": [
+          "Gate"
+        ]
+      },
+      {
+        "crossingId": "crossing_2",
+        "components": [
+          "Gate"
+        ]
+      },
+      {
+        "crossingId": "crossing_3",
+        "components": [
+          "Gate"
+        ]
+      }
+    ],
+    "3": [
+      {
+        "crossingId": "crossing_0",
+        "components": [
+          "Bell"
+        ]
+      },
+      {
+        "crossingId": "crossing_1",
+        "components": [
+          "Bell"
+        ]
+      },
+      {
+        "crossingId": "crossing_2",
+        "components": [
+          "Bell"
+        ]
+      },
+      {
+        "crossingId": "crossing_3",
+        "components": [
+          "Bell"
+        ]
+      }
+    ]
+  },
+  "service_server_addr": "railway-crossing-services",
+  "service_server_port": 8000,
+  "nats_server_addr": "nats-server",
+  "nats_server_port": 4222,
+  "export_server_addr": "telegraf",
+  "export_server_port": 4317
+}

@@ -74,13 +74,13 @@ public class LightMachine
 
   /** Represents the Off-State of the LightMachine */
   private Behavior<LightMachineCommand> off() {
-    //logState(getContext(), State.Off);
+    logState(getContext(), State.Off);
     return createReceive();
   }
 
   /** Represents the Early-Warning-State of the LightMachine */
   private Behavior<LightMachineCommand> earlyWarning() {
-    //logState(getContext(), State.EarlyMorning);
+    logState(getContext(), State.EarlyMorning);
     return newReceiveBuilder()
             .onMessage(CommandTurnOff.class, cmd -> Behaviors.same())
             .onMessage(CommandEarlyMorning.class, cmd -> Behaviors.same())
@@ -97,7 +97,7 @@ public class LightMachine
 
   /** Represents the On-State of the LightMachine */
   private Behavior<LightMachineCommand> on() {
-    //logState(getContext(), State.On);
+    logState(getContext(), State.On);
     return newReceiveBuilder()
             .onMessage(CommandEarlyMorning.class, cmd -> Behaviors.same())
             .onMessage(CommandTurnOn.class, cmd -> Behaviors.same())
